@@ -7,8 +7,11 @@ import {
   isUserId,
   isVideoId,
   type NowPlaying,
+  type PartyOptions,
+  type SuggestedTrack,
   type UserId,
 } from '@shared/social-protocol';
+import type { PlayerCommand } from '@shared/types';
 import { getPlayerState, onPlayerState } from '../player';
 import { getSettings, onSettingsChanged, updateSettings } from '../settings';
 import {
@@ -92,8 +95,7 @@ const party = new PartyService(SOCIAL_SERVER_URL, {
   notice: setNotice,
   setYt: (control) => sendToYt('yt:party', control),
   command: sendPlayerCommand,
-  playTrack: (videoId, playlistId) =>
-    sendToYt('yt:play-track', playlistId ? { videoId, playlistId } : { videoId }),
+  skip: () => sendToYt('yt:party-skip'),
   audioOffsetMs: () => getSettings().social.audioOffsetMs,
   nameOf: (id) => friends.nameOf(id),
 });
@@ -168,9 +170,10 @@ export function startSocial(): void {
       if (
         party.isHost &&
         (next.partyOpen !== previous.partyOpen ||
-          next.allowSuggestions !== previous.allowSuggestions)
+          next.allowSuggestions !== previous.allowSuggestions ||
+          next.everyoneControls !== previous.everyoneControls)
       ) {
-        party.setOptions({ open: next.partyOpen, allowSuggestions: next.allowSuggestions });
+        party.setOptions(partyOptions());
         lastPresenceKey = '';
         updatePresence();
       }
@@ -235,6 +238,7 @@ export function patchSocial(raw: unknown): void {
     if (typeof p.shareNowPlaying === 'boolean') s.social.shareNowPlaying = p.shareNowPlaying;
     if (typeof p.partyOpen === 'boolean') s.social.partyOpen = p.partyOpen;
     if (typeof p.allowSuggestions === 'boolean') s.social.allowSuggestions = p.allowSuggestions;
+    if (typeof p.everyoneControls === 'boolean') s.social.everyoneControls = p.everyoneControls;
     if (typeof p.audioOffsetMs === 'number' && Number.isFinite(p.audioOffsetMs)) {
       s.social.audioOffsetMs = Math.max(
         -AUDIO_OFFSET_MAX_MS,
@@ -258,8 +262,7 @@ export function removeFriend(id: unknown): void {
 
 export function startParty(): void {
   if (!identity || party.active) return;
-  const { partyOpen, allowSuggestions } = getSettings().social;
-  party.startHost(identity, displayName, { open: partyOpen, allowSuggestions });
+  party.startHost(identity, displayName, partyOptions());
   emitChange();
 }
 
@@ -318,6 +321,33 @@ export function resumeParty(): void {
 
 export function handlePartyReport(report: PartyReport): void {
   party.onYtReport(report);
+}
+
+/** Party rules from the settings (the host's switches in the Social panel). */
+function partyOptions(): PartyOptions {
+  const { partyOpen, allowSuggestions, everyoneControls } = getSettings().social;
+  return { open: partyOpen, allowSuggestions, everyoneControls };
+}
+
+/** The "+" next to a track in YT. */
+export function addPartyTrack(track: SuggestedTrack): void {
+  party.addTrack(track);
+}
+
+export function removeQueued(id: unknown): void {
+  if (typeof id === 'string' && id.length <= 40) party.removeQueued(id);
+}
+
+export function moveQueuedToTop(id: unknown): void {
+  if (typeof id === 'string' && id.length <= 40) party.moveQueuedToTop(id);
+}
+
+/**
+ * Pegel's own play controls (UI, mini player, tray): in a party they may be
+ * commands for everybody; otherwise they go to YT as always.
+ */
+export function routePlayerCommand(command: PlayerCommand): void {
+  if (!party.routeCommand(command)) sendPlayerCommand(command);
 }
 
 /** True while a Pegel window has focus; the panel shows invites then, no notification needed. */

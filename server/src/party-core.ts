@@ -4,7 +4,10 @@ import {
   MAX_SUGGESTIONS,
   MAX_SUGGESTIONS_PER_MEMBER,
   PARTY_MAX_MEMBERS,
+  PARTY_MIN_PROTOCOL,
   PROTOCOL_VERSION,
+  MAX_QUEUE,
+  MAX_QUEUE_PER_MEMBER,
   RECONNECT_GRACE_MS,
   parsePartyClientMessage,
   ticketPayload,
@@ -16,6 +19,8 @@ import {
   type PartyOptions,
   type PartyPlayback,
   type PartyServerMessage,
+  type QueueItem,
+  type SuggestedTrack,
   type Suggestion,
   type UserId,
 } from '../../src/shared/social-protocol';
@@ -64,8 +69,9 @@ export class PartyCore {
   private kicked = new Set<UserId>();
   private playback: PartyPlayback | null = null;
   private playbackFrom: UserId | null = null;
-  private options: PartyOptions = { open: true, allowSuggestions: true };
+  private options: PartyOptions = { open: true, allowSuggestions: true, everyoneControls: true };
   private suggestions: Suggestion[] = [];
+  private queue: QueueItem[] = [];
   private ended: PartyEndReason | null = null;
 
   constructor(
@@ -185,7 +191,7 @@ export class PartyCore {
     msg: Extract<PartyClientMessage, { t: 'auth' }>,
   ): Promise<void> {
     const now = this.deps.now();
-    if (msg.v < PROTOCOL_VERSION) return this.fail(conn, 'old-client');
+    if (msg.v < PARTY_MIN_PROTOCOL) return this.fail(conn, 'old-client');
     const signed = await this.deps.verify(
       msg.userId,
       authPayload(this.partyId, state.nonce),
@@ -257,6 +263,7 @@ export class PartyCore {
       state: this.playback,
       options: this.options,
       suggestions: this.suggestions,
+      queue: this.queue,
       serverTime: this.deps.now(),
     });
     this.broadcast({ t: 'member', member: this.view(member) }, conn);
@@ -309,11 +316,60 @@ export class PartyCore {
       }
       case 'suggest.answer': {
         if (!isHost) return;
-        const before = this.suggestions.length;
+        const suggestion = this.suggestions.find((s) => s.id === msg.id);
+        if (!suggestion) return;
         this.suggestions = this.suggestions.filter((s) => s.id !== msg.id);
-        if (this.suggestions.length !== before) {
-          this.broadcast({ t: 'suggestions', suggestions: this.suggestions });
+        this.broadcast({ t: 'suggestions', suggestions: this.suggestions });
+        // Accepted suggestions join the queue in the name of who suggested them.
+        if (msg.accept) this.enqueue(suggestion.from, suggestion.fromName, suggestion);
+        break;
+      }
+      case 'queue.add': {
+        if (!isHost && !this.options.everyoneControls) return;
+        const own = this.queue.filter((q) => q.by === userId).length;
+        if (own >= MAX_QUEUE_PER_MEMBER || this.queue.length >= MAX_QUEUE) {
+          return this.send(conn, { t: 'error', code: 'rate-limit', op: 'queue.add' });
         }
+        if (this.enqueue(userId, member.name, msg.track)) {
+          this.activity(userId, member.name, 'add', msg.track.title);
+        }
+        break;
+      }
+      case 'queue.remove': {
+        const item = this.queue.find((q) => q.id === msg.id);
+        if (!item || (!isHost && item.by !== userId)) return;
+        this.queue = this.queue.filter((q) => q.id !== msg.id);
+        this.broadcast({ t: 'queue', queue: this.queue });
+        break;
+      }
+      case 'queue.move': {
+        if (!isHost) return;
+        const from = this.queue.findIndex((q) => q.id === msg.id);
+        if (from < 0) return;
+        const [item] = this.queue.splice(from, 1);
+        this.queue.splice(Math.min(msg.index, this.queue.length), 0, item!);
+        this.broadcast({ t: 'queue', queue: this.queue });
+        break;
+      }
+      case 'queue.played': {
+        // The host started the first queued track: it leaves the queue.
+        if (!isHost) return;
+        const before = this.queue.length;
+        this.queue = this.queue.filter((q) => q.id !== msg.id);
+        if (this.queue.length !== before) this.broadcast({ t: 'queue', queue: this.queue });
+        break;
+      }
+      case 'control': {
+        if (isHost || !this.options.everyoneControls || !this.hostId) return;
+        const host = this.members.get(this.hostId);
+        if (!host?.conn) return;
+        this.send(host.conn, {
+          t: 'control',
+          action: msg.action,
+          from: userId,
+          ...(msg.positionMs !== undefined && { positionMs: msg.positionMs }),
+        });
+        this.activity(userId, member.name, msg.action, this.playback?.title);
         break;
       }
       case 'kick': {
@@ -359,6 +415,31 @@ export class PartyCore {
     }
   }
 
+  /** Appends a track unless the same one is already waiting; true if added. */
+  private enqueue(by: UserId, byName: string, track: SuggestedTrack): boolean {
+    if (this.queue.some((q) => q.videoId === track.videoId)) return false;
+    if (this.queue.length >= MAX_QUEUE) return false;
+    this.queue.push({
+      id: base64url(this.deps.randomBytes(9)),
+      videoId: track.videoId,
+      title: track.title,
+      artist: track.artist,
+      by,
+      byName,
+    });
+    this.broadcast({ t: 'queue', queue: this.queue });
+    return true;
+  }
+
+  private activity(
+    userId: UserId,
+    name: string,
+    action: 'play' | 'pause' | 'skip' | 'seek' | 'add',
+    title?: string,
+  ): void {
+    this.broadcast({ t: 'activity', userId, name, action, ...(title && { title }) });
+  }
+
   private remove(userId: UserId, reason: 'left' | 'kicked' | 'timeout'): void {
     if (!this.members.delete(userId)) return;
     const before = this.suggestions.length;
@@ -395,6 +476,7 @@ export class PartyCore {
     this.conns.clear();
     this.members.clear();
     this.suggestions = [];
+    this.queue = [];
     this.playback = null;
     this.hostId = null;
   }

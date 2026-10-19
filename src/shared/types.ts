@@ -97,6 +97,8 @@ export interface SocialSettings {
   partyOpen: boolean;
   /** Host: guests may suggest tracks. */
   allowSuggestions: boolean;
+  /** Host: guests may queue tracks, pause, skip and seek for everybody (M11). */
+  everyoneControls: boolean;
   panelOpen: boolean;
 }
 

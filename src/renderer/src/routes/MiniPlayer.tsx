@@ -151,8 +151,8 @@ export function MiniPlayer() {
   const pinned = settings?.mini.alwaysOnTop ?? false;
   const eq = settings?.eq;
   const eqLabel = !eq ? '' : eq.enabled ? `EQ · ${eq.preset}${isDirty(eq) ? ' •' : ''}` : 'EQ aus';
-  // In a party only the host skips and seeks; guests can still pause for themselves.
-  const guest = party?.role === 'guest';
+  // In a party guests skip and seek only with "Alle dürfen steuern"; pausing always works.
+  const guest = party?.role === 'guest' && !party.canControl;
   const hostName = party?.members.find((m) => m.isHost)?.name ?? 'der Host';
   const steerTitle = `Steuert ${hostName}`;
 
@@ -238,8 +238,14 @@ export function MiniPlayer() {
         </button>
         <button
           className="icon-btn"
-          disabled={!has || guest}
-          title={guest ? steerTitle : 'Zurück'}
+          disabled={!has || party?.role === 'guest'}
+          title={
+            party?.role === 'guest'
+              ? guest
+                ? steerTitle
+                : 'Zurück gibt es in der Party nicht'
+              : 'Zurück'
+          }
           aria-label="Zurück"
           onClick={() => command({ type: 'previous' })}
         >

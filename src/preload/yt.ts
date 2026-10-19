@@ -6,6 +6,7 @@ import { watchLinkDrops } from '@shared/link-drop';
 import { EqEngine } from '../yt/audio/eq';
 import { SpectrumFeed, Visualizer } from '../yt/audio/visualizer';
 import { YtDecor } from '../yt/decor/effects';
+import { PlusButtons } from '../yt/party/plus';
 import { PartyEngine } from '../yt/party/sync';
 import { watchScrollbar } from '../yt/decor/scrollbar';
 import {
@@ -56,15 +57,20 @@ if (location.hostname === 'music.youtube.com') {
       if (NEEDS_REPORT.has(command.type)) setTimeout(() => bridge.report(true), 150);
     },
   );
+  const plus = new PlusButtons((track) => send('yt:party-add', track));
   const party = new PartyEngine(
     () => eq.outputLatencyMs(),
     (report) => send('yt:party-report', report),
   );
   ipcRenderer.on(
     'yt:party' satisfies keyof MainToYtChannels,
-    (_event: IpcRendererEvent, control: MainToYtChannels['yt:party']) => party.setControl(control),
+    (_event: IpcRendererEvent, control: MainToYtChannels['yt:party']) => {
+      party.setControl(control);
+      plus.setMode(control?.plus ?? null);
+    },
   );
   ipcRenderer.on('yt:party-resume' satisfies keyof MainToYtChannels, () => party.resume());
+  ipcRenderer.on('yt:party-skip' satisfies keyof MainToYtChannels, () => party.skip());
   ipcRenderer.on(
     'yt:play-track' satisfies keyof MainToYtChannels,
     (_event: IpcRendererEvent, track: MainToYtChannels['yt:play-track']) => {

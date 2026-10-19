@@ -3,6 +3,7 @@ import {
   authPayload,
   CODE_TTL_MS,
   PENDING_TTL_MS,
+  HUB_MIN_PROTOCOL,
   PROTOCOL_VERSION,
   parseHubClientMessage,
   type HubClientMessage,
@@ -210,7 +211,7 @@ export class HubCore {
     state: ConnState,
     msg: Extract<HubClientMessage, { t: 'auth' }>,
   ): Promise<void> {
-    if (msg.v < PROTOCOL_VERSION) {
+    if (msg.v < HUB_MIN_PROTOCOL) {
       this.send(conn, { t: 'error', code: 'old-client' });
       return conn.close(CLOSE_FINAL, 'old-client');
     }

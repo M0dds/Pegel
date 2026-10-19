@@ -3,7 +3,7 @@ import { IN_SYNC_SUMMARY_MS, NAME_MAX } from '@shared/social-protocol';
 import type { FriendView, PartyMemberView, PartyView, SocialState } from '@shared/social';
 import type { SocialSettings } from '@shared/types';
 import { Switch } from '../Switch';
-import { CloseIcon, PartyIcon, PlusIcon } from '../icons';
+import { CloseIcon, NextIcon, PartyIcon, PauseIcon, PlayIcon, PlusIcon } from '../icons';
 import { AddFriendDialog } from './AddFriendDialog';
 import { RowMenu } from './RowMenu';
 
@@ -218,6 +218,26 @@ function PartyCard({ party, settings }: { party: PartyView; settings: SocialSett
                 : 'Warte auf den Host …'}
           </small>
         </div>
+        {party.canControl && party.track && (
+          <div className="party-controls">
+            <button
+              className="icon-btn"
+              aria-label={party.playing ? 'Pause für alle' : 'Weiter für alle'}
+              title={party.playing ? 'Pause für alle' : 'Abspielen für alle'}
+              onClick={() => window.pegel.playerCommand({ type: 'playPause' })}
+            >
+              {party.playing ? <PauseIcon /> : <PlayIcon />}
+            </button>
+            <button
+              className="icon-btn"
+              aria-label="Überspringen"
+              title={party.queue.length ? 'Nächster Titel aus der Warteschlange' : 'Überspringen'}
+              onClick={() => window.pegel.playerCommand({ type: 'next' })}
+            >
+              <NextIcon />
+            </button>
+          </div>
+        )}
       </div>
 
       {status && <div className="party-status">{status}</div>}
@@ -277,6 +297,54 @@ function PartyCard({ party, settings }: { party: PartyView; settings: SocialSett
         })}
       </ul>
 
+      <div className="queue">
+        <div className="field-label">
+          Warteschlange{party.queue.length ? ` · ${party.queue.length}` : ''}
+        </div>
+        {party.queue.length === 0 ? (
+          <p className="hint">
+            {party.canControl
+              ? 'Leer. Mit dem + neben einem Titel in YT kommt er hierher, die Musik läuft weiter.'
+              : 'Leer. Der Host entscheidet, was als Nächstes kommt.'}
+          </p>
+        ) : (
+          <ol>
+            {party.queue.map((q, i) => (
+              <li key={q.id}>
+                <span className="queue-pos">{i + 1}</span>
+                <div>
+                  <b>{q.title || q.videoId}</b>
+                  <small>
+                    {q.artist ? `${q.artist} · ` : ''}von {q.byName}
+                  </small>
+                </div>
+                {isHost && i > 0 && (
+                  <button
+                    className="chip-action"
+                    title="Als Nächstes spielen"
+                    onClick={() => window.pegel.partyQueueTop(q.id)}
+                  >
+                    Als Nächstes
+                  </button>
+                )}
+                {q.canRemove ? (
+                  <button
+                    className="icon-btn"
+                    aria-label="Aus der Warteschlange entfernen"
+                    title="Entfernen"
+                    onClick={() => window.pegel.partyQueueRemove(q.id)}
+                  >
+                    <CloseIcon />
+                  </button>
+                ) : (
+                  <span className="row-menu-space" />
+                )}
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+
       {party.suggestions.length > 0 && (isHost || party.options.allowSuggestions) && (
         <div className="suggestions">
           <div className="field-label">Vorschläge</div>
@@ -293,9 +361,10 @@ function PartyCard({ party, settings }: { party: PartyView; settings: SocialSett
                   <>
                     <button
                       className="chip-action"
+                      title="In die Warteschlange"
                       onClick={() => window.pegel.partySuggestion(s.id, true)}
                     >
-                      Abspielen
+                      Annehmen
                     </button>
                     <button
                       className="icon-btn"
@@ -324,19 +393,32 @@ function PartyCard({ party, settings }: { party: PartyView; settings: SocialSett
             />
           </label>
           <label className="option-row">
-            <span>Vorschläge erlauben</span>
+            <span>Alle dürfen steuern</span>
             <Switch
-              checked={settings.allowSuggestions}
-              label="Vorschläge erlauben"
-              onChange={(allowSuggestions) => window.pegel.socialPatch({ allowSuggestions })}
+              checked={settings.everyoneControls}
+              label="Alle dürfen steuern"
+              onChange={(everyoneControls) => window.pegel.socialPatch({ everyoneControls })}
             />
           </label>
+          {!settings.everyoneControls && (
+            <label className="option-row">
+              <span>Vorschläge erlauben</span>
+              <Switch
+                checked={settings.allowSuggestions}
+                label="Vorschläge erlauben"
+                onChange={(allowSuggestions) => window.pegel.socialPatch({ allowSuggestions })}
+              />
+            </label>
+          )}
         </div>
       )}
-      {!isHost && party.options.allowSuggestions && (
+      {!isHost && (
         <p className="hint">
-          Wähl in YT einen anderen Titel, dann geht er als Vorschlag an den Host. Die Party läuft
-          bei dir weiter.
+          {party.canControl
+            ? 'Pause, Weiter und Spulen gelten für alle – auch über YTs eigene Knöpfe.'
+            : party.options.allowSuggestions
+              ? 'Mit dem + neben einem Titel in YT schlägst du ihn dem Host vor.'
+              : 'In dieser Party steuert der Host. Pausierst du, gilt das nur für dich.'}
         </p>
       )}
 

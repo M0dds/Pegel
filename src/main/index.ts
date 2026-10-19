@@ -6,7 +6,13 @@ import { registerIpc } from './ipc';
 import { setupMenu } from './menu';
 import { startPlaylistEq } from './playlist-eq';
 import { flushSettings, getSettings, loadSettings } from './settings';
-import { onPartyChanged, partyTrayItem, startSocial, stopSocial } from './social';
+import {
+  onPartyChanged,
+  partyTrayItem,
+  routePlayerCommand,
+  startSocial,
+  stopSocial,
+} from './social';
 import { createTray } from './tray';
 import { startUpdates } from './updater';
 import { getYtSession } from './yt-view';
@@ -14,7 +20,6 @@ import {
   createMainWindow,
   focusMainWindow,
   getMainWindow,
-  sendPlayerCommand,
   toggleMiniPlayer,
 } from './windows/main-window';
 import { isMiniOpen, onMiniChanged } from './windows/mini-window';
@@ -51,7 +56,7 @@ if (!app.requestSingleInstanceLock()) {
     syncStartAtLogin(getSettings().startAtLogin);
     createTray({
       showWindow: focusMainWindow,
-      command: sendPlayerCommand,
+      command: routePlayerCommand,
       toggleMini: toggleMiniPlayer,
       isMiniOpen,
       onMiniChanged,

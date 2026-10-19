@@ -24,6 +24,8 @@ function partyPill(social: SocialState): { label: string; waiting: boolean } | n
   }
   if (party.hold?.kind === 'host-ad') return { label: 'Party · Werbung', waiting: true };
   if (party.connection !== 'online') return { label: 'Party · verbinde …', waiting: true };
+  // Someone else paused, skipped or added a track: say so for a moment.
+  if (party.activity) return { label: party.activity, waiting: false };
   return { label: `Party · ${party.members.length}`, waiting: false };
 }
 

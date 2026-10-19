@@ -8,7 +8,11 @@
  */
 
 /** Bumped on incompatible changes; older clients get `old-client`. */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
+/** The hub did not change in v2: Pegel 1.1.0 keeps seeing its friends. */
+export const HUB_MIN_PROTOCOL = 1;
+/** Parties need v2 (shared queue and control, M11). */
+export const PARTY_MIN_PROTOCOL = 2;
 
 export const PARTY_MAX_MEMBERS = 20;
 export const NAME_MAX = 24;
@@ -22,6 +26,8 @@ export const TICKET_TTL_MS = 10 * 60 * 1000;
 export const RECONNECT_GRACE_MS = 60 * 1000;
 export const MAX_SUGGESTIONS_PER_MEMBER = 5;
 export const MAX_SUGGESTIONS = 50;
+export const MAX_QUEUE = 100;
+export const MAX_QUEUE_PER_MEMBER = 20;
 export const MAX_FRIENDS = 200;
 /** A guest counts as "synchron" up to this drift (UI dot, member updates). */
 export const IN_SYNC_SUMMARY_MS = 80;
@@ -76,6 +82,8 @@ export function authPayload(target: string, nonce: string): string {
 export interface PartyOptions {
   open: boolean;
   allowSuggestions: boolean;
+  /** Everybody may add to the queue, pause, skip and seek (M11). */
+  everyoneControls: boolean;
 }
 
 /** The host's playback, as every guest should hear it. */
@@ -127,6 +135,18 @@ export interface Suggestion extends SuggestedTrack {
   from: UserId;
   fromName: string;
 }
+
+/** One track in the party queue; the host plays them in this order. */
+export interface QueueItem extends SuggestedTrack {
+  id: string;
+  by: UserId;
+  byName: string;
+}
+
+export type ControlAction = 'play' | 'pause' | 'skip' | 'seek';
+
+/** Shown to everybody for a moment ("Lea hat übersprungen"). */
+export type ActivityAction = ControlAction | 'add';
 
 export type ErrorCode =
   | 'bad-message'
@@ -206,6 +226,11 @@ export type PartyClientMessage =
   | { t: 'kick'; userId: UserId }
   | { t: 'transfer'; userId: UserId }
   | { t: 'options'; options: PartyOptions }
+  | { t: 'queue.add'; track: SuggestedTrack }
+  | { t: 'queue.remove'; id: string }
+  | { t: 'queue.move'; id: string; index: number }
+  | { t: 'queue.played'; id: string }
+  | { t: 'control'; action: ControlAction; positionMs?: number }
   | { t: 'end' }
   | { t: 'leave' };
 
@@ -224,6 +249,7 @@ export type PartyServerMessage =
       state: PartyPlayback | null;
       options: PartyOptions;
       suggestions: Suggestion[];
+      queue: QueueItem[];
       serverTime: number;
     }
   | { t: 'state'; state: PartyPlayback }
@@ -232,6 +258,16 @@ export type PartyServerMessage =
   | { t: 'suggestions'; suggestions: Suggestion[] }
   | { t: 'host'; hostId: UserId }
   | { t: 'options'; options: PartyOptions }
+  | { t: 'queue'; queue: QueueItem[] }
+  /** Only to the host: a guest's pause, play, skip or seek. */
+  | { t: 'control'; action: ControlAction; positionMs?: number; from: UserId }
+  | {
+      t: 'activity';
+      userId: UserId;
+      name: string;
+      action: ActivityAction;
+      title?: string;
+    }
   | { t: 'ended'; reason: PartyEndReason };
 
 // ---------- Validation (the server trusts nothing, the client checks too) ----------
@@ -289,7 +325,9 @@ export function toTicket(v: unknown): Ticket | null {
 
 function options(v: unknown): PartyOptions | null {
   if (!isObj(v) || !isBool(v['open']) || !isBool(v['allowSuggestions'])) return null;
-  return { open: v['open'], allowSuggestions: v['allowSuggestions'] };
+  // Missing in v1 messages: the host controls alone, as before.
+  const everyoneControls = isBool(v['everyoneControls']) ? v['everyoneControls'] : false;
+  return { open: v['open'], allowSuggestions: v['allowSuggestions'], everyoneControls };
 }
 
 function auth(v: Obj): AuthMessage | null {
@@ -458,6 +496,28 @@ export function parsePartyClientMessage(raw: unknown): PartyClientMessage | null
       const o = options(v['options']);
       return o ? { t: 'options', options: o } : null;
     }
+    case 'queue.add': {
+      const t = track(v['track']);
+      return t ? { t: 'queue.add', track: t } : null;
+    }
+    case 'queue.remove':
+    case 'queue.played':
+      return matches(v['id'], ID_PATTERN) ? { t: v['t'], id: v['id'] } : null;
+    case 'queue.move': {
+      const index = v['index'];
+      if (!matches(v['id'], ID_PATTERN) || !isNum(index) || index < 0) return null;
+      return { t: 'queue.move', id: v['id'], index: Math.floor(index) };
+    }
+    case 'control': {
+      const action = v['action'];
+      if (action !== 'play' && action !== 'pause' && action !== 'skip' && action !== 'seek') {
+        return null;
+      }
+      if (action !== 'seek') return { t: 'control', action };
+      return isNum(v['positionMs']) && v['positionMs'] >= 0
+        ? { t: 'control', action, positionMs: v['positionMs'] }
+        : null;
+    }
     case 'end':
       return { t: 'end' };
     case 'leave':
@@ -465,6 +525,19 @@ export function parsePartyClientMessage(raw: unknown): PartyClientMessage | null
     default:
       return null;
   }
+}
+
+/** Client side: a queue as sent by the server, invalid items dropped. */
+export function toQueue(v: unknown): QueueItem[] {
+  if (!Array.isArray(v)) return [];
+  const result: QueueItem[] = [];
+  for (const item of v.slice(0, MAX_QUEUE)) {
+    const t = track(item);
+    if (!t || !isObj(item) || !matches(item['id'], ID_PATTERN) || !isUserId(item['by'])) continue;
+    const byName = cleanName(item['byName']) ?? '?';
+    result.push({ ...t, id: item['id'], by: item['by'], byName });
+  }
+  return result;
 }
 
 /**

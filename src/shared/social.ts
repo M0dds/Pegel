@@ -1,5 +1,6 @@
 import { isVideoId } from './social-protocol';
 import type {
+  ControlAction,
   MemberStatus,
   NowPlaying,
   PartyOptions,
@@ -66,6 +67,22 @@ export interface PartyView {
   hold: { kind: 'ads'; names: string[]; until: number } | { kind: 'host-ad' } | null;
   /** This guest's own situation. */
   local: { localPause: boolean; unplayable: boolean };
+  /** Shared queue, played before the host's playlist continues (M11). */
+  queue: QueueItemView[];
+  /** May I pause, skip and seek for everybody? (host always; guests with "Alle dürfen steuern") */
+  canControl: boolean;
+  /** Last action of someone else, shown for a moment ("Lea hat übersprungen"). */
+  activity: string | null;
+}
+
+export interface QueueItemView {
+  id: string;
+  videoId: string;
+  title: string;
+  artist: string;
+  byName: string;
+  /** Added by me, or I am the host: may remove it. */
+  canRemove: boolean;
 }
 
 /** Sent by the YT view: precise playback facts for the party. */
@@ -88,12 +105,30 @@ export interface PartyReport {
   playlistId?: string;
   /** Guest picked another track itself; the YT view already went back. */
   picked?: SuggestedTrack;
+  /** Guest used YT's own buttons (pause, play, seek, next) while allowed to control. */
+  request?: { action: ControlAction; positionMs?: number };
 }
+
+/** What the "+" next to tracks in YT does during a party. */
+export type PlusMode = 'queue' | 'suggest' | null;
 
 /** What the YT view has to do for the party (main → YT view). */
 export type PartyControl =
-  | { role: 'host'; audioOffsetMs: number }
-  | { role: 'guest'; audioOffsetMs: number; target: PartyTarget | null };
+  | {
+      role: 'host';
+      audioOffsetMs: number;
+      plus: PlusMode;
+      /** First track of the party queue: played when the current one ends. */
+      next: { videoId: string } | null;
+    }
+  | {
+      role: 'guest';
+      audioOffsetMs: number;
+      plus: PlusMode;
+      target: PartyTarget | null;
+      /** YT's own buttons become party commands. */
+      canControl: boolean;
+    };
 
 export interface PartyTarget {
   videoId: string;
@@ -144,6 +179,15 @@ export function toPartyReport(value: unknown): PartyReport | null {
   if (str(v['unplayable'], 40) && v['unplayable']) report.unplayable = v['unplayable'];
   if (str(v['playlistId'], 100) && /^[A-Za-z0-9_-]{2,100}$/.test(v['playlistId'])) {
     report.playlistId = v['playlistId'];
+  }
+  const request = v['request'];
+  if (typeof request === 'object' && request !== null) {
+    const r = request as Record<string, unknown>;
+    const action = r['action'];
+    if (action === 'play' || action === 'pause' || action === 'skip') report.request = { action };
+    else if (action === 'seek' && num(r['positionMs']) && r['positionMs'] >= 0) {
+      report.request = { action, positionMs: r['positionMs'] };
+    }
   }
   const picked = v['picked'];
   if (typeof picked === 'object' && picked !== null) {

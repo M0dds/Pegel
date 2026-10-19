@@ -812,12 +812,27 @@ social: {
 
 **Schritte**
 
-- [ ] Protokoll v2 und Server (Warteschlange, Steuerbefehle, Aktivität), Tests
-- [ ] YT-Seite: Player-Fähigkeiten prüfen (`getPlaylistIndex`), „+“-Knopf an Listen-Titeln, Selbsttest
-- [ ] Host: Warteschlange abspielen, Rückkehr zur Playlist, Befehle der Gäste ausführen
-- [ ] Gast: eigene Bedienung (YT-Knöpfe, Mini-Player, Tray) wird zum Party-Befehl, wenn erlaubt
-- [ ] UI: Warteschlange und Steuerung in der Party-Karte, Schalter „Alle dürfen steuern“, Aktivität in der Party-Pille, Mini-Player-Knöpfe für Gäste
-- [ ] Test mit zwei Instanzen (lokaler Server), danach Deploy und Release 1.2.0 (nach Rückfrage, weil 1.1.0 ab dem Deploy keine Partys mehr kann)
+**Umsetzung (Stand 19.10.2026)**
+
+- **Rückkehr zur Playlist:** `getPlaylistIndex` von YTs Player bleibt in YT Music immer bei 0 und taugt nicht. Stattdessen liest der Host-Pegel unmittelbar vor dem ersten Party-Titel den `watchEndpoint` des Eintrags nach dem laufenden Titel aus YTs Warteschlange (`ytmusic-player-queue-item[selected]` und `.data.navigationEndpoint`, Selektoren in `yt/selectors.ts`). Ist die Party-Warteschlange leer, navigiert er genau dorthin. Geprüft: Nach zwei Party-Titeln ging das Album beim richtigen nächsten Titel weiter.
+- **„+“-Knopf:**
+  - Steht vor dem ⋮-Menü jeder Listenzeile mit Watch-Link, sichtbar beim Überfahren.
+  - YT erzwingt Trusted Types, daher werden die Icons per DOM-Aufruf gebaut, nicht über HTML-Strings.
+  - Einen Selbsttest-Eintrag gibt es nicht: Listenzeilen fehlen auf vielen Seiten (z. B. der Player-Seite), das gäbe Fehlalarme.
+  - Fehlt der Knopf nach einem YT-Umbau, können Gäste weiterhin direkt auf Titel klicken (mit kurzem Aussetzer).
+- **Gefundener Fehler:** Lädt ein Gast seine YT-Seite neu, pausiert der Browser das Media-Element. Mit „Alle dürfen steuern“ wurde daraus eine Pause für alle. Pausen während `pagehide`/`beforeunload` zählen jetzt nicht als Bedienung.
+- **YTs „Weiter“-Knopf** beim Gast wird am Klick erkannt (Selektor `nextButton`) und zum Überspringen für alle. „Zurück“ gibt es in der Party nicht.
+- **Angenommene Vorschläge** (ohne „Alle dürfen steuern“) gehen in die Warteschlange, statt sofort zu spielen.
+
+**Schritte**
+
+- [x] Protokoll v2 und Server (Warteschlange, Steuerbefehle, Aktivität), Tests. Der Hub akzeptiert weiter v1.
+- [x] YT-Seite: Player-Fähigkeiten geprüft (`getPlaylistIndex` unbrauchbar, Warteschlangen-Daten nutzbar), „+“-Knopf an Listen-Titeln
+- [x] Host: Warteschlange abspielen (≤ 300 ms vor Titelende), Rückkehr zur Playlist, Befehle der Gäste ausführen
+- [x] Gast: YT-Knöpfe (Pause, Play, Spulen, Weiter), Mini-Player, Tray und Panel werden zu Party-Befehlen, wenn erlaubt
+- [x] UI: Warteschlange mit „von …“, Entfernen, „Als Nächstes“ (Host), Play/Pause und Überspringen in der Party-Karte, Schalter „Alle dürfen steuern“, Aktivität in der Party-Pille, Mini-Player-Knöpfe
+- [x] Test mit zwei Instanzen (lokaler Server): „+“ in der Suche, Überspringen durch den Gast, Pause über YTs Knopf, Rückkehr ins Album, Neuladen beim Gast ohne Party-Pause
+- [ ] Deploy und Release 1.2.0 (nach Rückfrage, weil 1.1.0 ab dem Deploy keine Partys mehr kann)
 - **Fertig, wenn:** Zwei Leute abwechselnd Titel per „+“ hinzufügen, beide pausieren und überspringen können und nach der Warteschlange die Playlist des Hosts an der richtigen Stelle weiterläuft.
 
 ### Später (optional)

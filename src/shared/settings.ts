@@ -44,6 +44,7 @@ export const DEFAULT_SETTINGS: Settings = {
     audioOffsetMs: 0,
     partyOpen: true,
     allowSuggestions: true,
+    everyoneControls: true,
     panelOpen: false,
   },
 };
@@ -207,6 +208,7 @@ export function normalizeSettings(input: unknown): Settings {
       audioOffsetMs: Math.max(-AUDIO_OFFSET_MAX_MS, Math.min(AUDIO_OFFSET_MAX_MS, offset)),
       partyOpen: bool(social['partyOpen'], d.social.partyOpen),
       allowSuggestions: bool(social['allowSuggestions'], d.social.allowSuggestions),
+      everyoneControls: bool(social['everyoneControls'], d.social.everyoneControls),
       panelOpen: bool(social['panelOpen'], d.social.panelOpen),
     },
   };

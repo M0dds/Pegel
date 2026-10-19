@@ -257,20 +257,23 @@ describe('party', () => {
   async function join(
     who: Identity,
     name: string,
-    extra: { ticket?: Ticket; create?: boolean } = {},
+    extra: { ticket?: Ticket; create?: boolean; everyoneControls?: boolean; v?: number } = {},
   ): Promise<FakeConn> {
     const conn = new FakeConn();
     party.open(conn);
+    const everyoneControls = extra.everyoneControls ?? true;
     await party.message(
       conn,
       msg({
         t: 'auth',
-        v: 1,
+        v: extra.v ?? 2,
         userId: who.id,
         name,
         sig: who.sign(authPayload(partyId, conn.nonce)),
         ...(extra.ticket && { ticket: extra.ticket }),
-        ...(extra.create && { create: { open: true, allowSuggestions: true } }),
+        ...(extra.create && {
+          create: { open: true, allowSuggestions: true, everyoneControls },
+        }),
       }),
     );
     return conn;
@@ -433,5 +436,78 @@ describe('party', () => {
     const guest = identity();
     const cg = await join(guest, 'Gast', { ticket: ticketFor(host, guest) });
     expect(cg.last('error')).toMatchObject({ code: 'ended' });
+  });
+
+  it('turns away Pegel 1.1.0 (protocol v1) from parties', async () => {
+    const host = identity();
+    const old = await join(host, 'Host', { create: true, v: 1 });
+    expect(old.last('error')).toMatchObject({ code: 'old-client' });
+  });
+
+  const track = (n: number) => ({
+    videoId: `track${n}`.padEnd(11, '_'),
+    title: `Titel ${n}`,
+    artist: 'Band',
+  });
+
+  it('everybody adds to the queue; the host plays and reorders it', async () => {
+    const host = identity();
+    const guest = identity();
+    const ch = await join(host, 'Host', { create: true });
+    const cg = await join(guest, 'Gast', { ticket: ticketFor(host, guest) });
+    await party.message(cg, msg({ t: 'queue.add', track: track(1) }));
+    await party.message(ch, msg({ t: 'queue.add', track: track(2) }));
+    // The same track twice is ignored.
+    await party.message(cg, msg({ t: 'queue.add', track: track(1) }));
+    const queue = ch.last('queue')!['queue'] as { id: string; byName: string; title: string }[];
+    expect(queue.map((q) => `${q.title}/${q.byName}`)).toEqual(['Titel 1/Gast', 'Titel 2/Host']);
+    expect(ch.last('activity')).toMatchObject({ name: 'Host', action: 'add', title: 'Titel 2' });
+
+    // Only the host reorders; guests only remove their own.
+    await party.message(cg, msg({ t: 'queue.move', id: queue[1]!.id, index: 0 }));
+    expect(cg.all('queue')).toHaveLength(2);
+    await party.message(ch, msg({ t: 'queue.move', id: queue[1]!.id, index: 0 }));
+    expect((cg.last('queue')!['queue'] as { title: string }[])[0]!.title).toBe('Titel 2');
+    await party.message(cg, msg({ t: 'queue.remove', id: queue[1]!.id }));
+    expect(cg.last('queue')!['queue']).toHaveLength(2);
+    await party.message(cg, msg({ t: 'queue.remove', id: queue[0]!.id }));
+    expect(cg.last('queue')!['queue']).toHaveLength(1);
+
+    // Played tracks leave the queue; late joiners get it with the welcome.
+    await party.message(ch, msg({ t: 'queue.played', id: queue[1]!.id }));
+    expect(cg.last('queue')!['queue']).toHaveLength(0);
+  });
+
+  it('forwards guest controls to the host and tells everybody', async () => {
+    const host = identity();
+    const guest = identity();
+    const ch = await join(host, 'Host', { create: true });
+    const cg = await join(guest, 'Gast', { ticket: ticketFor(host, guest) });
+    await party.message(ch, msg({ t: 'state', state: state(1) }));
+    await party.message(cg, msg({ t: 'control', action: 'seek', positionMs: 42_000 }));
+    expect(ch.last('control')).toEqual({
+      t: 'control',
+      action: 'seek',
+      positionMs: 42_000,
+      from: guest.id,
+    });
+    await party.message(cg, msg({ t: 'control', action: 'skip' }));
+    expect(cg.last('activity')).toMatchObject({ name: 'Gast', action: 'skip', title: 'Titel' });
+  });
+
+  it('without "everybody controls" guests can only suggest', async () => {
+    const host = identity();
+    const guest = identity();
+    const ch = await join(host, 'Host', { create: true, everyoneControls: false });
+    const cg = await join(guest, 'Gast', { ticket: ticketFor(host, guest) });
+    await party.message(cg, msg({ t: 'control', action: 'pause' }));
+    await party.message(cg, msg({ t: 'queue.add', track: track(1) }));
+    expect(ch.all('control')).toHaveLength(0);
+    expect(ch.all('queue')).toHaveLength(0);
+    // An accepted suggestion joins the queue in the guest's name.
+    await party.message(cg, msg({ t: 'suggest', track: track(3) }));
+    const id = (ch.last('suggestions')!['suggestions'] as { id: string }[])[0]!.id;
+    await party.message(ch, msg({ t: 'suggest.answer', id, accept: true }));
+    expect(cg.last('queue')!['queue']).toMatchObject([{ title: 'Titel 3', byName: 'Gast' }]);
   });
 });
