@@ -71,9 +71,47 @@ function renderAppIcon(size: number, margin: number): Uint8Array {
 const png = (size: number, margin: number = MARGIN.win) =>
   encodePng(size, size, renderAppIcon(size, margin));
 
-/** ICO with PNG-compressed entries (supported since Windows Vista). */
+/**
+ * 32-bit DIB for an ICO entry: BITMAPINFOHEADER (height doubled for the AND
+ * mask), BGRA rows bottom-up, then the 1-bit AND mask (1 = transparent).
+ */
+function icoBitmap(size: number, rgba: Uint8Array): Buffer {
+  const maskStride = Math.ceil(size / 32) * 4;
+  const header = Buffer.alloc(40);
+  header.writeUInt32LE(40, 0);
+  header.writeInt32LE(size, 4);
+  header.writeInt32LE(size * 2, 8);
+  header.writeUInt16LE(1, 12); // planes
+  header.writeUInt16LE(32, 14); // bits per pixel
+  header.writeUInt32LE(size * size * 4 + maskStride * size, 20); // image size
+  const pixels = Buffer.alloc(size * size * 4);
+  const mask = Buffer.alloc(maskStride * size);
+  for (let y = 0; y < size; y++) {
+    const row = size - 1 - y;
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4;
+      const o = (row * size + x) * 4;
+      pixels[o] = rgba[i + 2]!;
+      pixels[o + 1] = rgba[i + 1]!;
+      pixels[o + 2] = rgba[i]!;
+      pixels[o + 3] = rgba[i + 3]!;
+      if (rgba[i + 3] === 0) mask[row * maskStride + (x >> 3)]! |= 0x80 >> (x & 7);
+    }
+  }
+  return Buffer.concat([header, pixels, mask]);
+}
+
+/**
+ * ICO for the Windows executable, installer and shortcuts. Sizes below 256 px
+ * are stored as uncompressed 32-bit bitmaps: parts of the Windows shell (icon
+ * cache, taskbar) handle PNG-compressed small entries badly and show them
+ * blank or black. Only the 256 px entry is PNG, as Microsoft recommends.
+ */
 function ico(sizes: number[]): Buffer {
-  const images = sizes.map(png);
+  const images = sizes.map((size) => {
+    const rgba = renderAppIcon(size, MARGIN.win);
+    return size >= 256 ? encodePng(size, size, rgba) : icoBitmap(size, rgba);
+  });
   const header = Buffer.alloc(6 + 16 * sizes.length);
   header.writeUInt16LE(0, 0);
   header.writeUInt16LE(1, 2); // type: icon

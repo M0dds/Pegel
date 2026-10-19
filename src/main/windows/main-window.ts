@@ -1,4 +1,3 @@
-import { join } from 'node:path';
 import { app, BrowserWindow, clipboard, screen, type WebContents, WebContentsView } from 'electron';
 import type { MainToUiChannels, MainToYtChannels, PayloadArgs } from '@shared/ipc';
 import {
@@ -33,7 +32,7 @@ import {
   signOut,
   startSignIn,
 } from '../yt-view';
-import { loadUi, UI_WEB_PREFERENCES } from './load-ui';
+import { loadUi, UI_WEB_PREFERENCES, uiWindowIcon } from './load-ui';
 import {
   closeMiniWindow,
   getMiniWindow,
@@ -424,8 +423,7 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
     show: false,
     backgroundColor: THEMES[getSettings().theme].tokens.bg,
     ...platformChrome(),
-    // Packaged builds take the icon from the executable; in development show it too.
-    ...(!app.isPackaged && { icon: join(app.getAppPath(), 'resources', 'icon.png') }),
+    ...uiWindowIcon(),
     webPreferences: UI_WEB_PREFERENCES,
   });
   win = window;

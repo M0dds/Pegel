@@ -4,7 +4,7 @@ import { THEMES } from '@shared/themes';
 import type { Rect } from '@shared/types';
 import { getSettings, onSettingsChanged, updateSettings } from '../settings';
 import { isRectVisible } from '../window-state';
-import { loadUi, UI_WEB_PREFERENCES } from './load-ui';
+import { loadUi, UI_WEB_PREFERENCES, uiWindowIcon } from './load-ui';
 
 const MARGIN = 24;
 const SAVE_DELAY_MS = 400;
@@ -79,6 +79,7 @@ export function openMiniWindow(handleShortcuts: (wc: WebContents) => void): Brow
     show: false,
     title: 'Pegel Mini-Player',
     backgroundColor: THEMES[settings.theme].tokens.surface,
+    ...uiWindowIcon(),
     webPreferences: UI_WEB_PREFERENCES,
   });
   mini = window;

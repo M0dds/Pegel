@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { shell, type BrowserWindow } from 'electron';
+import { app, shell, type BrowserWindow } from 'electron';
 import { isExternalWebUrl } from '../navigation';
 
 export const UI_PRELOAD = join(__dirname, '../preload/ui.js');
@@ -11,6 +11,15 @@ export const UI_WEB_PREFERENCES = {
   nodeIntegration: false,
   sandbox: true,
 } as const;
+
+/**
+ * Window icon for all Pegel windows. Packaged builds take it from the
+ * executable (Windows, embedded from resources/icon.ico) or the app bundle
+ * (macOS); in development there is none, so show the PNG.
+ */
+export function uiWindowIcon(): { icon?: string } {
+  return app.isPackaged ? {} : { icon: join(app.getAppPath(), 'resources', 'icon.png') };
+}
 
 /**
  * Loads the Pegel UI (dev server or built files). The query carries the

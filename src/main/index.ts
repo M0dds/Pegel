@@ -24,6 +24,11 @@ import { isMiniOpen, onMiniChanged } from './windows/mini-window';
 const customUserData = process.env['PEGEL_USER_DATA'];
 if (customUserData) app.setPath('userData', customUserData);
 
+// Windows ties taskbar buttons, pins and their icon to the AppUserModelID. The
+// installer's shortcuts carry the appId from electron-builder.yml; Electron's
+// default ("electron.app.Pegel") would not match them.
+if (process.platform === 'win32' && app.isPackaged) app.setAppUserModelId('app.pegel.desktop');
+
 // Settings are read before Chromium starts: the media keys switch is a command-line feature.
 const startupSettings = loadSettings(getProfile()?.defaultTheme);
 setMediaKeysAtStart(startupSettings.mediaKeys);
