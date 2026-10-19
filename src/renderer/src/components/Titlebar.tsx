@@ -8,6 +8,8 @@ interface Props {
   view: View;
   eqOpen: boolean;
   theme: ThemeId;
+  /** Falling petals are drawn by PetalLayer; the static ones are the fallback. */
+  animatedPetals: boolean;
 }
 
 /** Sakura extra: a few petals scattered over the title bar (from the mockup). */
@@ -25,10 +27,10 @@ function Petals() {
   );
 }
 
-export function Titlebar({ view, eqOpen, theme }: Props) {
+export function Titlebar({ view, eqOpen, theme, animatedPetals }: Props) {
   return (
     <header className="titlebar">
-      {theme === 'sakura' && <Petals />}
+      {theme === 'sakura' && !animatedPetals && <Petals />}
       <button className="brand" title="Zur Musik" onClick={() => window.pegel.showView('music')}>
         <Logo />
         Pegel

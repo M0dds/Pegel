@@ -3,6 +3,8 @@
 import { ipcRenderer, type IpcRendererEvent } from 'electron';
 import type { MainToYtChannels, YtToMainChannels } from '@shared/ipc';
 import { EqEngine } from '../yt/audio/eq';
+import { Visualizer } from '../yt/audio/visualizer';
+import { YtDecor } from '../yt/decor/effects';
 import { NEEDS_REPORT, runCommand, startBridge, startPageWatcher } from '../yt/player/bridge';
 
 function send<C extends keyof YtToMainChannels>(channel: C, payload: YtToMainChannels[C]): void {
@@ -16,6 +18,11 @@ if (location.hostname === 'music.youtube.com') {
   ipcRenderer.on(
     'yt:eq-apply' satisfies keyof MainToYtChannels,
     (_event: IpcRendererEvent, settings: MainToYtChannels['yt:eq-apply']) => eq.apply(settings),
+  );
+  const decor = new YtDecor(new Visualizer(() => eq.getAnalyser()));
+  ipcRenderer.on(
+    'yt:effects' satisfies keyof MainToYtChannels,
+    (_event: IpcRendererEvent, effects: MainToYtChannels['yt:effects']) => decor.apply(effects),
   );
   const bridge = startBridge(
     (state) => send('yt:player-state', state),
@@ -32,5 +39,5 @@ if (location.hostname === 'music.youtube.com') {
   ipcRenderer.send('yt:ready' satisfies keyof YtToMainChannels);
   startPageWatcher((page) => send('yt:page-playlist', page));
   // Development only, reachable from DevTools in the preload's isolated world (not the page).
-  if (import.meta.env.DEV) Object.assign(globalThis, { pegelEq: eq });
+  if (import.meta.env.DEV) Object.assign(globalThis, { pegelEq: eq, pegelDecor: decor });
 }

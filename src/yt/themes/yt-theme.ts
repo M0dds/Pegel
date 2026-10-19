@@ -95,9 +95,9 @@ export const YT_ELEMENT_COLORS: readonly {
  * Small visual polish so YT's scrollbars and context menus match Pegel's own
  * dropdown, in every theme. Deliberate, limited exception to "colours only":
  * scrollbar width (15 → 10 px, YT's own scrollbar-color reset so the styling
- * applies), menu corner radius and shadow (box-shadow, no
- * layout change), and no horizontal scrollbar inside menus (it only appears
- * because the vertical one takes width).
+ * applies), menu corner radius and shadow (box-shadow, no layout change), and
+ * no horizontal scrollbar inside menus (it only appears because the vertical
+ * one takes width).
  */
 export function buildYtPolishCss(theme: Theme): string {
   const t = theme.tokens;
@@ -117,10 +117,11 @@ ${SELECTORS.menuPopup} {
   background: ${t['surface-3']} !important;
   border-radius: 10px !important;
   box-shadow: 0 0 0 1px ${t.border}, 0 12px 32px #0009 !important;
-  overflow-x: hidden !important;
 }
 ${SELECTORS.menuList} { background: transparent !important; }
-${SELECTORS.menuPopup}::-webkit-scrollbar { width: 8px !important; }
+/* Height 0 hides only the horizontal bar. Changing the menu's overflow instead would break
+   wheel scrolling: YT's iron-dropdown only treats "auto"/"scroll" as scrollable. */
+${SELECTORS.menuPopup}::-webkit-scrollbar { width: 8px !important; height: 0 !important; }
 ${SELECTORS.menuPopup}::-webkit-scrollbar-button { display: none !important; }
 /* The menu itself is surface-3, so the thumb needs a lighter tone to be visible. */
 ${SELECTORS.menuPopup}::-webkit-scrollbar-thumb {

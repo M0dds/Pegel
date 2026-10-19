@@ -109,8 +109,23 @@ export class EqEngine {
   private analyser: AnalyserNode | null = null;
 
   /**
+   * Taps the end of the chain (after the EQ) without changing the output;
+   * used by the visualizer and the diagnostics. Null until media is attached.
+   */
+  getAnalyser(): AnalyserNode | null {
+    if (!this.ctx || !this.filters.length) return null;
+    if (!this.analyser) {
+      this.analyser = this.ctx.createAnalyser();
+      this.analyser.fftSize = 4096; // fine resolution in the bass
+      this.analyser.smoothingTimeConstant = 0.78;
+      this.filters.at(-1)!.connect(this.analyser);
+    }
+    return this.analyser;
+  }
+
+  /**
    * Development aid: context state, applied gains and the output level in
-   * dBFS (taps the end of the chain without changing the output).
+   * dBFS.
    */
   diagnostics(): {
     state: string;
@@ -118,13 +133,10 @@ export class EqEngine {
     gainsDb: number[];
     levelDb: number;
   } | null {
-    if (!this.ctx || !this.preamp) return null;
-    if (!this.analyser) {
-      this.analyser = this.ctx.createAnalyser();
-      this.filters.at(-1)!.connect(this.analyser);
-    }
-    const samples = new Float32Array(this.analyser.fftSize);
-    this.analyser.getFloatTimeDomainData(samples);
+    const analyser = this.getAnalyser();
+    if (!this.ctx || !this.preamp || !analyser) return null;
+    const samples = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(samples);
     const rms = Math.sqrt(samples.reduce((sum, s) => sum + s * s, 0) / samples.length);
     const round = (v: number) => Math.round(v * 10) / 10;
     return {

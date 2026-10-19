@@ -7,7 +7,7 @@ import {
   TITLEBAR_HEIGHT,
 } from '@shared/layout';
 import { THEMES } from '@shared/themes';
-import type { EqSettings, PlayerCommand, Settings, View } from '@shared/types';
+import type { EqSettings, PlayerCommand, Settings, View, YtEffects } from '@shared/types';
 import { isQuitting } from '../app-state';
 import { clearPlayerState, onPagePlaylist, onPlayerState, onSelectorIssues } from '../player';
 import { getSettings, onSettingsChanged, updateSettings } from '../settings';
@@ -71,9 +71,20 @@ export function sendPlayerCommand(command: PlayerCommand): void {
   sendToYt('yt:player-command', command);
 }
 
-/** Sends the EQ to the YT preload once it reports ready (after every page load). */
+/** What the YT view draws on top of YT, derived from theme and settings. */
+function ytEffects(settings: Settings): YtEffects {
+  return {
+    petals: settings.theme === 'sakura' && settings.effects.petals,
+    visualizer: settings.effects.visualizer,
+    accent: THEMES[settings.theme].tokens.accent,
+  };
+}
+
+/** Sends EQ and effects to the YT preload once it reports ready (after every page load). */
 export function handleYtReady(sender: WebContents): void {
-  if (sender === ytView?.webContents) sendToYt('yt:eq-apply', getSettings().eq);
+  if (sender !== ytView?.webContents) return;
+  sendToYt('yt:eq-apply', getSettings().eq);
+  sendToYt('yt:effects', ytEffects(getSettings()));
 }
 
 /** Opens the mini player; the main window hides (setting "hideMainOnOpen"), music continues. */
@@ -149,6 +160,9 @@ function watchSettings(): () => void {
     if (audioKey(settings.eq) !== audioKey(previous.eq)) sendToYt('yt:eq-apply', settings.eq);
     if (settings.eq.panelOpen !== previous.eq.panelOpen) updatePanelSpace(settings.eq.panelOpen);
     if (settings.theme !== previous.theme) applyWindowTheme();
+    if (JSON.stringify(ytEffects(settings)) !== JSON.stringify(ytEffects(previous))) {
+      sendToYt('yt:effects', ytEffects(settings));
+    }
     previous = settings;
   });
 }

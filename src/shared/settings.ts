@@ -31,6 +31,7 @@ export const DEFAULT_SETTINGS: Settings = {
   discord: { enabled: true, hideWhenPaused: true },
   window: { maximized: false },
   welcomeShown: false,
+  effects: { petals: true, visualizer: true },
   trayHintShown: false,
 };
 
@@ -133,6 +134,7 @@ export function normalizeSettings(input: unknown): Settings {
   const mini = isObj(raw['mini']) ? raw['mini'] : {};
   const discord = isObj(raw['discord']) ? raw['discord'] : {};
   const win = isObj(raw['window']) ? raw['window'] : {};
+  const effects = isObj(raw['effects']) ? raw['effects'] : {};
 
   const miniBounds = rect(mini['bounds']);
   const windowBounds = rect(win['bounds']);
@@ -170,6 +172,10 @@ export function normalizeSettings(input: unknown): Settings {
       ...(windowBounds && { bounds: windowBounds }),
     },
     welcomeShown: bool(raw['welcomeShown'], d.welcomeShown),
+    effects: {
+      petals: bool(effects['petals'], d.effects.petals),
+      visualizer: bool(effects['visualizer'], d.effects.visualizer),
+    },
     trayHintShown: bool(raw['trayHintShown'], d.trayHintShown),
   };
 }

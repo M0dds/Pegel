@@ -88,7 +88,6 @@ describe('buildYtThemeCss', () => {
       'border-radius',
       'box-shadow',
       'display',
-      'overflow-x',
       'background-repeat',
       'scrollbar-color',
       'scrollbar-width',
@@ -99,5 +98,7 @@ describe('buildYtThemeCss', () => {
     expect(props.length).toBeGreaterThan(0);
     // No margins or paddings: YT's spacing stays untouched.
     expect(props.filter((p) => !allowed.has(p))).toEqual([]);
+    // overflow changes on menus break YT's wheel scrolling (iron-dropdown scroll lock).
+    expect(buildYtPolishCss(THEMES.sakura)).not.toMatch(/overflow[a-z-]*\s*:/);
   });
 });

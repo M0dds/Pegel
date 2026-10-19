@@ -9,6 +9,7 @@ import type {
   SettingsPatch,
   ThemeId,
   View,
+  YtEffects,
 } from './types';
 
 /**
@@ -68,6 +69,7 @@ export interface YtToMainChannels {
 export interface MainToYtChannels {
   'yt:eq-apply': EqSettings;
   'yt:player-command': PlayerCommand;
+  'yt:effects': YtEffects;
 }
 
 export type InvokeChannel = keyof InvokeChannels;

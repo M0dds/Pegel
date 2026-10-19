@@ -103,6 +103,12 @@ export function registerIpc(): void {
         if (typeof m['alwaysOnTop'] === 'boolean') s.mini.alwaysOnTop = m['alwaysOnTop'];
         if (typeof m['hideMainOnOpen'] === 'boolean') s.mini.hideMainOnOpen = m['hideMainOnOpen'];
       }
+      const effects = p['effects'];
+      if (typeof effects === 'object' && effects !== null) {
+        const e = effects as Record<string, unknown>;
+        if (typeof e['petals'] === 'boolean') s.effects.petals = e['petals'];
+        if (typeof e['visualizer'] === 'boolean') s.effects.visualizer = e['visualizer'];
+      }
     });
     const { startAtLogin } = getSettings();
     if (startAtLogin !== before.startAtLogin) applyStartAtLogin(startAtLogin);

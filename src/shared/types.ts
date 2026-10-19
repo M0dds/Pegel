@@ -57,6 +57,8 @@ export interface Settings {
   discord: { enabled: boolean; hideWhenPaused: boolean };
   window: { bounds?: Rect; maximized: boolean };
   welcomeShown: boolean;
+  /** Visual extras; both can be switched off in the settings. */
+  effects: { petals: boolean; visualizer: boolean };
   /** The one-time "Pegel keeps running in the tray" hint was shown (Windows). */
   trayHintShown: boolean;
 }
@@ -64,7 +66,17 @@ export interface Settings {
 /** Settings the UI may change directly (validated in the main process). */
 export type SettingsPatch = Partial<Pick<Settings, 'closeToTray' | 'startAtLogin'>> & {
   mini?: Partial<Pick<Settings['mini'], 'alwaysOnTop' | 'hideMainOnOpen'>>;
+  effects?: Partial<Settings['effects']>;
 };
+
+/** What the YT view should draw on top of YT (sent by the main process). */
+export interface YtEffects {
+  /** Falling petals (Sakura theme with the effect switched on). */
+  petals: boolean;
+  visualizer: boolean;
+  /** Theme accent, for petals and visualizer bars. */
+  accent: string;
+}
 
 export interface PlayerState {
   title: string;

@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import type { PagePlaylist, PlayerState, Settings, View } from '@shared/types';
 import { EqPanel } from './components/eq/EqPanel';
 import { Titlebar } from './components/Titlebar';
+import { PetalLayer } from './components/PetalLayer';
 import { applyTheme } from './styles/theme';
+import { THEMES } from '@shared/themes';
 import { OfflinePage } from './routes/OfflinePage';
 import { SettingsPage } from './routes/SettingsPage';
 
@@ -39,10 +41,17 @@ export function App() {
   }, [theme]);
 
   const panelOpen = settings?.eq.panelOpen ?? false;
+  const animatedPetals = theme === 'sakura' && (settings?.effects.petals ?? false);
 
   return (
     <div className="app">
-      <Titlebar view={view} eqOpen={panelOpen} theme={theme ?? 'standard'} />
+      <Titlebar
+        view={view}
+        eqOpen={panelOpen}
+        theme={theme ?? 'standard'}
+        animatedPetals={animatedPetals}
+      />
+      {animatedPetals && <PetalLayer color={THEMES.sakura.tokens.accent} />}
       <div className="content">
         <div className="music">
           {/* The main process lays the YT view over this slot. */}

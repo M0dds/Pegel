@@ -69,6 +69,26 @@ export function SettingsPage({ settings, selectorIssues }: Props) {
               );
             })}
           </div>
+          <Row
+            title="Fallende Blütenblätter"
+            hint="Im Theme Sakura. Aus, wenn im System „Bewegung reduzieren“ aktiv ist"
+          >
+            <Switch
+              checked={settings.effects.petals}
+              label="Fallende Blütenblätter"
+              onChange={(petals) => window.pegel.patchSettings({ effects: { petals } })}
+            />
+          </Row>
+          <Row
+            title="Visualizer hinter dem Player"
+            hint="Frequenzbalken in der Theme-Farbe, nur während der Wiedergabe"
+          >
+            <Switch
+              checked={settings.effects.visualizer}
+              label="Visualizer hinter dem Player"
+              onChange={(visualizer) => window.pegel.patchSettings({ effects: { visualizer } })}
+            />
+          </Row>
         </section>
 
         <section className="section">
