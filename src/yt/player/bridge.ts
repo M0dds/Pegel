@@ -37,12 +37,23 @@ function playerApi<T>(method: string, ...args: (string | number | boolean)[]): T
   }
 }
 
-/** The playlist the current track plays from: `list=` on /watch, name from the queue header. */
+/**
+ * The playlist the current track plays from. YT's player knows it no matter
+ * which page is shown (with the player collapsed the URL is the playlist
+ * page, not /watch); the `list=` of /watch is the fallback. The name comes
+ * from the queue header, or from the playlist page if it shows that list.
+ */
 function readPlaylist(): { id: string; title?: string } | null {
-  if (location.pathname !== '/watch') return null;
-  const id = new URLSearchParams(location.search).get('list');
+  const params = new URLSearchParams(location.search);
+  const id =
+    playerApi<string>('getPlaylistId') ||
+    (location.pathname === '/watch' ? params.get('list') : null);
   if (!id) return null;
-  const title = document.querySelector(SELECTORS.queueTitle)?.textContent?.trim();
+  const pageTitle =
+    location.pathname === '/playlist' && params.get('list') === id
+      ? document.querySelector(SELECTORS.playlistPageTitle)?.textContent?.trim()
+      : undefined;
+  const title = document.querySelector(SELECTORS.queueTitle)?.textContent?.trim() || pageTitle;
   return title ? { id, title } : { id };
 }
 

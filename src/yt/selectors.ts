@@ -14,6 +14,8 @@ export const SELECTORS = {
   likeButton: 'ytmusic-player-bar ytmusic-like-button-renderer #button-shape-like button',
   /** "Playing from <name>" above the queue on the player page. */
   queueTitle: 'ytmusic-queue-header-renderer .subtitle',
+  /** Heading of a playlist page (/playlist?list=…). */
+  playlistPageTitle: 'ytmusic-responsive-header-renderer h1',
   /** YT's player element with its JS API (setVolume, …); only reachable from the main world. */
   playerApi: '#movie_player',
 } as const satisfies Record<string, string>;
