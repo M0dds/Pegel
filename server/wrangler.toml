@@ -1,0 +1,24 @@
+# Pegel friends & party relay. Deploy only after asking Johann: `npm run deploy`.
+name = "pegel-social"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "Hub"
+
+[[durable_objects.bindings]]
+name = "PARTY"
+class_name = "Party"
+
+# SQLite-backed Durable Objects (required on the free plan).
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Hub", "Party"]
+
+[vars]
+# Durable Objects only in EU data centres (data protection, latency).
+JURISDICTION = "eu"
+
+[observability]
+enabled = false

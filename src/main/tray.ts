@@ -13,6 +13,9 @@ export interface TrayActions {
   toggleMini(): void;
   isMiniOpen(): boolean;
   onMiniChanged(listener: () => void): void;
+  /** "Party verlassen/beenden" while in a listening party. */
+  partyItem(): { label: string; click(): void } | null;
+  onPartyChanged(listener: () => void): void;
 }
 
 let tray: Tray | null = null;
@@ -38,6 +41,7 @@ function buildMenu(actions: TrayActions): Menu {
   const state = getPlayerState();
   const { eq } = getSettings();
   const hasTrack = !!state;
+  const party = actions.partyItem();
   return Menu.buildFromTemplate([
     { label: trackLabel(state, 50), enabled: false },
     { type: 'separator' },
@@ -74,6 +78,7 @@ function buildMenu(actions: TrayActions): Menu {
       ],
     },
     { type: 'separator' },
+    ...(party ? [{ label: party.label, click: party.click }, { type: 'separator' as const }] : []),
     {
       label: 'Mini-Player',
       type: 'checkbox',
@@ -86,11 +91,12 @@ function buildMenu(actions: TrayActions): Menu {
 }
 
 /** Only rebuild the menu when something visible in it changed. */
-function menuKey(miniOpen: boolean): string {
+function menuKey(miniOpen: boolean, party: string | null): string {
   const state = getPlayerState();
   const { eq } = getSettings();
   return JSON.stringify([
     miniOpen,
+    party,
     state?.title,
     state?.artist,
     state?.isPlaying,
@@ -105,7 +111,7 @@ export function createTray(actions: TrayActions): Tray {
   tray = instance;
   let key = '';
   const refresh = () => {
-    const next = menuKey(actions.isMiniOpen());
+    const next = menuKey(actions.isMiniOpen(), actions.partyItem()?.label ?? null);
     if (next === key) return;
     key = next;
     instance.setContextMenu(buildMenu(actions));
@@ -119,6 +125,7 @@ export function createTray(actions: TrayActions): Tray {
 
   onPlayerState(refresh);
   actions.onMiniChanged(refresh);
+  actions.onPartyChanged(refresh);
   let theme = getSettings().theme;
   onSettingsChanged((settings) => {
     refresh();

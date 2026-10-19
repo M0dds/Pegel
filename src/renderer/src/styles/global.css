@@ -1709,3 +1709,557 @@ input[type='checkbox']:checked::after {
   z-index: -1;
   pointer-events: none;
 }
+
+/* ---------- Title bar groups (Equalizer, Social | Reload, Mini, Settings | window) ---------- */
+.tb-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Same line as before the window buttons (.win-controls). */
+.tb-sep {
+  width: 1px;
+  height: 22px;
+  margin: 0 -2px;
+  background: var(--border);
+  flex: none;
+}
+
+.tb-icon {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Pending invite on the Social button. */
+.tb-badge-dot {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+/* Party pill: like the title bar hint, in the accent. */
+.tb-party {
+  height: 26px;
+  padding: 0 11px 0 9px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  animation: fade-in 0.2s ease-out;
+}
+
+.tb-party:hover {
+  filter: brightness(1.12);
+}
+
+.tb-party svg {
+  width: 15px;
+  height: 15px;
+}
+
+.tb-party.waiting svg {
+  animation: party-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes party-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tb-party.waiting svg {
+    animation: none;
+  }
+}
+
+/* ---------- Social panel ---------- */
+.conn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.conn i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  opacity: 0.6;
+}
+
+.conn-online i {
+  background: var(--accent);
+  opacity: 1;
+}
+
+.social-notice {
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  background: var(--accent-soft);
+  color: var(--text);
+  animation: fade-in 0.15s ease-out;
+}
+
+.social-notice.error {
+  background: #e811231f;
+}
+
+.lead-small {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.social-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.social-setup .hint {
+  margin: 0;
+}
+
+.social-setup .btn {
+  flex: none;
+}
+
+.invite-card,
+.party-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.invite-card {
+  border-color: var(--accent);
+  animation: fade-in 0.2s ease-out;
+}
+
+.invite-card b,
+.party-track b,
+.suggestions b,
+.friend-meta b {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invite-card small,
+.party-track small,
+.suggestions small,
+.friend-meta small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.card-actions .btn {
+  flex: none;
+  padding: 0 14px;
+}
+
+.party-start {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.party-start .btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.party-start .btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.party-start .hint {
+  margin: 0;
+}
+
+.party-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.party-head .field-label {
+  margin: 0;
+}
+
+.party-count {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.party-track {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.party-track > div {
+  min-width: 0;
+}
+
+.party-track > svg {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.party-status {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--surface-3);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.party-status.action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.members,
+.suggestions ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.members li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 30px;
+  font-size: 13px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--text-dim);
+  opacity: 0.7;
+}
+
+.dot.ok {
+  background: var(--accent);
+  opacity: 1;
+}
+
+.dot.away {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--text-dim);
+  opacity: 0.7;
+}
+
+.member-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-name em {
+  font-style: normal;
+  color: var(--text-dim);
+}
+
+.member-tag {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.member-tag.ok {
+  color: var(--accent);
+}
+
+.row-menu {
+  position: relative;
+  flex: none;
+}
+
+.row-menu .icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.row-menu .chip-menu {
+  left: auto;
+  right: 0;
+}
+
+/* Keeps names aligned in rows without a ⋯ button. */
+.row-menu-space {
+  width: 28px;
+  flex: none;
+}
+
+.suggestions .field-label {
+  margin-bottom: 4px;
+}
+
+.suggestions li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+}
+
+.suggestions li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.suggestions .icon-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Small pill button inside rows (Einladen, Beitreten, Abspielen). */
+.chip-action {
+  flex: none;
+  height: 26px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chip-action:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: transparent;
+}
+
+.party-card .chip-action {
+  background: var(--surface-3);
+}
+
+.party-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.party-card .hint {
+  margin: 0;
+}
+
+.friends {
+  display: flex;
+  flex-direction: column;
+}
+
+.friends .field-label {
+  margin: 8px 0 4px;
+}
+
+.friends .field-label:first-child {
+  margin-top: 0;
+}
+
+.friend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 2px 0 4px;
+  border-radius: 8px;
+}
+
+.friend-row:hover {
+  background: var(--surface-2);
+}
+
+.friend-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-friend {
+  align-self: flex-start;
+  height: 30px;
+  padding: 0 12px 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.add-friend:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
+.add-friend svg {
+  width: 14px;
+  height: 14px;
+}
+
+.friend-code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.friend-code .code {
+  flex: 1;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: 3px;
+  font-variant-numeric: tabular-nums;
+  font-family: 'Cascadia Mono', 'SF Mono', Consolas, monospace;
+  user-select: text;
+}
+
+.friend-code .code.pending {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+.friend-code .icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.eq-dialog .hint {
+  margin: 6px 0 0;
+}
+
+/* Party badge next to the EQ badge in the mini player. */
+.mini-badges {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mini-badges .eq-badge {
+  flex: none;
+}
+
+.mini-badges .eq-badge:last-child {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* ---------- Settings: Freunde & Party ---------- */
+.text-input {
+  width: 200px;
+  height: 32px;
+  flex: none;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  user-select: text;
+}
+
+.offset {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.offset input {
+  width: 160px;
+}
+
+.offset span {
+  width: 58px;
+  text-align: right;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.row-buttons {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}

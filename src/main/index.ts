@@ -6,6 +6,7 @@ import { registerIpc } from './ipc';
 import { setupMenu } from './menu';
 import { startPlaylistEq } from './playlist-eq';
 import { flushSettings, getSettings, loadSettings } from './settings';
+import { onPartyChanged, partyTrayItem, startSocial, stopSocial } from './social';
 import { createTray } from './tray';
 import { startUpdates } from './updater';
 import { getYtSession } from './yt-view';
@@ -49,9 +50,12 @@ if (!app.requestSingleInstanceLock()) {
       toggleMini: toggleMiniPlayer,
       isMiniOpen,
       onMiniChanged,
+      partyItem: partyTrayItem,
+      onPartyChanged,
     });
     // Autostart (--hidden): YT loads in the background, only the tray is visible.
     createMainWindow({ show: !shouldStartHidden() });
+    startSocial();
     startUpdates();
 
     app.on('activate', () => {
@@ -67,6 +71,7 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.on('before-quit', () => {
+    stopSocial();
     flushSettings();
     // Make sure login cookies reach the disk before the process ends.
     void getYtSession().cookies.flushStore();

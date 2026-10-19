@@ -29,6 +29,10 @@ export const SELECTORS = {
   browseGradient: 'ytmusic-browse-response .background-gradient',
   /** YT's player element with its JS API (setVolume, …); only reachable from the main world. */
   playerApi: '#movie_player',
+  /** YT marks its player like this while an ad plays (listening party waits for it). */
+  adShowing: '#movie_player.ad-showing',
+  /** Root element of YT Music; takes YT's own in-page navigation (listening party). */
+  app: 'ytmusic-app',
 } as const satisfies Record<string, string>;
 
 export type SelectorName = keyof typeof SELECTORS;
@@ -40,6 +44,7 @@ export const SELF_TEST: readonly { selector: SelectorName; feature: string }[] =
   { selector: 'likeRenderer', feature: 'Gefällt mir' },
   { selector: 'likeButton', feature: 'Gefällt mir' },
   { selector: 'playerApi', feature: 'Lautstärke' },
+  { selector: 'app', feature: 'Hör-Party (Titel laden)' },
 ];
 
 /** Features whose selectors are missing in `root` (deduplicated). */

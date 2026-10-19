@@ -3,7 +3,9 @@ import { watchLinkDrops } from '@shared/link-drop';
 import type { PegelLink } from '@shared/links';
 import type { UpdateStatus } from '@shared/update';
 import type { AppInfo, PagePlaylist, PlayerState, Settings, View } from '@shared/types';
+import { EMPTY_SOCIAL_STATE, type SocialState } from '@shared/social';
 import { EqPanel } from './components/eq/EqPanel';
+import { SocialPanel } from './components/social/SocialPanel';
 import { Titlebar, type TitlebarHint } from './components/Titlebar';
 import { PetalLayer } from './components/PetalLayer';
 import { applyTheme } from './styles/theme';
@@ -12,6 +14,18 @@ import { THEMES } from '@shared/themes';
 import { OfflinePage } from './routes/OfflinePage';
 import { SettingsPage } from './routes/SettingsPage';
 import { WelcomePage } from './routes/WelcomePage';
+
+/** Title bar pill while in a party: who waits, or how many listen. */
+function partyPill(social: SocialState): { label: string; waiting: boolean } | null {
+  const party = social.party;
+  if (!party) return null;
+  if (party.hold?.kind === 'ads') {
+    return { label: `Warte auf ${party.hold.names[0] ?? '…'} …`, waiting: true };
+  }
+  if (party.hold?.kind === 'host-ad') return { label: 'Party · Werbung', waiting: true };
+  if (party.connection !== 'online') return { label: 'Party · verbinde …', waiting: true };
+  return { label: `Party · ${party.members.length}`, waiting: false };
+}
 
 export function App() {
   const [view, setView] = useState<View>('music');
@@ -25,6 +39,7 @@ export function App() {
   const [update, setUpdate] = useState<UpdateStatus>({ state: 'idle' });
   /** Version whose update hint was closed; the settings still offer it. */
   const [dismissedUpdate, setDismissedUpdate] = useState<string | null>(null);
+  const [social, setSocial] = useState<SocialState>(EMPTY_SOCIAL_STATE);
 
   useEffect(() => {
     void window.pegel.getView().then(setView);
@@ -42,7 +57,10 @@ export function App() {
     const offLink = window.pegel.onLinkOffer(setLinkOffer);
     void window.pegel.getUpdateStatus().then(setUpdate);
     const offUpdate = window.pegel.onUpdateStatus(setUpdate);
+    void window.pegel.getSocialState().then(setSocial);
+    const offSocial = window.pegel.onSocialState(setSocial);
     return () => {
+      offSocial();
       offLink();
       offUpdate();
       offView();
@@ -63,11 +81,21 @@ export function App() {
   }, [theme]);
 
   const panelOpen = settings?.eq.panelOpen ?? false;
+  const socialOpen = settings?.social.panelOpen ?? false;
   const animatedPetals = theme === 'sakura' && (settings?.effects.petals ?? false);
   const hint = titlebarHint();
 
-  /** One hint at a time: a copied link is the most immediate, an update can wait. */
+  /** One hint at a time: an invite and a copied link are the most immediate, an update can wait. */
   function titlebarHint(): TitlebarHint | null {
+    const invite = social.invites[0];
+    if (invite) {
+      return {
+        text: `${invite.name} lädt dich zur Party ein`,
+        action: 'Beitreten',
+        onAction: () => window.pegel.partyRespond(invite.inviteId, true),
+        onClose: () => window.pegel.partyRespond(invite.inviteId, false),
+      };
+    }
     if (linkOffer) {
       return {
         text: `Kopierter Link: ${LINK_KIND_LABEL[linkOffer.kind]}`,
@@ -104,6 +132,9 @@ export function App() {
       <Titlebar
         view={view}
         eqOpen={panelOpen}
+        socialOpen={socialOpen}
+        invites={social.invites.length}
+        party={partyPill(social)}
         theme={theme ?? 'standard'}
         animatedPetals={animatedPetals}
         hint={hint}
@@ -121,6 +152,7 @@ export function App() {
               pagePlaylist={pagePlaylist}
             />
           )}
+          {settings && <SocialPanel state={social} settings={settings.social} open={socialOpen} />}
         </div>
         {view === 'settings' && settings && (
           <SettingsPage

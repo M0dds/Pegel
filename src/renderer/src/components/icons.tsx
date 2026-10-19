@@ -202,3 +202,41 @@ export function PlaylistIcon() {
     </svg>
   );
 }
+
+/** Two people: friends & party (title bar "Social"). */
+export function SocialIcon() {
+  return (
+    <svg {...stroke}>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+      <path d="M16 4.6a3.2 3.2 0 0 1 0 6.3M18 14.3c1.8.8 3 2.6 3 4.7" />
+    </svg>
+  );
+}
+
+/** Sound waves around a dot: the listening party. */
+export function PartyIcon() {
+  return (
+    <svg {...stroke}>
+      <circle cx="12" cy="12" r="2" />
+      <path d="M8.2 8.2a5.4 5.4 0 0 0 0 7.6M15.8 8.2a5.4 5.4 0 0 1 0 7.6M5.3 5.3a9.5 9.5 0 0 0 0 13.4M18.7 5.3a9.5 9.5 0 0 1 0 13.4" />
+    </svg>
+  );
+}
+
+export function CopyIcon() {
+  return (
+    <svg {...stroke}>
+      <rect x="8" y="8" width="12" height="12" rx="2" />
+      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+    </svg>
+  );
+}
+
+export function PlusIcon() {
+  return (
+    <svg {...stroke}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}

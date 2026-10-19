@@ -6,6 +6,28 @@ import { MAX_FEED_BARS } from '@shared/spectrum';
 import { isPlayerCommand } from '@shared/player';
 import { isThemeId } from '@shared/themes';
 import { isView } from '@shared/types';
+import { toPartyReport } from '@shared/social';
+import {
+  answerSuggestion,
+  createFriendCode,
+  disableSocial,
+  enableSocial,
+  endParty,
+  getSocialState,
+  handlePartyReport,
+  inviteToParty,
+  joinFriendParty,
+  kickFromParty,
+  leaveParty,
+  patchSocial,
+  redeemFriendCode,
+  removeFriend,
+  resetSocial,
+  respondToInvite,
+  resumeParty,
+  startParty,
+  transferParty,
+} from './social';
 import { getMediaKeysAtStart } from './app-state';
 import { applyStartAtLogin } from './autostart';
 import {
@@ -41,6 +63,7 @@ import {
   sendPlayerCommand,
   showView,
   toggleEqPanel,
+  toggleSocialPanel,
 } from './windows/main-window';
 
 function handle<C extends InvokeChannel>(
@@ -79,6 +102,28 @@ export function registerIpc(): void {
   handle('player:get-issues', () => getSelectorIssues());
   handle('player:get-page-playlist', () => getPagePlaylist());
   handle('update:get', () => getUpdateStatus());
+  handle('social:get', () => getSocialState());
+
+  on('social:toggle-panel', () => toggleSocialPanel());
+  on('social:enable', (_event, payload) =>
+    enableSocial((payload as { displayName?: unknown } | null)?.displayName),
+  );
+  on('social:disable', () => disableSocial());
+  on('social:reset', () => resetSocial());
+  on('social:patch', (_event, patch) => patchSocial(patch));
+  on('social:create-code', () => createFriendCode());
+  on('social:redeem-code', (_event, code) => redeemFriendCode(code));
+  on('social:remove-friend', (_event, id) => removeFriend(id));
+  on('party:start', () => startParty());
+  on('party:invite', (_event, id) => inviteToParty(id));
+  on('party:respond', (_event, payload) => respondToInvite(payload));
+  on('party:join', (_event, id) => joinFriendParty(id));
+  on('party:leave', () => leaveParty());
+  on('party:end', () => endParty());
+  on('party:kick', (_event, id) => kickFromParty(id));
+  on('party:transfer', (_event, id) => transferParty(id));
+  on('party:suggestion', (_event, payload) => answerSuggestion(payload));
+  on('party:resume', () => resumeParty());
 
   on('view:show', (_event, view) => {
     if (isView(view)) showView(view);
@@ -178,6 +223,11 @@ export function registerIpc(): void {
     if (levels.length > MAX_FEED_BARS) return;
     if (!levels.every((v) => Number.isInteger(v) && v >= 0 && v <= 255)) return;
     forwardSpectrum(levels as number[]);
+  });
+  ipcMain.on('yt:party-report', (event, raw: unknown) => {
+    if (!isYtSender(event.sender)) return;
+    const report = toPartyReport(raw);
+    if (report) handlePartyReport(report);
   });
   ipcMain.on('yt:drop-link', (event, text: unknown) => {
     const link = isYtSender(event.sender) && typeof text === 'string' ? findPegelLink(text) : null;

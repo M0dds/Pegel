@@ -563,7 +563,7 @@ Alle Nachrichten sind JSON mit dem Feld `t` (Typ). Zeiten sind Server-Millisekun
 | C→S | `status` | Gäste: `videoId`, `driftMs`, `ad`, `buffering`, `unplayable?`. Jede Sekunde, solange sich etwas ändert, sonst alle 5 s |
 | S→C | `member` | `userId`, `name`, `role`, `conn` (`ok`/`reconnecting`), `ad`, `unplayable`, `driftMs`. Die Abweichung zeigt die UI als „sync“-Punkt |
 | C→S / S→C | `suggest` | Gast: `videoId`, `title`, `artist` → an den Host. Höchstens 5 offene Vorschläge pro Gast |
-| C→S | `suggest.answer` | Host: `id`, `accept`. Angenommen heißt: Der Host spielt den Titel als Nächstes ab |
+| C→S | `suggest.answer` | Host: `id`, `accept`. Angenommen heißt: Der Host spielt den Titel sofort ab („Abspielen“). „Als Nächstes“ in YTs Warteschlange bräuchte das Kontextmenü (DOM) und ist zurückgestellt |
 | C→S | `kick`, `transfer`, `end`, `options` | nur Host |
 | S→C | `host` | `hostId` (nach Abgabe oder Ausfall) |
 | S→C | `ended` | `reason`: `host-ended`, `empty`, `host-lost` |
@@ -703,7 +703,7 @@ Alles im Stil von `design/mockup.html`: Tokens, `tb-btn`, Panel-Maße und Chips 
   - „Freunde ausschalten“ und „Freunde zurücksetzen“,
   - der Satz zum Datenschutz.
 
-**Einstellungs-Schema** (Migration auf v2):
+**Einstellungs-Schema** (umgesetzt ohne Versionssprung: `normalizeSettings` ergänzt fehlende Felder mit Standardwerten, `version` bleibt 1):
 
 ```ts
 social: {
@@ -717,20 +717,54 @@ social: {
 }
 ```
 
-#### 10.7 Schritte
+#### 10.7 Umsetzung (Stand 19.10.2026)
 
-- [ ] Konzept mit Johann abgestimmt (Server, Datenschutz, UI, Werbung: erledigt), Freigabe zum Umsetzen
-- [ ] `server/` anlegen: Worker, Hub-DO, Party-DO, `jurisdiction: 'eu'`, Signaturprüfung, Tests mit `@cloudflare/vitest-pool-workers`. Johann legt den Cloudflare-Account an, erster Deploy nach Rückfrage
-- [ ] `shared/social-protocol.ts`, `shared/social.ts`, `shared/party-sync.ts` mit Unit-Tests (Uhr-Offset, Hochrechnen, Korrekturstufen, Freundescode-Format)
-- [ ] Bridge: `videoId`, `adPlaying`, Sperr-Erkennung, Laden per `watchEndpoint` mit `loadURL`-Rückfallebene. Neue Selektoren und Selbsttest
-- [ ] `main/social/identity.ts` und `connection.ts` (Anmeldung, Backoff, Uhrabgleich), Einstellungen v2 mit Migration
-- [ ] Freunde: Codes erzeugen und einlösen, gegenseitige Presence, „Hört gerade“, Panel ohne Party, Overlay „Freund hinzufügen“
-- [ ] Party Host/Gast: `yt/party/sync.ts` mit Tempo- und Sprungkorrektur, Ausgabelatenz, Beitritt mitten im Lied, Titelwechsel
-- [ ] Sonderfälle: Werbe-Wartezeit, gesperrte Titel, lokale Bedienung von Gästen, Vorschläge, Verbindungsabbruch, Host-Wechsel
-- [ ] UI fertig: Titelleiste neu gruppiert mit Social-Button, Party-Karte, Titelleisten-Pille, Einladungshinweis und System-Benachrichtigung, Mini-Player-Badge, Tray-Eintrag, Einstellungsabschnitt
-- [ ] Messen: Zwei Pegel-Instanzen auf einem Rechner (zweites `userData`), dann zwei Rechner. Abweichung per Log von `driftMs` nach Play, Spulen, Titelwechsel und Beitritt. Ziel ±40 ms nach spätestens 3 s
+**Abweichungen und Ergänzungen zum Konzept**
+
+- **EQ bleibt lokal.** Er wird nicht synchronisiert, weil er zu den eigenen Kopfhörern passt.
+  - Playlist-Presets gelten nur im eigenen Pegel.
+  - Gäste laden den Titel mit der `playlistId` des Hosts. Hat ein Gast für diese Playlist selbst ein Preset (z. B. bei einer gemeinsamen Playlist), wird sein eigenes aktiv.
+  - Eine Option „EQ des Hosts übernehmen“ wäre später möglich.
+- **Hibernation:** Wacht der Hub auf, kennt er Freundeslisten erst nach dem `hello` des Clients. Damit die weckende Nachricht (z. B. eine Einladung) nicht an einer leeren Liste scheitert, liegt die Liste gekürzt im Socket-Attachment.
+  - Gekürzt heißt: 66-Bit-Präfixe, höchstens 150 Einträge.
+  - Das Attachment ist kein Speicher, es existiert nur, solange der Socket offen ist.
+- **Navigation:** YTs `yt-navigate`-Event an `ytmusic-app` mit `watchEndpoint` funktioniert (geprüft). Der Titel wechselt ohne Neuladen, die EQ-Kette bleibt.
+- **Neue Player-Befehle** `play` und `pause` (statt Umschalten), damit die Werbe-Wartezeit nicht versehentlich falsch herum schaltet.
+- **Lokale Entwicklung:**
+  - `server/`: `npm run dev` startet wrangler mit `JURISDICTION=none`, weil der lokale workerd keine Jurisdiktionen kennt.
+  - Pegel: mit `PEGEL_SOCIAL_URL=ws://127.0.0.1:8787` starten. Für eine zweite Instanz `PEGEL_USER_DATA` auf einen eigenen Ordner setzen.
+- **Server-Adresse** in `src/main/social/config.ts`: `wss://pegel-social.johann-mertens-98.workers.dev` (deployt am 19.10.2026, `jurisdiction: 'eu'` funktioniert im Free-Plan).
+
+**Gemessen** (zwei Instanzen auf einem Rechner, lokaler Server, Abstand der beiden `currentTime` über `performance.timeOrigin`):
+
+- Laufend: 5–26 ms. Das entspricht etwa der Auflösung von `currentTime`.
+- Nach Spulen beim Host: zuerst ca. 120 ms voraus, nach 2,5 s unter 20 ms (Tempo 0,96 → 1).
+- Pause/Play: Die Pausenstelle stimmt auf 30 ms. Nach Play ca. 90 ms, nach 2 s unter 10 ms.
+- Titelwechsel am Liedende, angenommener Vorschlag und Beitritt einer offenen Party: alle folgen, danach unter 40 ms.
+- Über den echten Server (Cloudflare, EU), zwei Instanzen auf einem Rechner: laufend unter 1 ms, nach Spulen ca. 130 ms, nach 2 s unter 25 ms.
+
+**Schritte**
+
+- [x] Konzept mit Johann abgestimmt (Server, Datenschutz, UI, Werbung), Freigabe zum Umsetzen
+- [x] `server/` angelegt:
+  - Worker, Hub-DO, Party-DO, `jurisdiction: 'eu'`, Signaturprüfung.
+  - Die Kerne `hub-core.ts` und `party-core.ts` sind reines TypeScript und mit Vitest getestet (`tests/unit/social-server.test.ts`) statt mit `vitest-pool-workers`.
+  - Lokal mit wrangler geprüft.
+- [x] Cloudflare-Account (Johann), erster Deploy (`cd server; npm run deploy`), URL in `config.ts` eingetragen
+- [x] `shared/social-protocol.ts`, `shared/social.ts`, `shared/party-sync.ts` mit Unit-Tests (Uhr-Offset, Hochrechnen, Korrekturstufen, Freundescode-Format)
+- [x] Bridge: `videoId`, `adPlaying`, Sperr-Erkennung, Laden per `yt-navigate` mit `location.assign`-Rückfallebene, neue Selektoren (`adShowing`, `app`) im Selbsttest
+- [x] `main/social/identity.ts` und `connection.ts` (Anmeldung, Backoff, Keep-alive mit Erkennung toter Verbindungen, Uhrabgleich), Einstellungen um `social` erweitert
+- [x] Freunde: Codes erzeugen und einlösen, gegenseitige Presence, „Hört gerade“, Panel, Overlay „Freund hinzufügen“
+- [x] Party Host/Gast: `yt/party/sync.ts` mit Tempo- und Sprungkorrektur (gelernter Sprungvorlauf), Ausgabelatenz, Beitritt mitten im Lied, Titelwechsel
+- [x] Sonderfälle umgesetzt:
+  - Geprüft: lokale Pause und „Weiterhören“, Gast wählt Titel → Vorschlag, Host-Wechsel beim Verlassen, Beitritt zu einer offenen Party.
+  - Umgesetzt, aber ungetestet (in den Tests kam keine Werbung, kein gesperrter Titel und kein echter Verbindungsabbruch vor): Werbe-Wartezeit, gesperrte Titel, Verbindungsabbruch.
+- [x] UI: Titelleiste neu gruppiert mit Social-Button, Party-Karte, Titelleisten-Pille, Einladungshinweis und System-Benachrichtigung, Mini-Player-Badge (Zurück/Weiter für Gäste aus), Tray-Eintrag, Einstellungsabschnitt
+- [x] Messen mit zwei Instanzen auf einem Rechner (Ergebnis oben)
+- [ ] Messen auf zwei Rechnern über den echten Server
 - [ ] Test mit 3+ Leuten, davon einer ohne Premium (Werbung) und einer mit Bluetooth-Kopfhörer
-- [ ] README: Abschnitt „Freunde & Party“ mit Datenschutz. Version 1.1.0 mit dem Commit aus M9 veröffentlichen (nach Rückfrage)
+- [x] README: Abschnitt „Freunde & Hör-Party“ und Datenschutz
+- [ ] Version 1.1.0 mit dem Commit aus M9 veröffentlichen (nach Rückfrage)
 - **Fertig, wenn:** Johann und mindestens zwei Freunde sich per Code hinzufügen, einander online mit „Hört gerade“ sehen und eine Party über mehrere Titel synchron hören, auch wenn einer mitten im Lied beitritt, Werbung bekommt oder kurz die Verbindung verliert.
 
 ### Später (optional)

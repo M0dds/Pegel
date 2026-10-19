@@ -7,6 +7,7 @@ import {
   EQ_PREAMP_MIN,
   EQ_STEP,
 } from './presets';
+import { cleanName } from './social-protocol';
 import { isThemeId } from './themes';
 import type { EqPreset, PlaylistPreset, Rect, Settings } from './types';
 
@@ -36,7 +37,18 @@ export const DEFAULT_SETTINGS: Settings = {
   welcomeShown: false,
   effects: { petals: true, visualizer: true },
   trayHintShown: false,
+  social: {
+    enabled: false,
+    displayName: '',
+    shareNowPlaying: true,
+    audioOffsetMs: 0,
+    partyOpen: true,
+    allowSuggestions: true,
+    panelOpen: false,
+  },
 };
+
+export const AUDIO_OFFSET_MAX_MS = 300;
 
 type Obj = Record<string, unknown>;
 
@@ -138,6 +150,8 @@ export function normalizeSettings(input: unknown): Settings {
   const discord = isObj(raw['discord']) ? raw['discord'] : {};
   const win = isObj(raw['window']) ? raw['window'] : {};
   const effects = isObj(raw['effects']) ? raw['effects'] : {};
+  const social = isObj(raw['social']) ? raw['social'] : {};
+  const offset = isNum(social['audioOffsetMs']) ? Math.round(social['audioOffsetMs']) : 0;
 
   const miniBounds = rect(mini['bounds']);
   const windowBounds = rect(win['bounds']);
@@ -184,5 +198,15 @@ export function normalizeSettings(input: unknown): Settings {
       visualizer: bool(effects['visualizer'], d.effects.visualizer),
     },
     trayHintShown: bool(raw['trayHintShown'], d.trayHintShown),
+    social: {
+      // Without a name there is nothing to show friends, so it cannot be on.
+      enabled: bool(social['enabled'], d.social.enabled) && !!cleanName(social['displayName']),
+      displayName: cleanName(social['displayName']) ?? '',
+      shareNowPlaying: bool(social['shareNowPlaying'], d.social.shareNowPlaying),
+      audioOffsetMs: Math.max(-AUDIO_OFFSET_MAX_MS, Math.min(AUDIO_OFFSET_MAX_MS, offset)),
+      partyOpen: bool(social['partyOpen'], d.social.partyOpen),
+      allowSuggestions: bool(social['allowSuggestions'], d.social.allowSuggestions),
+      panelOpen: bool(social['panelOpen'], d.social.panelOpen),
+    },
   };
 }

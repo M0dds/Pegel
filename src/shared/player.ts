@@ -28,6 +28,8 @@ export function toPlayerState(value: unknown): PlayerState | null {
   }
   if (isNum(v['volume'])) state.volume = Math.min(1, Math.max(0, v['volume']));
   if (typeof v['muted'] === 'boolean') state.muted = v['muted'];
+  if (isStr(v['videoId']) && /^[A-Za-z0-9_-]{11}$/.test(v['videoId'])) state.videoId = v['videoId'];
+  if (v['adPlaying'] === true) state.adPlaying = true;
   return state;
 }
 
@@ -37,6 +39,8 @@ export function isPlayerCommand(value: unknown): value is PlayerCommand {
   const v = value as Record<string, unknown>;
   switch (v['type']) {
     case 'playPause':
+    case 'play':
+    case 'pause':
     case 'next':
     case 'previous':
     case 'toggleLike':

@@ -10,7 +10,7 @@ const PAGE_POLL_MS = 700;
 /** The self-test waits a bit after the first playback so the player bar is complete. */
 const SELF_TEST_DELAY_MS = 2000;
 
-function media(): HTMLMediaElement | null {
+export function media(): HTMLMediaElement | null {
   return document.querySelector<HTMLMediaElement>(SELECTORS.mediaElement);
 }
 
@@ -19,7 +19,10 @@ function media(): HTMLMediaElement | null {
  * exists in the page's main world, so the call runs there; nothing is
  * exposed to the page. Returns undefined if the player or method is missing.
  */
-function playerApi<T>(method: string, ...args: (string | number | boolean)[]): T | undefined {
+export function playerApi<T>(
+  method: string,
+  ...args: (string | number | boolean)[]
+): T | undefined {
   try {
     return contextBridge.executeInMainWorld({
       func: (selector: string, name: string, params: unknown[]) => {
@@ -69,6 +72,76 @@ export function readLoudness(): { videoId: string; loudnessDb?: number } | null 
 }
 
 /**
+ * Id and playability of the loaded track from YT's player response. `status`
+ * is YT's `playabilityStatus.status` ('OK', 'UNPLAYABLE', 'LOGIN_REQUIRED', …).
+ */
+export function readTrackInfo(): { videoId: string; status: string } | null {
+  try {
+    return contextBridge.executeInMainWorld({
+      func: (selector: string) => {
+        type Response = {
+          videoDetails?: { videoId?: unknown };
+          playabilityStatus?: { status?: unknown };
+        };
+        const player = document.querySelector(selector) as unknown as {
+          getPlayerResponse?: () => Response | undefined;
+        } | null;
+        const response = player?.getPlayerResponse?.();
+        const videoId = response?.videoDetails?.videoId;
+        if (typeof videoId !== 'string') return null;
+        const status = response?.playabilityStatus?.status;
+        return { videoId, status: typeof status === 'string' ? status : 'OK' };
+      },
+      args: [SELECTORS.playerApi],
+    }) as { videoId: string; status: string } | null;
+  } catch {
+    return null;
+  }
+}
+
+/** True while YT plays an ad instead of the track. */
+export function isAdShowing(): boolean {
+  return document.querySelector(SELECTORS.adShowing) !== null;
+}
+
+/**
+ * Plays a track through YT's own in-page navigation (like clicking it), so
+ * the page, the queue and the EQ chain stay. Returns false if YT's app
+ * element is missing; the caller then falls back to loading the URL.
+ */
+export function navigateToTrack(videoId: string, playlistId?: string): boolean {
+  try {
+    return contextBridge.executeInMainWorld({
+      func: (selector: string, id: string, list: string) => {
+        const app = document.querySelector(selector);
+        if (!app) return false;
+        const watchEndpoint: Record<string, string> = { videoId: id };
+        if (list) watchEndpoint['playlistId'] = list;
+        app.dispatchEvent(
+          new CustomEvent('yt-navigate', {
+            bubbles: true,
+            composed: true,
+            detail: { endpoint: { watchEndpoint } },
+          }),
+        );
+        return true;
+      },
+      args: [SELECTORS.app, videoId, playlistId ?? ''],
+    }) as boolean;
+  } catch {
+    return false;
+  }
+}
+
+/** URL of a track, for the fallback when in-page navigation does not work. */
+export function trackUrl(videoId: string, playlistId?: string): string {
+  const url = new URL('https://music.youtube.com/watch');
+  url.searchParams.set('v', videoId);
+  if (playlistId) url.searchParams.set('list', playlistId);
+  return url.toString();
+}
+
+/**
  * Reports the loudness whenever another track is loaded. YT fills the player
  * response a moment after the track starts, so it is also polled lightly.
  */
@@ -109,11 +182,17 @@ function readLiked(): boolean | undefined {
   return status ? status === 'LIKE' : undefined;
 }
 
+/** Last state outside an ad: during an ad the track it interrupts is reported. */
+let lastTrackState: PlayerState | null = null;
+
 /**
  * Reads the player state, primarily from navigator.mediaSession and the
  * media element; only "liked" comes from the DOM.
  */
 export function readState(): PlayerState | null {
+  if (isAdShowing()) {
+    return lastTrackState ? { ...lastTrackState, isPlaying: false, adPlaying: true } : null;
+  }
   const metadata = navigator.mediaSession.metadata;
   const el = media();
   if (!metadata || !metadata.title) return null;
@@ -139,6 +218,9 @@ export function readState(): PlayerState | null {
   if (typeof volume === 'number') state.volume = volume / 100;
   const muted = playerApi<boolean>('isMuted');
   if (typeof muted === 'boolean') state.muted = muted;
+  const info = readTrackInfo();
+  if (info) state.videoId = info.videoId;
+  lastTrackState = state;
   return state;
 }
 
@@ -153,6 +235,12 @@ export function runCommand(command: PlayerCommand): void {
   switch (command.type) {
     case 'playPause':
       if (el) void (el.paused ? el.play() : el.pause());
+      break;
+    case 'play':
+      if (el?.paused) void el.play().catch(() => {});
+      break;
+    case 'pause':
+      if (el && !el.paused) el.pause();
       break;
     case 'next':
       click(SELECTORS.nextButton);

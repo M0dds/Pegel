@@ -1,13 +1,26 @@
 import type { ThemeId, View } from '@shared/types';
 import { Logo } from './Logo';
 import { WindowControls } from './WindowControls';
-import { CloseIcon, EqIcon, MiniPlayerIcon, RefreshIcon, SettingsIcon } from './icons';
+import {
+  CloseIcon,
+  EqIcon,
+  MiniPlayerIcon,
+  PartyIcon,
+  RefreshIcon,
+  SettingsIcon,
+  SocialIcon,
+} from './icons';
 
 const MOD = window.pegel.platform === 'darwin' ? '⌘' : 'Strg';
 
 interface Props {
   view: View;
   eqOpen: boolean;
+  socialOpen: boolean;
+  /** Pending party invites: a dot on the Social button. */
+  invites: number;
+  /** Pill while in a listening party ("Party · 3", "Warte auf Lea …"). */
+  party: { label: string; waiting: boolean } | null;
   theme: ThemeId;
   /** Falling petals are drawn by PetalLayer; the static ones are the fallback. */
   animatedPetals: boolean;
@@ -37,7 +50,16 @@ function Petals() {
   );
 }
 
-export function Titlebar({ view, eqOpen, theme, animatedPetals, hint }: Props) {
+export function Titlebar({
+  view,
+  eqOpen,
+  socialOpen,
+  invites,
+  party,
+  theme,
+  animatedPetals,
+  hint,
+}: Props) {
   return (
     <header className="titlebar">
       {theme === 'sakura' && !animatedPetals && <Petals />}
@@ -62,40 +84,69 @@ export function Titlebar({ view, eqOpen, theme, animatedPetals, hint }: Props) {
         </div>
       )}
       <div className="tb-spacer" />
-      <button
-        className="tb-btn"
-        title={`YT Music neu laden (F5)`}
-        aria-label="YT Music neu laden"
-        onClick={() => window.pegel.reloadYt()}
-      >
-        <RefreshIcon />
-      </button>
-      <button
-        className="tb-btn"
-        aria-pressed={view === 'music' && eqOpen}
-        title={`Equalizer (${MOD}+E)`}
-        onClick={() => window.pegel.toggleEqPanel()}
-      >
-        <EqIcon />
-        Equalizer
-      </button>
-      <button
-        className="tb-btn"
-        title={`Mini-Player (${MOD}+M)`}
-        aria-label="Mini-Player"
-        onClick={() => window.pegel.openMini()}
-      >
-        <MiniPlayerIcon />
-      </button>
-      <button
-        className="tb-btn"
-        aria-pressed={view === 'settings'}
-        title={`Einstellungen (${MOD}+,)`}
-        aria-label="Einstellungen"
-        onClick={() => window.pegel.showView(view === 'settings' ? 'music' : 'settings')}
-      >
-        <SettingsIcon />
-      </button>
+      {party && (
+        <button
+          className={`tb-party${party.waiting ? ' waiting' : ''}`}
+          title="Hör-Party anzeigen"
+          onClick={() => {
+            if (!(view === 'music' && socialOpen)) window.pegel.toggleSocialPanel();
+          }}
+        >
+          <PartyIcon />
+          <span>{party.label}</span>
+        </button>
+      )}
+      <div className="tb-group">
+        <button
+          className="tb-btn"
+          aria-pressed={view === 'music' && eqOpen}
+          title={`Equalizer (${MOD}+E)`}
+          onClick={() => window.pegel.toggleEqPanel()}
+        >
+          <EqIcon />
+          Equalizer
+        </button>
+        <button
+          className="tb-btn"
+          aria-pressed={view === 'music' && socialOpen}
+          title={`Freunde & Party (${MOD}+U)`}
+          onClick={() => window.pegel.toggleSocialPanel()}
+        >
+          <span className="tb-icon">
+            <SocialIcon />
+            {invites > 0 && <i className="tb-badge-dot" aria-label="Neue Einladung" />}
+          </span>
+          Social
+        </button>
+      </div>
+      <span className="tb-sep" aria-hidden="true" />
+      <div className="tb-group">
+        <button
+          className="tb-btn"
+          title={`YT Music neu laden (F5)`}
+          aria-label="YT Music neu laden"
+          onClick={() => window.pegel.reloadYt()}
+        >
+          <RefreshIcon />
+        </button>
+        <button
+          className="tb-btn"
+          title={`Mini-Player (${MOD}+M)`}
+          aria-label="Mini-Player"
+          onClick={() => window.pegel.openMini()}
+        >
+          <MiniPlayerIcon />
+        </button>
+        <button
+          className="tb-btn"
+          aria-pressed={view === 'settings'}
+          title={`Einstellungen (${MOD}+,)`}
+          aria-label="Einstellungen"
+          onClick={() => window.pegel.showView(view === 'settings' ? 'music' : 'settings')}
+        >
+          <SettingsIcon />
+        </button>
+      </div>
       {window.pegel.platform !== 'darwin' && <WindowControls />}
     </header>
   );

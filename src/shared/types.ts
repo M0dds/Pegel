@@ -78,6 +78,23 @@ export interface Settings {
   effects: { petals: boolean; visualizer: boolean };
   /** The one-time "Pegel keeps running in the tray" hint was shown (Windows). */
   trayHintShown: boolean;
+  social: SocialSettings;
+}
+
+/** Friends & listening party (M10). Off until set up in the Social panel. */
+export interface SocialSettings {
+  enabled: boolean;
+  /** Shown to friends; 1–24 characters. */
+  displayName: string;
+  /** Friends see "hört gerade …" (otherwise only "online"). */
+  shareNowPlaying: boolean;
+  /** Extra output delay of this device (e.g. Bluetooth), -300…300 ms. */
+  audioOffsetMs: number;
+  /** Host: friends may join the party without an invite. */
+  partyOpen: boolean;
+  /** Host: guests may suggest tracks. */
+  allowSuggestions: boolean;
+  panelOpen: boolean;
 }
 
 /** Settings the UI may change directly (validated in the main process). */
@@ -113,10 +130,16 @@ export interface PlayerState {
   /** YT's own volume, 0…1. */
   volume?: number;
   muted?: boolean;
+  /** YT's id of the loaded track (from the player response). */
+  videoId?: string;
+  /** An ad plays; title and artist stay those of the track it interrupts. */
+  adPlaying?: boolean;
 }
 
 export type PlayerCommand =
   | { type: 'playPause' }
+  | { type: 'play' }
+  | { type: 'pause' }
   | { type: 'next' }
   | { type: 'previous' }
   | { type: 'seek'; sec: number }

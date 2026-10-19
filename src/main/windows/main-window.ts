@@ -67,7 +67,7 @@ export function getView(): View {
 }
 
 /** Sends to every Pegel UI window (main window and mini player; the YT view is not one). */
-function sendToUi<C extends keyof MainToUiChannels>(
+export function sendToUi<C extends keyof MainToUiChannels>(
   channel: C,
   ...args: PayloadArgs<MainToUiChannels[C]>
 ): void {
@@ -90,7 +90,7 @@ export function showView(view: View): void {
   sendToUi('view:changed', view);
 }
 
-function sendToYt<C extends keyof MainToYtChannels>(
+export function sendToYt<C extends keyof MainToYtChannels>(
   channel: C,
   ...args: PayloadArgs<MainToYtChannels[C]>
 ): void {
@@ -128,12 +128,21 @@ export function forwardSpectrum(levels: number[]): void {
   getMiniWindow()?.webContents.send('mini:spectrum', levels);
 }
 
+const ytReadyListeners = new Set<() => void>();
+
+/** Called after every page load of the YT view, once its preload runs (e.g. to resend the party). */
+export function onYtReady(listener: () => void): () => void {
+  ytReadyListeners.add(listener);
+  return () => ytReadyListeners.delete(listener);
+}
+
 /** Sends EQ and effects to the YT preload once it reports ready (after every page load). */
 export function handleYtReady(sender: WebContents): void {
   if (sender !== ytView?.webContents) return;
   sendToYt('yt:eq-apply', getSettings().eq);
   sendToYt('yt:effects', ytEffects(getSettings()));
   if (miniSpectrumBars) sendToYt('yt:spectrum-feed', miniSpectrumBars);
+  for (const listener of ytReadyListeners) listener();
 }
 
 /** Opens the mini player; the main window hides (setting "hideMainOnOpen"), music continues. */
@@ -153,12 +162,28 @@ export function toggleMiniPlayer(): void {
   else openMiniPlayer();
 }
 
+/** EQ and Social share the space right of YT: at most one is open. */
+function sidePanelOpen(settings: Settings): boolean {
+  return settings.eq.panelOpen || settings.social.panelOpen;
+}
+
 /** Equalizer button and Ctrl/⌘+E: toggle on the music view, otherwise go there and open. */
 export function toggleEqPanel(): void {
   const open = currentView !== 'music' || !getSettings().eq.panelOpen;
   if (currentView !== 'music') showView('music');
   updateSettings((s) => {
     s.eq.panelOpen = open;
+    if (open) s.social.panelOpen = false;
+  });
+}
+
+/** Social button and Ctrl/⌘+U: the friends & party panel, like the equalizer. */
+export function toggleSocialPanel(forceOpen = false): void {
+  const open = forceOpen || currentView !== 'music' || !getSettings().social.panelOpen;
+  if (currentView !== 'music') showView('music');
+  updateSettings((s) => {
+    s.social.panelOpen = open;
+    if (open) s.eq.panelOpen = false;
   });
 }
 
@@ -178,7 +203,7 @@ function updatePanelSpace(open: boolean): void {
 }
 
 export function onPanelAnimationDone(open: boolean): void {
-  if (open || getSettings().eq.panelOpen) return;
+  if (open || sidePanelOpen(getSettings())) return;
   if (panelCloseTimer) clearTimeout(panelCloseTimer);
   panelCloseTimer = null;
   panelSpace = false;
@@ -218,7 +243,8 @@ function watchSettings(): () => void {
   return onSettingsChanged((settings: Settings) => {
     sendToUi('settings:changed', settings);
     if (audioKey(settings.eq) !== audioKey(previous.eq)) sendToYt('yt:eq-apply', settings.eq);
-    if (settings.eq.panelOpen !== previous.eq.panelOpen) updatePanelSpace(settings.eq.panelOpen);
+    if (sidePanelOpen(settings) !== sidePanelOpen(previous))
+      updatePanelSpace(sidePanelOpen(settings));
     if (settings.theme !== previous.theme) applyWindowTheme();
     if (JSON.stringify(ytEffects(settings)) !== JSON.stringify(ytEffects(previous))) {
       sendToYt('yt:effects', ytEffects(settings));
@@ -359,6 +385,7 @@ function handleShortcuts(wc: WebContents): void {
     // From the mini player, Pegel pages and the EQ open in the main window.
     if (wc !== win?.webContents && wc !== ytView?.webContents) closeMiniPlayer();
     if (action.type === 'show') showView(action.view);
+    else if (action.type === 'toggleSocial') toggleSocialPanel();
     else toggleEqPanel();
   });
 }
@@ -401,7 +428,7 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
     webPreferences: UI_WEB_PREFERENCES,
   });
   win = window;
-  panelSpace = getSettings().eq.panelOpen;
+  panelSpace = sidePanelOpen(getSettings());
   const stopWatching = watchSettings();
   const stopPlayer = onPlayerState((state) => sendToUi('player:state', state));
   const stopIssues = onSelectorIssues((issues) => sendToUi('player:selector-issues', issues));

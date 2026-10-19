@@ -1,5 +1,6 @@
 import type { EqAction } from './eq';
 import type { PegelLink } from './links';
+import type { PartyControl, PartyReport, SocialState } from './social';
 import type { UpdateStatus } from './update';
 import type {
   AppInfo,
@@ -29,6 +30,16 @@ export interface InvokeChannels {
   'player:get-issues': { args: []; result: string[] };
   'player:get-page-playlist': { args: []; result: PagePlaylist | null };
   'update:get': { args: []; result: UpdateStatus };
+  'social:get': { args: []; result: SocialState };
+}
+
+/** Settings of "Freunde & Party" the UI may change (validated in main). */
+export interface SocialSettingsPatch {
+  displayName?: string;
+  shareNowPlaying?: boolean;
+  audioOffsetMs?: number;
+  partyOpen?: boolean;
+  allowSuggestions?: boolean;
 }
 
 /** Fire-and-forget: Pegel UI → main via `ipcRenderer.send`. */
@@ -45,8 +56,32 @@ export interface UiToMainChannels {
   'yt:reload': void;
   'welcome:finish': { signIn: boolean };
   'account:sign-out': void;
-  /** The panel's open/close transition ended, so the YT view may take the space back. */
+  /** A side panel's (EQ or Social) open/close transition ended, so the YT view may take the space back. */
   'eq-panel:animation-done': { open: boolean };
+  /** Social button / Ctrl+U: like the equalizer button, for the friends & party panel. */
+  'social:toggle-panel': void;
+  /** First setup: creates the identity and connects. */
+  'social:enable': { displayName: string };
+  'social:disable': void;
+  /** Deletes identity and friend list. */
+  'social:reset': void;
+  'social:patch': SocialSettingsPatch;
+  'social:create-code': void;
+  'social:redeem-code': string;
+  'social:remove-friend': string;
+  'party:start': void;
+  'party:invite': string;
+  'party:respond': { inviteId: string; accept: boolean };
+  /** Join a friend's open party. */
+  'party:join': string;
+  'party:leave': void;
+  'party:end': void;
+  'party:kick': string;
+  'party:transfer': string;
+  /** Host: play a suggestion now (accept) or drop it. */
+  'party:suggestion': { id: string; accept: boolean };
+  /** Guest: back to the party after a local pause. */
+  'party:resume': void;
   'player:command': PlayerCommand;
   'mini:open': void;
   /** "Enlarge": close the mini player and show the main window. */
@@ -79,6 +114,7 @@ export interface MainToUiChannels {
   'update:status': UpdateStatus;
   /** Bar levels 0…255 for the mini player's visualizer (empty: silence). */
   'mini:spectrum': number[];
+  'social:state': SocialState;
 }
 
 /** YT view preload → main. */
@@ -94,6 +130,8 @@ export interface YtToMainChannels {
   'yt:drop-link': string;
   /** Bar levels for the mini player, while it asks for them. */
   'yt:spectrum': number[];
+  /** Precise playback facts while in a listening party. */
+  'yt:party-report': PartyReport;
 }
 
 /** Main → YT view preload. */
@@ -103,6 +141,12 @@ export interface MainToYtChannels {
   'yt:effects': YtEffects;
   /** Number of bars the mini player wants (0: stop). */
   'yt:spectrum-feed': number;
+  /** Listening party role and target (null: no party). */
+  'yt:party': PartyControl | null;
+  /** Plays a track in-page (host accepted a suggestion). */
+  'yt:play-track': { videoId: string; playlistId?: string };
+  /** Guest: leave the local pause and play in sync again. */
+  'yt:party-resume': void;
 }
 
 export type InvokeChannel = keyof InvokeChannels;
@@ -152,6 +196,26 @@ export interface PegelApi {
   checkForUpdates(): void;
   installUpdate(): void;
   setSpectrumBars(bars: number): void;
+  getSocialState(): Promise<SocialState>;
+  onSocialState(listener: (state: SocialState) => void): () => void;
+  toggleSocialPanel(): void;
+  socialEnable(displayName: string): void;
+  socialDisable(): void;
+  socialReset(): void;
+  socialPatch(patch: SocialSettingsPatch): void;
+  createFriendCode(): void;
+  redeemFriendCode(code: string): void;
+  removeFriend(friendId: string): void;
+  partyStart(): void;
+  partyInvite(friendId: string): void;
+  partyRespond(inviteId: string, accept: boolean): void;
+  partyJoin(friendId: string): void;
+  partyLeave(): void;
+  partyEnd(): void;
+  partyKick(userId: string): void;
+  partyTransfer(userId: string): void;
+  partySuggestion(id: string, accept: boolean): void;
+  partyResume(): void;
   onSpectrum(listener: (levels: number[]) => void): () => void;
   /** Returns a function that removes the listener. */
   onViewChanged(listener: (view: View) => void): () => void;

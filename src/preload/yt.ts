@@ -6,10 +6,13 @@ import { watchLinkDrops } from '@shared/link-drop';
 import { EqEngine } from '../yt/audio/eq';
 import { SpectrumFeed, Visualizer } from '../yt/audio/visualizer';
 import { YtDecor } from '../yt/decor/effects';
+import { PartyEngine } from '../yt/party/sync';
 import { watchScrollbar } from '../yt/decor/scrollbar';
 import {
   NEEDS_REPORT,
+  navigateToTrack,
   runCommand,
+  trackUrl,
   startBridge,
   startPageWatcher,
   watchLoudness,
@@ -53,10 +56,28 @@ if (location.hostname === 'music.youtube.com') {
       if (NEEDS_REPORT.has(command.type)) setTimeout(() => bridge.report(true), 150);
     },
   );
+  const party = new PartyEngine(
+    () => eq.outputLatencyMs(),
+    (report) => send('yt:party-report', report),
+  );
+  ipcRenderer.on(
+    'yt:party' satisfies keyof MainToYtChannels,
+    (_event: IpcRendererEvent, control: MainToYtChannels['yt:party']) => party.setControl(control),
+  );
+  ipcRenderer.on('yt:party-resume' satisfies keyof MainToYtChannels, () => party.resume());
+  ipcRenderer.on(
+    'yt:play-track' satisfies keyof MainToYtChannels,
+    (_event: IpcRendererEvent, track: MainToYtChannels['yt:play-track']) => {
+      if (!navigateToTrack(track.videoId, track.playlistId)) {
+        location.assign(trackUrl(track.videoId, track.playlistId));
+      }
+    },
+  );
   ipcRenderer.send('yt:ready' satisfies keyof YtToMainChannels);
   startPageWatcher((page) => send('yt:page-playlist', page));
   watchLinkDrops(window, (url) => send('yt:drop-link', url));
   watchScrollbar();
   // Development only, reachable from DevTools in the preload's isolated world (not the page).
-  if (import.meta.env.DEV) Object.assign(globalThis, { pegelEq: eq, pegelDecor: decor });
+  if (import.meta.env.DEV)
+    Object.assign(globalThis, { pegelEq: eq, pegelDecor: decor, pegelParty: party });
 }

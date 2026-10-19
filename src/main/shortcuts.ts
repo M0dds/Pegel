@@ -13,6 +13,7 @@ export interface KeyInput {
 export type ShortcutAction =
   | { type: 'show'; view: View }
   | { type: 'toggleEq' }
+  | { type: 'toggleSocial' }
   | { type: 'toggleMini' }
   | { type: 'reloadYt' }
   | { type: 'devtools' };
@@ -33,6 +34,8 @@ export function matchShortcut(
 
   if (plainMod && input.key === ',') return { type: 'show', view: 'settings' };
   if (plainMod && input.key.toLowerCase() === 'e') return { type: 'toggleEq' };
+  // Ctrl+F is YT's search, so friends & party live on U.
+  if (plainMod && input.key.toLowerCase() === 'u') return { type: 'toggleSocial' };
   // YT's sidebar etc. do not always refresh by themselves (e.g. after creating a playlist).
   if ((plainMod && input.key.toLowerCase() === 'r') || (input.key === 'F5' && !mod)) {
     return { type: 'reloadYt' };

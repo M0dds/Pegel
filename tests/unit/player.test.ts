@@ -75,7 +75,7 @@ describe('selector self-test', () => {
   it('reports the features whose selectors are missing', () => {
     const present = new Set<string>([SELECTORS.nextButton, SELECTORS.previousButton]);
     const root = { querySelector: (s: string) => (present.has(s) ? {} : null) } as ParentNode;
-    expect(runSelfTest(root)).toEqual(['Gefällt mir', 'Lautstärke']);
+    expect(runSelfTest(root)).toEqual(['Gefällt mir', 'Lautstärke', 'Hör-Party (Titel laden)']);
   });
 });
 

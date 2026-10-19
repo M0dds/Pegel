@@ -146,6 +146,17 @@ export class EqEngine {
   private analyser: AnalyserNode | null = null;
 
   /**
+   * How much later than `currentTime` the sound leaves the speakers (buffer
+   * of the audio chain plus the device, e.g. Bluetooth). The listening party
+   * compares what people actually hear, so this is taken out.
+   */
+  outputLatencyMs(): number {
+    if (!this.ctx) return 0;
+    const seconds = this.ctx.baseLatency + (this.ctx.outputLatency || 0);
+    return Number.isFinite(seconds) ? seconds * 1000 : 0;
+  }
+
+  /**
    * Taps the end of the chain (after the EQ) without changing the output;
    * used by the visualizer and the diagnostics. Null until media is attached.
    */

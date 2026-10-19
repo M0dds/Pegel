@@ -1,4 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
+import { AUDIO_OFFSET_MAX_MS } from '@shared/settings';
+import { NAME_MAX } from '@shared/social-protocol';
 import { THEME_IDS, THEMES } from '@shared/themes';
 import type { AppInfo, Settings } from '@shared/types';
 import type { UpdateStatus } from '@shared/update';
@@ -245,6 +247,8 @@ export function SettingsPage({ settings, appInfo, selectorIssues, update }: Prop
           </Row>
         </section>
 
+        <SocialSection settings={settings} />
+
         <section className="section">
           <h4>Über</h4>
           <Row
@@ -281,5 +285,113 @@ export function SettingsPage({ settings, appInfo, selectorIssues, update }: Prop
         </section>
       </div>
     </div>
+  );
+}
+
+/** Track fill of the offset slider from 0 to the value (see input[type='range']). */
+function offsetFill(value: number): CSSProperties {
+  const pos = (v: number) => `${((v + AUDIO_OFFSET_MAX_MS) / (2 * AUDIO_OFFSET_MAX_MS)) * 100}%`;
+  return { '--from': pos(Math.min(value, 0)), '--to': pos(Math.max(value, 0)) } as CSSProperties;
+}
+
+function SocialSection({ settings }: { settings: Settings }) {
+  const social = settings.social;
+  const [name, setName] = useState(social.displayName);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const commitName = () => {
+    const trimmed = name.trim();
+    if (trimmed && trimmed !== social.displayName)
+      window.pegel.socialPatch({ displayName: trimmed });
+    else setName(social.displayName);
+  };
+
+  return (
+    <section className="section">
+      <h4>Freunde &amp; Party</h4>
+      {!social.enabled ? (
+        <Row
+          title="Freunde sind aus"
+          hint="Einrichten im Social-Panel (Titelleiste). Bis dahin baut Pegel keine Verbindung auf."
+        >
+          <button className="btn btn-inline" onClick={() => window.pegel.toggleSocialPanel()}>
+            Einrichten
+          </button>
+        </Row>
+      ) : (
+        <>
+          <Row title="Anzeigename" hint="So sehen dich deine Freunde">
+            <input
+              className="text-input"
+              value={name}
+              maxLength={NAME_MAX}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={commitName}
+              onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+            />
+          </Row>
+          <Row
+            title="„Hört gerade“ teilen"
+            hint="Freunde sehen Titel und Interpret, solange du hörst. Aus: nur „online“"
+          >
+            <Switch
+              checked={social.shareNowPlaying}
+              label="Hört gerade teilen"
+              onChange={(shareNowPlaying) => window.pegel.socialPatch({ shareNowPlaying })}
+            />
+          </Row>
+          <Row
+            title="Audio-Versatz"
+            hint="Nur nötig, wenn du in einer Party hörbar hinterher- oder vorausläufst (z. B. Bluetooth). Plus: dein Ton kommt später an"
+          >
+            <div className="offset">
+              <input
+                type="range"
+                min={-AUDIO_OFFSET_MAX_MS}
+                max={AUDIO_OFFSET_MAX_MS}
+                step={10}
+                value={social.audioOffsetMs}
+                style={offsetFill(social.audioOffsetMs)}
+                aria-label="Audio-Versatz"
+                onChange={(e) =>
+                  window.pegel.socialPatch({ audioOffsetMs: Number(e.target.value) })
+                }
+                onDoubleClick={() => window.pegel.socialPatch({ audioOffsetMs: 0 })}
+              />
+              <span>
+                {social.audioOffsetMs > 0 ? '+' : ''}
+                {social.audioOffsetMs} ms
+              </span>
+            </div>
+          </Row>
+          <Row
+            title="Datenschutz"
+            hint="Der Server (Cloudflare, EU) kennt Name, Schlüssel und Freundesliste nur, solange du online bist. Gespeichert werden nur Freundescodes (24 h). Keine Google-Daten."
+          >
+            <span />
+          </Row>
+          <Row
+            title="Freunde ausschalten oder zurücksetzen"
+            hint="Ausschalten trennt die Verbindung. Zurücksetzen löscht Schlüssel und Freundesliste auf diesem Rechner"
+          >
+            <div className="row-buttons">
+              <button className="btn btn-inline" onClick={() => window.pegel.socialDisable()}>
+                Ausschalten
+              </button>
+              <button
+                className={confirmReset ? 'btn btn-inline danger-solid' : 'btn btn-inline'}
+                onBlur={() => setConfirmReset(false)}
+                onClick={() => {
+                  if (!confirmReset) return setConfirmReset(true);
+                  setConfirmReset(false);
+                  window.pegel.socialReset();
+                }}
+              >
+                {confirmReset ? 'Wirklich löschen?' : 'Zurücksetzen'}
+              </button>
+            </div>
+          </Row>
+        </>
+      )}
+    </section>
   );
 }

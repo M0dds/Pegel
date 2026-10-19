@@ -9,6 +9,7 @@ import {
 import { isDirty } from '@shared/eq';
 import { barCount, BarMeter, drawBars, fitCanvas } from '@shared/spectrum';
 import { THEMES } from '@shared/themes';
+import type { PartyView } from '@shared/social';
 import type { PlayerCommand, PlayerState, Settings } from '@shared/types';
 import {
   ExpandIcon,
@@ -121,13 +122,17 @@ function formatTime(sec: number): string {
 export function MiniPlayer() {
   const [state, setState] = useState<PlayerState | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [party, setParty] = useState<PartyView | null>(null);
 
   useEffect(() => {
+    void window.pegel.getSocialState().then((s) => setParty(s.party));
+    const offSocial = window.pegel.onSocialState((s) => setParty(s.party));
     void window.pegel.getPlayerState().then(setState);
     void window.pegel.getSettings().then(setSettings);
     const offState = window.pegel.onPlayerState(setState);
     const offSettings = window.pegel.onSettingsChanged(setSettings);
     return () => {
+      offSocial();
       offState();
       offSettings();
     };
@@ -146,6 +151,10 @@ export function MiniPlayer() {
   const pinned = settings?.mini.alwaysOnTop ?? false;
   const eq = settings?.eq;
   const eqLabel = !eq ? '' : eq.enabled ? `EQ · ${eq.preset}${isDirty(eq) ? ' •' : ''}` : 'EQ aus';
+  // In a party only the host skips and seeks; guests can still pause for themselves.
+  const guest = party?.role === 'guest';
+  const hostName = party?.members.find((m) => m.isHost)?.name ?? 'der Host';
+  const steerTitle = `Steuert ${hostName}`;
 
   const seek = (e: MouseEvent<HTMLDivElement>) => {
     if (!state?.durationSec) return;
@@ -163,7 +172,7 @@ export function MiniPlayer() {
   return (
     <div className="mini">
       <div
-        className={`mini-progress${has ? '' : ' disabled'}`}
+        className={`mini-progress${has && !guest ? '' : ' disabled'}`}
         role="slider"
         aria-label="Fortschritt"
         aria-valuemin={0}
@@ -171,7 +180,7 @@ export function MiniPlayer() {
         aria-valuenow={Math.floor(position)}
         aria-valuetext={state ? `${formatTime(position)} von ${formatTime(state.durationSec)}` : ''}
         title={state ? `${formatTime(position)} / ${formatTime(state.durationSec)}` : undefined}
-        onClick={seek}
+        onClick={guest ? undefined : seek}
       >
         <i style={{ width: `${progress * 100}%` }} />
       </div>
@@ -185,9 +194,10 @@ export function MiniPlayer() {
           <small title={state?.artist}>
             {state ? state.artist : 'Starte Musik im Hauptfenster'}
           </small>
-          {eqLabel && (
-            <div>
-              <span className={`eq-badge${eq?.enabled ? '' : ' off'}`}>{eqLabel}</span>
+          {(eqLabel || party) && (
+            <div className="mini-badges">
+              {party && <span className="eq-badge">Party · {party.members.length}</span>}
+              {eqLabel && <span className={`eq-badge${eq?.enabled ? '' : ' off'}`}>{eqLabel}</span>}
             </div>
           )}
         </div>
@@ -228,8 +238,8 @@ export function MiniPlayer() {
         </button>
         <button
           className="icon-btn"
-          disabled={!has}
-          title="Zurück"
+          disabled={!has || guest}
+          title={guest ? steerTitle : 'Zurück'}
           aria-label="Zurück"
           onClick={() => command({ type: 'previous' })}
         >
@@ -246,8 +256,8 @@ export function MiniPlayer() {
         </button>
         <button
           className="icon-btn"
-          disabled={!has}
-          title="Weiter"
+          disabled={!has || guest}
+          title={guest ? steerTitle : 'Weiter'}
           aria-label="Weiter"
           onClick={() => command({ type: 'next' })}
         >
