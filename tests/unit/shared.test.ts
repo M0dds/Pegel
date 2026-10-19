@@ -35,8 +35,19 @@ describe('built-in presets', () => {
 });
 
 describe('themes', () => {
-  it('contain the four v1 themes', () => {
-    expect(THEME_IDS).toEqual(['standard', 'sakura', 'nordlicht', 'bernstein']);
+  it('contain all themes in display order', () => {
+    expect(THEME_IDS).toEqual([
+      'standard',
+      'sakura',
+      'nordlicht',
+      'bernstein',
+      'mitternacht',
+      'lagune',
+      'glut',
+      'wald',
+      'neon',
+      'mono',
+    ]);
   });
 
   it.each(THEME_IDS)('%s defines every token as a hex colour', (id) => {

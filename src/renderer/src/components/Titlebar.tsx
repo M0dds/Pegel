@@ -1,5 +1,6 @@
 import type { ThemeId, View } from '@shared/types';
 import { Logo } from './Logo';
+import { WindowControls } from './WindowControls';
 import { EqIcon, MiniPlayerIcon, SettingsIcon } from './icons';
 
 const MOD = window.pegel.platform === 'darwin' ? '⌘' : 'Strg';
@@ -62,6 +63,7 @@ export function Titlebar({ view, eqOpen, theme, animatedPetals }: Props) {
       >
         <SettingsIcon />
       </button>
+      {window.pegel.platform !== 'darwin' && <WindowControls />}
     </header>
   );
 }

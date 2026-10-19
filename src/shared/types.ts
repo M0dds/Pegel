@@ -5,7 +5,17 @@ export interface Rect {
   height: number;
 }
 
-export type ThemeId = 'standard' | 'sakura' | 'nordlicht' | 'bernstein';
+export type ThemeId =
+  | 'standard'
+  | 'sakura'
+  | 'nordlicht'
+  | 'bernstein'
+  | 'mitternacht'
+  | 'lagune'
+  | 'glut'
+  | 'wald'
+  | 'neon'
+  | 'mono';
 
 export interface EqPreset {
   name: string;

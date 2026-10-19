@@ -142,15 +142,26 @@ function audioKey(eq: EqSettings): string {
   return JSON.stringify(audio);
 }
 
-/** Live theme switch for window, title bar buttons (Windows) and YT view. */
+/** Live theme switch for window and YT view (the window buttons are Pegel UI). */
 function applyWindowTheme(): void {
   if (!win || !ytView) return;
-  const { tokens } = THEMES[getSettings().theme];
-  win.setBackgroundColor(tokens.bg);
-  if (process.platform !== 'darwin') {
-    win.setTitleBarOverlay({ color: tokens.surface, symbolColor: tokens['text-dim'] });
-  }
+  win.setBackgroundColor(THEMES[getSettings().theme].tokens.bg);
   applyYtTheme(ytView);
+}
+
+export type WindowControl = 'minimize' | 'toggleMaximize' | 'close';
+
+/** Pegel's own window buttons (Windows/Linux). Close goes through the usual close handling. */
+export function windowControl(action: WindowControl): void {
+  if (!win) return;
+  if (action === 'minimize') win.minimize();
+  else if (action === 'close') win.close();
+  else if (win.isMaximized()) win.unmaximize();
+  else win.maximize();
+}
+
+export function isMainMaximized(): boolean {
+  return win?.isMaximized() ?? false;
 }
 
 function watchSettings(): () => void {
@@ -192,16 +203,14 @@ function layout(): void {
 }
 
 function platformChrome(): Electron.BrowserWindowConstructorOptions {
-  const { surface, 'text-dim': textDim } = THEMES[getSettings().theme].tokens;
   if (process.platform === 'darwin') {
     // Traffic lights (12 px high) vertically centred in the 38 px title bar.
     return { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 14, y: 13 } };
   }
-  return {
-    titleBarStyle: 'hidden',
-    // One pixel less than the title bar so its bottom border stays visible under the buttons.
-    titleBarOverlay: { color: surface, symbolColor: textDim, height: TITLEBAR_HEIGHT - 1 },
-  };
+  // No native caption buttons: Pegel draws its own (hover like the other title bar
+  // buttons). Resizing, Aero Snap by dragging and Win+arrow keys keep working;
+  // only the Snap Layouts flyout on the maximize button is gone.
+  return { titleBarStyle: 'hidden' };
 }
 
 function restoredBounds(): Electron.Rectangle | undefined {
@@ -284,6 +293,8 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
   window.on('resize', layout);
   window.on('maximize', layout);
   window.on('unmaximize', layout);
+  window.on('maximize', () => window.webContents.send('window:maximized', true));
+  window.on('unmaximize', () => window.webContents.send('window:maximized', false));
   trackBounds(window);
   handleShortcuts(window.webContents);
   handleShortcuts(view.webContents);

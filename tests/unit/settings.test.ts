@@ -25,7 +25,7 @@ describe('normalizeSettings', () => {
 
   it('replaces invalid values with defaults', () => {
     const s = normalizeSettings({
-      theme: 'neon',
+      theme: 'regenbogen',
       closeToTray: 'yes',
       window: { bounds: { x: 0, y: 0, width: -5, height: 100 } },
       eq: { gains: [1, 2, 3] },

@@ -3,7 +3,7 @@ import { THEME_IDS, THEMES } from '@shared/themes';
 import type { Settings } from '@shared/types';
 import { PageHead } from '../components/PageHead';
 import { Switch } from '../components/Switch';
-import { CloseIcon } from '../components/icons';
+import { CloseIcon, PlaylistIcon } from '../components/icons';
 
 const isMac = window.pegel.platform === 'darwin';
 const OS_NAME = isMac ? 'macOS' : 'Windows';
@@ -20,7 +20,7 @@ function Row({ title, hint, children }: { title: string; hint: string; children:
   );
 }
 
-const PREVIEW_BARS = [10, 22, 16, 30, 12];
+const PREVIEW_BARS = [7, 14, 10, 17];
 
 interface Props {
   settings: Settings;
@@ -46,39 +46,41 @@ export function SettingsPage({ settings, selectorIssues }: Props) {
 
         <section className="section">
           <h4>Darstellung</h4>
-          <div className="themes">
+          <div className="theme-chips">
             {THEME_IDS.map((id) => {
               const { name, tokens } = THEMES[id];
               return (
                 <button
                   key={id}
-                  className="theme-card"
+                  className="theme-chip"
                   aria-pressed={settings.theme === id}
                   onClick={() => window.pegel.setTheme(id)}
                 >
-                  <div className="pv" style={{ background: tokens.bg }}>
+                  <span className="swatch" style={{ background: tokens.bg }} aria-hidden="true">
                     {PREVIEW_BARS.map((h, i) => (
                       <i
                         key={i}
-                        style={{ height: h, background: tokens.accent, opacity: 1 - i * 0.12 }}
+                        style={{ height: h, background: tokens.accent, opacity: 1 - i * 0.18 }}
                       />
                     ))}
-                  </div>
-                  <div className="nm">{name}</div>
+                  </span>
+                  {name}
                 </button>
               );
             })}
           </div>
-          <Row
-            title="Fallende Blütenblätter"
-            hint="Im Theme Sakura. Aus, wenn im System „Bewegung reduzieren“ aktiv ist"
-          >
-            <Switch
-              checked={settings.effects.petals}
-              label="Fallende Blütenblätter"
-              onChange={(petals) => window.pegel.patchSettings({ effects: { petals } })}
-            />
-          </Row>
+          {settings.theme === 'sakura' && (
+            <Row
+              title="Fallende Blütenblätter"
+              hint="Aus, wenn im System „Bewegung reduzieren“ aktiv ist"
+            >
+              <Switch
+                checked={settings.effects.petals}
+                label="Fallende Blütenblätter"
+                onChange={(petals) => window.pegel.patchSettings({ effects: { petals } })}
+              />
+            </Row>
+          )}
           <Row
             title="Visualizer hinter dem Player"
             hint="Frequenzbalken in der Theme-Farbe, nur während der Wiedergabe"
@@ -95,29 +97,36 @@ export function SettingsPage({ settings, selectorIssues }: Props) {
           <h4>Playlist-Presets</h4>
           {settings.eq.playlistPresets.length === 0 ? (
             <p className="empty-hint">
-              Noch keine Playlist hat ein eigenes Preset. Zuordnen kannst du es im Equalizer,
-              während die Playlist läuft.
+              Noch keine Playlist hat ein eigenes Preset. Zuordnen kannst du es im Equalizer, wenn
+              die Playlist geöffnet ist oder läuft.
             </p>
           ) : (
-            settings.eq.playlistPresets.map((p) => (
-              <Row key={p.playlistId} title={p.title} hint={`Preset: ${p.preset}`}>
-                <button
-                  className="icon-btn"
-                  title="Zuordnung entfernen"
-                  aria-label={`Preset-Zuordnung für ${p.title} entfernen`}
-                  onClick={() =>
-                    window.pegel.eqAction({
-                      type: 'setPlaylistPreset',
-                      playlistId: p.playlistId,
-                      title: p.title,
-                      preset: null,
-                    })
-                  }
-                >
-                  <CloseIcon />
-                </button>
-              </Row>
-            ))
+            <ul className="pl-chips">
+              {settings.eq.playlistPresets.map((p) => (
+                <li key={p.playlistId} className="pl-chip">
+                  <PlaylistIcon />
+                  <span className="pl-title" title={p.title}>
+                    {p.title}
+                  </span>
+                  <span className="pl-preset">{p.preset}</span>
+                  <button
+                    className="pl-remove"
+                    title="Zuordnung entfernen"
+                    aria-label={`Preset-Zuordnung für ${p.title} entfernen`}
+                    onClick={() =>
+                      window.pegel.eqAction({
+                        type: 'setPlaylistPreset',
+                        playlistId: p.playlistId,
+                        title: p.title,
+                        preset: null,
+                      })
+                    }
+                  >
+                    <CloseIcon />
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
 

@@ -175,15 +175,15 @@ interface PlayerState {
 - **Grundsatz (aktualisiert):** Die YT-Seite darf über Farben hinaus gestaltet werden, solange es robust bleibt: Variablen bevorzugen, Selektoren zentral, Bedienung von YT nie blockieren. Ursprünglich galt „nur Farben“.
   - **Bisher umgesetzt** (`buildYtPolishCss`, in allen Themes): schmale Scrollleisten in Theme-Farben ohne Pfeile (YTs `scrollbar-color` wird dafür auf `auto` gesetzt, sonst ignoriert Chromium `::-webkit-scrollbar`), Kontextmenüs mit 10 px Radius, Rahmen und Schatten per `box-shadow`, ohne horizontale Scrollleiste. Außerdem ein YT-Bugfix: Der Verlauf hinter Seitenköpfen kachelt sonst als Streifen über die Seite. 
   - **Pegel-Themes** ersetzen das Albumcover-Licht oben auf Übersichtsseiten durch einen dunklen Verlauf mit etwas Akzentfarbe (Cover nur per `opacity` ausgeblendet) und färben `body` ein, das YT fest auf `#030303` setzt.
-- **Windows:** Die Fenstersteuerung kommt über `titleBarOverlay`. Bei einem Theme-Wechsel `setTitleBarOverlay({ color, symbolColor })` aufrufen.
+- **Windows/Linux:** Die Fenster-Buttons zeichnet Pegel selbst (siehe 4.5), sie folgen dem Theme automatisch.
 - **Sakura-Extra:** Blütenblätter fallen taumelnd über die ganze App (8 in der Pegel-UI, 14 über der YT-Seite), reine CSS-Animation auf `transform`, `pointer-events: none`, aus bei „Bewegung reduzieren“, abschaltbar in den Einstellungen (`effects.petals`). Ohne Animation bleiben die statischen Blätter aus dem Mockup in der Titelleiste.
 - **Visualizer** hinter der Player-Leiste (`effects.visualizer`, Standard an): Frequenzbalken mit Spitzen-Kappen in der Akzentfarbe, Daten aus einem `AnalyserNode` am Ende der EQ-Kette, logarithmische Bänder 40 Hz bis 16 kHz, 30 fps, nur während der Wiedergabe. YTs Lautstärke wird über das dB-Fenster des Analysers ausgeglichen. Canvas mit `z-index: -1` in YTs Player-Leiste (eigener Stapelkontext): über deren Hintergrund, unter den Bedienelementen.
   - Hinweis zum Testen: Liegt das Fenster komplett verdeckt hinter anderen, rendert Chromium unter Windows keine Frames (native Verdeckungsberechnung). Für Tests mit verdecktem Fenster `npm run dev -- -- --disable-features=CalculateNativeWinOcclusion`.
-- **Themes in v1:** Standard, Sakura, Nordlicht, Bernstein. Weitere sind später leicht ergänzbar: Tokens plus YT-CSS.
+- **Themes:** Standard, Sakura, Nordlicht, Bernstein sowie (nach M5 ergänzt, kontrastreicher) Mitternacht, Lagune, Glut, Wald, Neon und Mono. Ein neues Theme braucht nur Tokens in `shared/themes.ts`; die Kontrast-Tests prüfen es automatisch. Auswahl in den Einstellungen als kompakte Chips.
 
 ### 4.5 Fenster und Titelleiste
 
-- **Windows:** `titleBarStyle: 'hidden'` und `titleBarOverlay` mit einer Höhe von 38 px. Die nativen Buttons für Minimieren, Maximieren und Schließen zeichnet Windows (Snap-Layouts funktionieren).
+- **Windows/Linux:** `titleBarStyle: 'hidden'` ohne Overlay. Minimieren, Maximieren/Wiederherstellen und Schließen sind eigene Buttons in der Titelleiste (Hover wie die übrigen Titelleisten-Buttons). Größe ändern, an den Bildschirmrand ziehen und Win+Pfeiltasten funktionieren weiter; nur das Snap-Layout-Menü beim Überfahren von „Maximieren“ entfällt (bewusst, Wunsch von Johann).
 - **macOS:** `titleBarStyle: 'hiddenInset'`, `trafficLightPosition` so wählen, dass die Ampel vertikal in der 38-px-Leiste zentriert ist. Das Logo beginnt rechts davon (ca. 80 px Abstand links).
 - **Titelleiste:** Logo und „Pegel“ links. Rechts die Buttons Equalizer, Mini-Player und Einstellungen.
   - Das Logo ist klickbar und führt immer zurück zur Musik.

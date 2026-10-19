@@ -22,6 +22,7 @@ export interface InvokeChannels {
   'app:get-info': { args: []; result: AppInfo };
   'settings:get': { args: []; result: Settings };
   'view:get': { args: []; result: View };
+  'window:is-maximized': { args: []; result: boolean };
   'player:get': { args: []; result: PlayerState | null };
   'player:get-issues': { args: []; result: string[] };
   'player:get-page-playlist': { args: []; result: PagePlaylist | null };
@@ -34,6 +35,8 @@ export interface UiToMainChannels {
   /** Equalizer button / Ctrl+E: from a Pegel page back to the music with the panel open. */
   'eq:toggle-panel': void;
   'view:show': View;
+  /** Pegel's own window buttons (Windows/Linux). */
+  'window:control': 'minimize' | 'toggleMaximize' | 'close';
   'theme:set': ThemeId;
   'yt:retry': void;
   /** The panel's open/close transition ended, so the YT view may take the space back. */
@@ -52,6 +55,7 @@ export interface MainToUiChannels {
   'player:selector-issues': string[];
   'player:page-playlist': PagePlaylist | null;
   'view:changed': View;
+  'window:maximized': boolean;
 }
 
 /** YT view preload → main. */
@@ -90,6 +94,9 @@ export interface PegelApi {
   eqAction(action: EqAction): void;
   setTheme(theme: ThemeId): void;
   patchSettings(patch: SettingsPatch): void;
+  windowControl(action: 'minimize' | 'toggleMaximize' | 'close'): void;
+  isMaximized(): Promise<boolean>;
+  onMaximizedChanged(listener: (maximized: boolean) => void): () => void;
   openMini(): void;
   closeMini(): void;
   getPlayerState(): Promise<PlayerState | null>;

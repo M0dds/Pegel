@@ -22,6 +22,9 @@ import {
   onPanelAnimationDone,
   retryYt,
   closeMiniPlayer,
+  getMainWindow,
+  isMainMaximized,
+  windowControl,
   openMiniPlayer,
   sendPlayerCommand,
   showView,
@@ -57,6 +60,7 @@ export function registerIpc(): void {
   }));
   handle('settings:get', () => getSettings());
   handle('view:get', () => getView());
+  handle('window:is-maximized', () => isMainMaximized());
   handle('player:get', () => getPlayerState());
   handle('player:get-issues', () => getSelectorIssues());
   handle('player:get-page-playlist', () => getPagePlaylist());
@@ -85,6 +89,13 @@ export function registerIpc(): void {
     if (typeof open === 'boolean') onPanelAnimationDone(open);
   });
 
+  on('window:control', (event, action) => {
+    // Only the main window has these buttons.
+    if (event.sender !== getMainWindow()?.webContents) return;
+    if (action === 'minimize' || action === 'toggleMaximize' || action === 'close') {
+      windowControl(action);
+    }
+  });
   on('mini:open', () => openMiniPlayer());
   on('mini:close', () => closeMiniPlayer());
   on('player:command', (_event, command) => {
