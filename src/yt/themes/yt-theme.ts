@@ -1,4 +1,5 @@
 import type { Theme, ThemeToken } from '@shared/themes';
+import { SELECTORS } from '../selectors';
 
 /**
  * YT Music's own colour variables (defined on `html`), grouped by the Pegel
@@ -85,17 +86,73 @@ export const YT_ELEMENT_COLORS: readonly {
   vars: Readonly<Record<string, ThemeToken>>;
 }[] = [
   {
-    selector: '#progress-bar',
+    selector: SELECTORS.progressBar,
     vars: { '--paper-slider-active-color': 'accent', '--paper-progress-active-color': 'accent' },
   },
 ];
 
 /**
- * CSS that recolours YT Music for a Pegel theme, or null for the standard
- * theme (YT's own look). Applied with webContents.insertCSS.
+ * Small visual polish so YT's scrollbars and context menus match Pegel's own
+ * dropdown, in every theme. Deliberate, limited exception to "colours only":
+ * scrollbar width (15 → 10 px, YT's own scrollbar-color reset so the styling
+ * applies), menu corner radius and shadow (box-shadow, no
+ * layout change), and no horizontal scrollbar inside menus (it only appears
+ * because the vertical one takes width).
  */
-export function buildYtThemeCss(theme: Theme): string | null {
-  if (theme.id === 'standard') return null;
+export function buildYtPolishCss(theme: Theme): string {
+  const t = theme.tokens;
+  return `
+/* YT sets scrollbar-color everywhere, which makes Chromium ignore ::-webkit-scrollbar. */
+* { scrollbar-color: auto !important; scrollbar-width: auto !important; }
+::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent !important; }
+::-webkit-scrollbar-thumb {
+  background: ${t['surface-3']} !important; border: 3px solid transparent !important;
+  border-radius: 999px !important; background-clip: padding-box !important;
+}
+::-webkit-scrollbar-thumb:hover { background-color: ${t['text-dim']} !important; }
+::-webkit-scrollbar-button { display: none !important; }
+
+${SELECTORS.menuPopup} {
+  background: ${t['surface-3']} !important;
+  border-radius: 10px !important;
+  box-shadow: 0 0 0 1px ${t.border}, 0 12px 32px #0009 !important;
+  overflow-x: hidden !important;
+}
+${SELECTORS.menuList} { background: transparent !important; }
+${SELECTORS.menuPopup}::-webkit-scrollbar { width: 8px !important; }
+${SELECTORS.menuPopup}::-webkit-scrollbar-button { display: none !important; }
+/* The menu itself is surface-3, so the thumb needs a lighter tone to be visible. */
+${SELECTORS.menuPopup}::-webkit-scrollbar-thumb {
+  background-color: ${t['text-dim']}66 !important; border-width: 2px !important;
+}
+${SELECTORS.menuPopup}::-webkit-scrollbar-thumb:hover { background-color: ${t['text-dim']} !important; }
+
+/* YT bug: the gradient is one 287 px tile repeated down the whole page (stripes). */
+${SELECTORS.browseGradient} { background-repeat: no-repeat !important; }
+`;
+}
+
+/**
+ * Pegel themes: instead of the cover-art glow at the top of browse pages, a
+ * dark gradient with a hint of the accent that fades into the theme
+ * background. Hides the art with opacity only, so nothing moves.
+ */
+export function buildYtBackgroundCss(theme: Theme): string {
+  const { accent, bg } = theme.tokens;
+  return `
+/* YT paints the page itself with a fixed #030303, not via its variables. */
+html, body { background-color: ${bg} !important; }
+${SELECTORS.browseBackground} { opacity: 0 !important; }
+${SELECTORS.browseGradient} {
+  background-image: linear-gradient(180deg, color-mix(in srgb, ${accent} 12%, ${bg}) 0, ${bg} 420px) !important;
+  background-size: 100% 420px !important;
+}
+`;
+}
+
+/** YT colour variables (and element colours) mapped to a theme's tokens. */
+export function buildYtColorVarsCss(theme: Theme): string {
   const lines: string[] = [];
   for (const [token, vars] of Object.entries(YT_COLOR_ROLES) as [ThemeToken, string[]][]) {
     for (const name of vars) lines.push(`  ${name}: ${theme.tokens[token]} !important;`);
@@ -109,4 +166,14 @@ export function buildYtThemeCss(theme: Theme): string | null {
     css += `html ${selector} {\n${decls.join('\n')}\n}\n`;
   }
   return css;
+}
+
+/**
+ * CSS for the YT view: the polish for every theme; Pegel themes add their
+ * colours and background (the standard theme keeps YT's look). Applied with insertCSS.
+ */
+export function buildYtThemeCss(theme: Theme): string {
+  const polish = buildYtPolishCss(theme);
+  if (theme.id === 'standard') return polish;
+  return polish + buildYtColorVarsCss(theme) + buildYtBackgroundCss(theme);
 }

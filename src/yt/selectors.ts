@@ -16,6 +16,16 @@ export const SELECTORS = {
   queueTitle: 'ytmusic-queue-header-renderer .subtitle',
   /** Heading of a playlist page (/playlist?list=…). */
   playlistPageTitle: 'ytmusic-responsive-header-renderer h1',
+  /** Progress bar in the player bar; YT colours it with its own gradient. */
+  progressBar: '#progress-bar',
+  /** Scroll container of YT's context menus (⋮ on tracks etc.). */
+  menuPopup: 'ytmusic-menu-popup-renderer',
+  /** The item list inside a context menu; carries YT's menu background. */
+  menuList: 'ytmusic-menu-popup-renderer tp-yt-paper-listbox',
+  /** Blurred cover art behind the top of browse pages (home, playlists). */
+  browseBackground: 'ytmusic-browse-response #background',
+  /** Gradient over that art; YT sizes it to one tile and repeats it down the page. */
+  browseGradient: 'ytmusic-browse-response .background-gradient',
   /** YT's player element with its JS API (setVolume, …); only reachable from the main world. */
   playerApi: '#movie_player',
 } as const satisfies Record<string, string>;
