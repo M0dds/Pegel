@@ -15,7 +15,18 @@ export function getYtSession(): Session {
   const ses = session.fromPartition(YT_PARTITION);
   if (!sessionReady) {
     sessionReady = true;
-    ses.setUserAgent(toChromeUserAgent(ses.getUserAgent(), app.getName()));
+    const electronUserAgent = ses.getUserAgent();
+    ses.setUserAgent(toChromeUserAgent(electronUserAgent, app.getName()));
+    // Google's login refuses an embedded browser that claims to be Chrome
+    // ("This browser or app may not be secure"), but accepts the unmodified
+    // Electron user agent. Pear Desktop uses the same split.
+    ses.webRequest.onBeforeSendHeaders(
+      { urls: ['https://accounts.google.com/*'] },
+      (details, callback) => {
+        details.requestHeaders['User-Agent'] = electronUserAgent;
+        callback({ requestHeaders: details.requestHeaders });
+      },
+    );
     ses.setPermissionRequestHandler((_wc, permission, callback) =>
       callback(ALLOWED_PERMISSIONS.has(permission)),
     );

@@ -112,7 +112,7 @@ Die EQ-Panel-Breite und die Titelleistenhöhe sind Konstanten in `shared/layout.
 ### 4.1 YouTube-Music-Ansicht und Login
 
 - Eigene Partition `persist:pegel`, damit der Login einen Neustart übersteht.
-- **User-Agent:** Den Electron-UA durch einen aktuellen Chrome-UA ersetzen (Tokens `Electron/…` und `pegel/…` entfernen). Ohne diese Änderung lehnt Google den Login oft mit „Dieser Browser oder diese App ist möglicherweise nicht sicher“ ab.
+- **User-Agent:** Für YT Music den Electron-UA durch einen Chrome-UA ersetzen (Tokens `Electron/…` und `pegel/…` entfernen). Anfragen an `accounts.google.com` bekommen dagegen den **unveränderten Electron-UA**: Gibt sich die eingebettete Ansicht dort als Chrome aus, lehnt Google den Login mit „Dieser Browser oder diese App ist möglicherweise nicht sicher“ ab. Das gilt auch, wenn die Client Hints (`Sec-CH-UA`, `navigator.userAgentData`) passend auf „Google Chrome“ gesetzt werden; getestet im Oktober 2026. Pear Desktop (früher th-ch/youtube-music) macht es genauso.
 - Läuft der Login trotzdem nicht durch: Den Login in einem eigenen `BrowserWindow` mit derselben Partition öffnen. Das ist der Plan B, siehe Risiken.
 - Nach einem Netzwerkfehler zeigt die YT-Ansicht eine Pegel-eigene Fehlerseite mit dem Button „Erneut versuchen“.
 
@@ -299,7 +299,7 @@ Die Meilensteine werden in dieser Reihenfolge abgearbeitet. Jeder endet mit eine
 
 - [x] Hauptfenster mit eigener Titelleiste (Windows-Overlay bzw. macOS-Ampel)
 - [x] YT-Ansicht mit Partition, User-Agent, Bounds-Layout, Navigations-Schutz
-- [ ] Login mit Google funktioniert und übersteht einen Neustart
+- [x] Login mit Google funktioniert und übersteht einen Neustart
 - [x] Fensterposition und -größe gespeichert, Single-Instance-Lock
 - **Fertig, wenn:** Johann sich anmelden und Musik hören kann. Externe Links öffnen im Browser.
 
@@ -363,7 +363,7 @@ Die Meilensteine werden in dieser Reihenfolge abgearbeitet. Jeder endet mit eine
 
 | Risiko                                              | Wahrscheinlichkeit | Gegenmaßnahme                                                                                                                                                       |
 | --------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Google blockiert den Login im eingebetteten Browser | mittel             | Chrome-User-Agent. Plan B: Login im separaten Fenster mit derselben Partition                                                                                       |
+| Google blockiert den Login im eingebetteten Browser | mittel             | Original-Electron-UA für `accounts.google.com`, Chrome-UA für YT Music. Plan B: Login im separaten Fenster mit derselben Partition                                                                                       |
 | Google ändert das DOM (Selektoren brechen)          | hoch, regelmäßig   | Selektoren zentral in `yt/selectors.ts`, MediaSession bevorzugen, Selbsttest. Der EQ hängt nur am Media-Element und ist damit robust                                |
 | Theme-CSS bricht nach YT-Update                     | mittel             | Nur Farben überschreiben. Im Zweifel bleibt der Standard-Look, die Funktion geht nicht verloren                                                                     |
 | Einzelne Inhalte brauchen DRM (Widevine)            | niedrig            | Standard-Electron hat kein Widevine. Tritt das auf, auf den castLabs-Electron-Build (mit Widevine) wechseln                                                         |

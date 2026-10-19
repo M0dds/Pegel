@@ -34,6 +34,6 @@ Pegel ist ein inoffizieller Desktop-Client für YouTube Music, gebaut mit Electr
 ## Bekannte Stolperfallen
 
 - `createMediaElementSource` darf pro Element nur einmal aufgerufen werden (WeakSet). Der AudioContext muss bei `play` per `resume()` geweckt werden.
-- Google-Login: Den Electron-User-Agent durch einen Chrome-UA ersetzen, sonst kommt „Browser nicht sicher“.
+- Google-Login: YT Music bekommt einen Chrome-UA, aber Anfragen an `accounts.google.com` müssen den **unveränderten Electron-UA** senden. Ein vorgetäuschter Chrome (auch mit passenden Client Hints) führt zu „Browser nicht sicher“. Gleiches Vorgehen wie Pear Desktop.
 - `insertCSS` nach jeder Navigation bzw. jedem `dom-ready` erneut anwenden.
 - macOS: Tray-Icons als Template-Image. Schließen versteckt das Fenster nur. Arm64-Builds ad-hoc signieren.
