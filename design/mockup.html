@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pegel – Design-Mockup</title>
+<style>
+/* ============================================================
+   Pegel – Design-Mockup (Referenz für die Umsetzung)
+   Themes sind als CSS-Variablen definiert. Dieselben Token-Namen
+   sollen in der App verwendet werden (src/shared/themes.ts).
+   ============================================================ */
+:root, [data-theme="standard"] {
+  --bg:        #030303;
+  --surface:   #0f0f0f;
+  --surface-2: #1d1d1d;
+  --surface-3: #2a2a2a;
+  --border:    #ffffff1a;
+  --text:      #f1f1f1;
+  --text-dim:  #aaaaaa;
+  --accent:    #ff1f4b;
+  --accent-soft: #ff1f4b26;
+  --on-accent: #ffffff;
+  --cover-a:   #ff1f4b; --cover-b: #5b2bff;
+  --deco: none;
+}
+[data-theme="sakura"] {
+  --bg:        #1a1117;
+  --surface:   #22171e;
+  --surface-2: #2a1d24;
+  --surface-3: #3a2832;
+  --border:    #f7c6d91f;
+  --text:      #fbecf2;
+  --text-dim:  #c7a6b5;
+  --accent:    #f4a6c3;
+  --accent-soft: #f4a6c32b;
+  --on-accent: #2a121d;
+  --cover-a:   #f4a6c3; --cover-b: #8a5a9e;
+  --deco: block;
+}
+[data-theme="nordlicht"] {
+  --bg:        #070d10;
+  --surface:   #0d171b;
+  --surface-2: #142328;
+  --surface-3: #1d3137;
+  --border:    #9ff0de1a;
+  --text:      #e9f6f3;
+  --text-dim:  #8fb0aa;
+  --accent:    #4fd6b8;
+  --accent-soft: #4fd6b826;
+  --on-accent: #04241d;
+  --cover-a:   #4fd6b8; --cover-b: #3b5bdb;
+  --deco: none;
+}
+[data-theme="bernstein"] {
+  --bg:        #0f0b07;
+  --surface:   #17110b;
+  --surface-2: #231a11;
+  --surface-3: #32251a;
+  --border:    #ffd9a01a;
+  --text:      #f7eee3;
+  --text-dim:  #b9a48c;
+  --accent:    #f2a93b;
+  --accent-soft: #f2a93b26;
+  --on-accent: #2b1a03;
+  --cover-a:   #f2a93b; --cover-b: #c2410c;
+  --deco: none;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  background: #e9e7ea;
+  color: #222;
+  padding: 24px 16px 48px;
+}
+@media (prefers-color-scheme: dark) { body { background: #1b1a1d; color: #ddd; } }
+
+/* ---------- Mockup-Steuerung (nicht Teil der App) ---------- */
+.controls { max-width: 1280px; margin: 0 auto 16px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+.controls h1 { font-size: 18px; margin: 0 16px 0 0; font-weight: 650; }
+.seg { display: inline-flex; background: #0000000f; border-radius: 9px; padding: 3px; gap: 2px; }
+@media (prefers-color-scheme: dark) { .seg { background: #ffffff14; } }
+.seg button { border: 0; background: transparent; color: inherit; font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 7px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: #fff; color: #111; box-shadow: 0 1px 2px #0002; }
+.ctl-label { font-size: 12px; opacity: .65; margin-right: 6px; }
+.note { max-width: 1280px; margin: 14px auto 0; font-size: 13px; opacity: .7; line-height: 1.5; }
+
+/* ---------- App-Fenster ---------- */
+.window {
+  max-width: 1280px; height: 760px; margin: 0 auto;
+  background: var(--bg); color: var(--text);
+  border-radius: 10px; overflow: hidden;
+  box-shadow: 0 24px 60px #0005, 0 0 0 1px #0003;
+  display: flex; flex-direction: column; position: relative;
+  transition: background .25s, color .25s;
+}
+.titlebar {
+  height: 38px; flex: none; display: flex; align-items: center; gap: 10px;
+  padding: 0 0 0 14px; background: var(--surface); border-bottom: 1px solid var(--border);
+  user-select: none; position: relative; overflow: hidden;
+}
+.traffic { display: none; gap: 8px; margin-right: 8px; }
+.traffic i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+.traffic i:nth-child(1){background:#ff5f57}.traffic i:nth-child(2){background:#febc2e}.traffic i:nth-child(3){background:#28c840}
+[data-os="mac"] .traffic { display: flex; }
+[data-os="mac"] .wincontrols { display: none; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 650; font-size: 13.5px; letter-spacing: .2px;
+  border: 0; background: transparent; color: inherit; font-family: inherit; padding: 5px 8px; margin-left: -8px; border-radius: 7px; cursor: pointer; }
+.brand:hover { background: var(--surface-2); }
+.brand svg { width: 18px; height: 18px; }
+.tb-spacer { flex: 1; }
+.tb-btn {
+  height: 28px; padding: 0 10px; border-radius: 7px; border: 0; background: transparent; color: var(--text-dim);
+  display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.tb-btn:hover { background: var(--surface-2); color: var(--text); }
+.tb-btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.tb-btn svg { width: 16px; height: 16px; }
+.wincontrols { display: flex; height: 100%; margin-left: 6px; }
+.wincontrols span { width: 46px; display: grid; place-items: center; color: var(--text-dim); font-size: 13px; }
+.wincontrols span:last-child:hover { background: #e81123; color: #fff; }
+[data-os="mac"] .titlebar { padding-left: 14px; }
+
+/* Sakura-Deko: ein paar Blütenblätter in der Titelleiste */
+.petals { position: absolute; inset: 0; pointer-events: none; display: var(--deco); opacity: .55; }
+
+.body { flex: 1; display: flex; min-height: 0; }
+
+/* ---------- YT-Music-Fläche (umgefärbte Originalseite) ---------- */
+.yt { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.yt-main { flex: 1; display: flex; min-height: 0; }
+.yt-nav { width: 220px; flex: none; padding: 14px 10px; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; }
+.yt-nav a { display: flex; align-items: center; gap: 14px; padding: 10px 14px; border-radius: 8px; color: var(--text); text-decoration: none; font-size: 14px; }
+.yt-nav a.active { background: var(--surface-2); }
+.yt-nav a svg { width: 20px; height: 20px; opacity: .9; }
+.yt-nav hr { border: 0; border-top: 1px solid var(--border); margin: 12px 6px; }
+.yt-nav .pl { font-size: 13px; padding: 7px 14px; color: var(--text-dim); display: flex; justify-content: space-between; }
+.yt-nav .pl em { font-style: normal; font-size: 11px; color: var(--accent); }
+.yt-content { flex: 1; overflow: auto; padding: 18px 28px; min-width: 0; }
+.yt-search { height: 40px; max-width: 480px; border-radius: 8px; background: var(--surface-2); display: flex; align-items: center; padding: 0 14px; color: var(--text-dim); font-size: 14px; gap: 10px; border: 1px solid var(--border); }
+.chips { display: flex; gap: 8px; margin: 18px 0 22px; flex-wrap: wrap; }
+.chips span { padding: 7px 13px; border-radius: 8px; background: var(--surface-2); font-size: 13px; }
+.chips span:first-child { background: var(--text); color: var(--bg); }
+.yt-content h2 { font-size: 22px; margin: 0 0 14px; font-weight: 700; }
+.yt-content .sub { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 2px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px; margin-bottom: 28px; }
+.card .cover { aspect-ratio: 1; border-radius: 6px; position: relative; overflow: hidden; }
+.card .t { font-size: 14px; margin-top: 8px; font-weight: 550; }
+.card .s { font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
+.cover { background: linear-gradient(135deg, var(--cover-a), var(--cover-b)); }
+.c2 { background: linear-gradient(200deg, var(--cover-b), #111 90%); }
+.c3 { background: radial-gradient(circle at 30% 30%, var(--cover-a), var(--surface-3) 70%); }
+.c4 { background: linear-gradient(160deg, #222, var(--cover-a)); }
+.c5 { background: conic-gradient(from 90deg, var(--cover-a), var(--cover-b), var(--cover-a)); }
+.c6 { background: linear-gradient(90deg, var(--surface-3), var(--cover-b)); }
+
+.playerbar { height: 72px; flex: none; background: var(--surface-2); display: flex; align-items: center; padding: 0 16px; gap: 18px; position: relative; }
+.progress { position: absolute; left: 0; right: 0; top: -1px; height: 3px; background: var(--surface-3); }
+.progress i { display: block; height: 100%; width: 38%; background: var(--accent); }
+.pb-ctrl { display: flex; align-items: center; gap: 14px; color: var(--text); }
+.pb-ctrl svg { width: 22px; height: 22px; }
+.pb-ctrl .play svg { width: 34px; height: 34px; }
+.pb-time { font-size: 12px; color: var(--text-dim); }
+.pb-track { display: flex; align-items: center; gap: 12px; flex: 1; justify-content: center; min-width: 0; }
+.pb-track .cover { width: 40px; height: 40px; border-radius: 4px; flex: none; }
+.pb-track b { font-size: 14px; font-weight: 600; display: block; }
+.pb-track small { font-size: 12.5px; color: var(--text-dim); }
+.pb-right { display: flex; gap: 14px; color: var(--text-dim); align-items: center; }
+.pb-right svg { width: 20px; height: 20px; }
+.eq-badge { font-size: 10.5px; padding: 2px 6px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); font-weight: 650; letter-spacing: .3px; }
+
+/* ---------- EQ-Seitenpanel (eigene Pegel-Oberfläche) ---------- */
+.eq {
+  width: 0; flex: none; overflow: hidden; background: var(--surface);
+  border-left: 1px solid var(--border); transition: width .28s cubic-bezier(.2,.8,.2,1);
+}
+.eq.open { width: 372px; }
+.eq-inner { width: 372px; padding: 18px 20px; display: flex; flex-direction: column; gap: 16px; height: 100%; overflow: auto; }
+.eq-head { display: flex; align-items: center; justify-content: space-between; }
+.eq-head h3 { margin: 0; font-size: 15px; font-weight: 650; }
+.switch { width: 36px; height: 20px; border-radius: 10px; background: var(--surface-3); position: relative; cursor: pointer; border: 0; padding: 0; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--text-dim); transition: .2s; }
+.switch[aria-checked="true"] { background: var(--accent); }
+.switch[aria-checked="true"]::after { left: 19px; background: var(--on-accent); }
+.field-label { font-size: 11.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.presets button { border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; font-size: 12.5px; padding: 5px 10px; border-radius: 999px; cursor: pointer; }
+.presets button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.curve { height: 86px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); }
+.curve svg { width: 100%; height: 100%; display: block; }
+.bands { display: grid; grid-template-columns: 34px repeat(10, 1fr); gap: 2px; align-items: stretch; }
+.band { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.band .val { font-size: 10.5px; color: var(--text-dim); font-variant-numeric: tabular-nums; height: 14px; }
+.slider { width: 22px; height: 168px; position: relative; cursor: ns-resize; touch-action: none; outline: none; }
+.slider .track { position: absolute; left: 50%; top: 0; bottom: 0; width: 4px; margin-left: -2px; border-radius: 2px; background: var(--surface-3); }
+.slider .zero { position: absolute; left: 3px; right: 3px; top: 50%; height: 1px; background: var(--text-dim); opacity: .4; }
+.slider .fill { position: absolute; left: 50%; width: 4px; margin-left: -2px; border-radius: 2px; background: var(--accent); }
+.slider .thumb { position: absolute; left: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--text); box-shadow: 0 1px 4px #0008; }
+.slider:focus-visible .thumb { outline: 2px solid var(--accent); outline-offset: 2px; }
+.band .hz { font-size: 10.5px; color: var(--text-dim); }
+.scale { display: flex; flex-direction: column; justify-content: space-between; height: 168px; margin-top: 20px; font-size: 10px; color: var(--text-dim); text-align: right; padding-right: 4px; }
+.preamp { display: flex; align-items: center; gap: 10px; }
+.preamp input { flex: 1; accent-color: var(--accent); }
+.preamp span { font-size: 12px; width: 52px; text-align: right; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.eq-actions { display: flex; gap: 8px; margin-top: auto; }
+.btn { flex: 1; height: 34px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+.eq.off .bands, .eq.off .curve, .eq.off .preamp { opacity: .35; pointer-events: none; }
+
+/* ---------- Eigene Seiten (Einstellungen / Willkommen) ---------- */
+.page { position: absolute; inset: 38px 0 0 0; background: var(--bg); display: none; overflow: auto; }
+.page.show { display: block; }
+.page-inner { max-width: 760px; margin: 0 auto; padding: 32px 28px 48px; }
+.page h2 { font-size: 26px; margin: 0 0 4px; }
+.page-head { display: flex; align-items: center; gap: 10px; margin-left: -46px; }
+.page-head h2 { margin: 0; }
+.page-head + .lead { margin-top: 4px; }
+.back { width: 36px; height: 36px; border-radius: 50%; border: 0; background: transparent; color: var(--text); display: grid; place-items: center; cursor: pointer; }
+.back:hover { background: var(--surface-2); }
+.back svg { width: 20px; height: 20px; }
+@media (max-width: 900px) { .page-head { margin-left: 0; } }
+.page .lead { color: var(--text-dim); margin: 0 0 28px; font-size: 14px; }
+.section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 6px 18px; margin-bottom: 18px; }
+.section h4 { margin: 14px 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--text-dim); font-weight: 600; }
+.row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--border); gap: 16px; }
+.row:first-of-type { border-top: 0; }
+.row b { font-weight: 550; font-size: 14px; display: block; }
+.row small { color: var(--text-dim); font-size: 12.5px; }
+.themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 8px 0 16px; }
+.theme-card { border-radius: 10px; border: 2px solid transparent; padding: 0; cursor: pointer; overflow: hidden; background: none; font: inherit; color: var(--text); text-align: left; }
+.theme-card[aria-pressed="true"] { border-color: var(--accent); }
+.theme-card .pv { height: 70px; display: flex; align-items: flex-end; padding: 8px; gap: 4px; }
+.theme-card .pv i { width: 6px; border-radius: 2px; display: block; }
+.theme-card .nm { padding: 8px 10px; font-size: 13px; background: var(--surface-2); }
+.kbd { font-family: ui-monospace, Consolas, monospace; font-size: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 2px 6px; }
+
+.welcome { display: grid; place-items: center; min-height: 100%; text-align: center; padding: 40px 24px; }
+.welcome .logo-big { width: 76px; height: 76px; margin: 0 auto 18px; }
+.welcome h2 { font-size: 32px; }
+.welcome .note-card { max-width: 440px; margin: 22px auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; font-size: 14.5px; line-height: 1.55; text-align: left; }
+.welcome .note-card small { display: block; color: var(--text-dim); margin-top: 8px; }
+.welcome .cta { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 22px; border-radius: 22px; background: var(--accent); color: var(--on-accent); font-weight: 650; font-size: 14.5px; border: 0; cursor: pointer; }
+.welcome .fine { font-size: 12px; color: var(--text-dim); margin-top: 14px; }
+
+/* ---------- Mini-Player ---------- */
+.mini-stage { max-width: 1280px; margin: 0 auto; height: 760px; border-radius: 10px; display: none; place-items: center;
+  background: linear-gradient(135deg, #3a5a7a, #6b4a7a 60%, #a0607a); box-shadow: 0 0 0 1px #0002; position: relative; }
+.mini-stage.show { display: grid; }
+.mini-stage .desk-hint { position: absolute; left: 20px; bottom: 16px; color: #fffc; font-size: 12.5px; }
+.mini {
+  width: 360px; background: var(--surface); color: var(--text); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 18px 50px #0007, 0 0 0 1px var(--border); position: absolute; right: 40px; bottom: 40px;
+}
+.mini-top { display: flex; gap: 12px; padding: 12px; align-items: center; }
+.mini-top .cover { width: 64px; height: 64px; border-radius: 6px; flex: none; }
+.mini-top b { font-size: 14px; display: block; }
+.mini-top small { font-size: 12.5px; color: var(--text-dim); }
+.mini-top .meta { flex: 1; min-width: 0; }
+.mini-tools { display: flex; flex-direction: column; gap: 6px; color: var(--text-dim); align-self: flex-start; }
+.mini-tools svg { width: 15px; height: 15px; }
+.mini-ctrl { display: flex; justify-content: center; gap: 22px; align-items: center; padding: 2px 12px 12px; }
+.mini-ctrl svg { width: 20px; height: 20px; }
+.mini-ctrl .play { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
+.mini .progress { position: static; height: 3px; }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <h1>Pegel · Design-Mockup</h1>
+  <div><span class="ctl-label">Ansicht</span>
+    <div class="seg" id="viewSeg">
+      <button data-v="main" aria-pressed="true">Hauptfenster</button>
+      <button data-v="mini">Mini-Player</button>
+      <button data-v="settings">Einstellungen</button>
+      <button data-v="welcome">Willkommen</button>
+    </div></div>
+  <div><span class="ctl-label">Theme</span>
+    <div class="seg" id="themeSeg">
+      <button data-t="standard" aria-pressed="true">Standard</button>
+      <button data-t="sakura">Sakura</button>
+      <button data-t="nordlicht">Nordlicht</button>
+      <button data-t="bernstein">Bernstein</button>
+    </div></div>
+  <div><span class="ctl-label">System</span>
+    <div class="seg" id="osSeg">
+      <button data-o="win" aria-pressed="true">Windows</button>
+      <button data-o="mac">macOS</button>
+    </div></div>
+</div>
+
+<div id="root" data-theme="standard" data-os="win">
+
+<!-- ================= HAUPTFENSTER ================= -->
+<div class="window" id="win">
+  <div class="titlebar">
+    <svg class="petals" viewBox="0 0 1280 38" preserveAspectRatio="none" aria-hidden="true">
+      <g fill="#f4a6c3">
+        <ellipse cx="420" cy="12" rx="4" ry="2.4" transform="rotate(30 420 12)"/>
+        <ellipse cx="610" cy="27" rx="3.4" ry="2" transform="rotate(-20 610 27)"/>
+        <ellipse cx="760" cy="9" rx="4.2" ry="2.4" transform="rotate(60 760 9)"/>
+        <ellipse cx="905" cy="25" rx="3" ry="1.8" transform="rotate(10 905 25)"/>
+        <ellipse cx="300" cy="28" rx="3" ry="1.8" transform="rotate(-50 300 28)"/>
+      </g>
+    </svg>
+    <div class="traffic"><i></i><i></i><i></i></div>
+    <button class="brand" data-goto="main" title="Zur Musik">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="10" width="3.2" height="10" rx="1.6" fill="var(--accent)"/><rect x="7.6" y="4" width="3.2" height="16" rx="1.6" fill="var(--accent)"/><rect x="13.2" y="8" width="3.2" height="12" rx="1.6" fill="var(--accent)" opacity=".75"/><rect x="18.8" y="13" width="3.2" height="7" rx="1.6" fill="var(--accent)" opacity=".5"/></svg>
+      Pegel
+    </button>
+    <div class="tb-spacer"></div>
+    <button class="tb-btn" id="eqToggle" aria-pressed="true" title="Equalizer (Strg+E)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21v-6M4 11V3M12 21v-9M12 8V3M20 21v-4M20 13V3M1 15h6M9 8h6M17 17h6"/></svg>Equalizer</button>
+    <button class="tb-btn" data-goto="mini" title="Mini-Player (Strg+M)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><rect x="12" y="12" width="7" height="6" rx="1" fill="currentColor"/></svg></button>
+    <button class="tb-btn" id="settingsBtn" data-goto="settings" aria-pressed="false" title="Einstellungen (Strg+,)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    <div class="wincontrols"><span>&#x2013;</span><span>&#x25A1;</span><span>&#x2715;</span></div>
+  </div>
+
+  <div class="body">
+    <!-- YT Music (Originalseite, nur per CSS umgefärbt) -->
+    <div class="yt">
+      <div class="yt-main">
+        <nav class="yt-nav">
+          <a class="active" href="#"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z"/></svg>Start</a>
+          <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Entdecken</a>
+          <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16M9 4v16M14 4l6 16"/></svg>Bibliothek</a>
+          <hr>
+          <div class="pl">Lieblingssongs</div>
+          <div class="pl">Roadtrip 2026 <em>geteilt</em></div>
+          <div class="pl">Fokus</div>
+          <div class="pl">Gym <em>geteilt</em></div>
+          <div class="pl">Abendruhe</div>
+        </nav>
+        <div class="yt-content">
+          <div class="yt-search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Suche nach Songs, Alben, Künstlern, Podcasts</div>
+          <div class="chips"><span>Alle</span><span>Entspannen</span><span>Energie</span><span>Konzentration</span><span>Pendeln</span><span>Party</span></div>
+          <div class="sub">Für dich</div>
+          <h2>Schnellauswahl</h2>
+          <div class="grid">
+            <div class="card"><div class="cover"></div><div class="t">Mein Supermix</div><div class="s">Mix · YouTube Music</div></div>
+            <div class="card"><div class="cover c2"></div><div class="t">Entdeckungsmix</div><div class="s">Mix · Neu für dich</div></div>
+            <div class="card"><div class="cover c3"></div><div class="t">Roadtrip 2026</div><div class="s">Playlist · Du &amp; 1 weitere Person</div></div>
+            <div class="card"><div class="cover c4"></div><div class="t">Neuerscheinungen</div><div class="s">Mix · Wöchentlich</div></div>
+            <div class="card"><div class="cover c5"></div><div class="t">Fokus</div><div class="s">Playlist · 48 Songs</div></div>
+          </div>
+          <div class="sub">Weiterhören</div>
+          <h2>Zuletzt gespielt</h2>
+          <div class="grid">
+            <div class="card"><div class="cover c6"></div><div class="t">Nachtfahrt</div><div class="s">Album · Lumen Atlas</div></div>
+            <div class="card"><div class="cover c3"></div><div class="t">Gym</div><div class="s">Playlist · geteilt</div></div>
+            <div class="card"><div class="cover c2"></div><div class="t">Abendruhe</div><div class="s">Playlist · 31 Songs</div></div>
+            <div class="card"><div class="cover"></div><div class="t">Lieblingssongs</div><div class="s">Auto-Playlist</div></div>
+            <div class="card"><div class="cover c4"></div><div class="t">Lo-Fi Radio</div><div class="s">Radio</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="playerbar">
+        <div class="progress"><i></i></div>
+        <div class="pb-ctrl">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+          <span class="play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></span>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+          <span class="pb-time">1:24 / 3:41</span>
+        </div>
+        <div class="pb-track"><div class="cover c6"></div><div><b>Nachtfahrt</b><small>Lumen Atlas · Nachtfahrt · 2026</small></div></div>
+        <div class="pb-right"><span class="eq-badge" id="eqBadge">EQ · Bass Boost</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pegel EQ-Panel -->
+    <aside class="eq open" id="eq">
+      <div class="eq-inner">
+        <div class="eq-head"><h3>Equalizer</h3><button class="switch" id="eqPower" role="switch" aria-checked="true" aria-label="Equalizer an/aus"></button></div>
+        <div><div class="field-label">Preset</div><div class="presets" id="presets"></div></div>
+        <div class="curve"><svg id="curve" viewBox="0 0 332 86" preserveAspectRatio="none"></svg></div>
+        <div class="bands" id="bands"><div class="scale"><span>+12</span><span>0</span><span>−12</span></div></div>
+        <div><div class="field-label">Vorverstärkung</div>
+          <div class="preamp"><input type="range" id="preamp" min="-12" max="6" step="0.5" value="-4"><span id="preampVal">−4.0 dB</span></div></div>
+        <div class="eq-actions"><button class="btn" id="reset">Zurücksetzen</button><button class="btn primary">Als Preset speichern</button></div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Einstellungen -->
+  <div class="page" id="page-settings"><div class="page-inner">
+    <div class="page-head"><button class="back" data-goto="main" aria-label="Zurück zur Musik" title="Zurück (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button><h2>Einstellungen</h2></div>
+    <p class="lead">Pegel-eigene Seite. Öffnet sich im Fenster anstelle von YouTube Music. Zurück über den Pfeil, das Pegel-Logo oder <span class="kbd">Esc</span>.</p>
+    <div class="section"><h4>Darstellung</h4>
+      <div class="themes" id="themeCards"></div>
+    </div>
+    <div class="section"><h4>Wiedergabe &amp; System</h4>
+      <div class="row"><div><b>Beim Schließen in den Infobereich minimieren</b><small>Musik läuft weiter, Steuerung über das Tray-Symbol</small></div><button class="switch" role="switch" aria-checked="true"></button></div>
+      <div class="row"><div><b>Mit <span class="osname">Windows</span> starten</b><small>Startet minimiert im Infobereich</small></div><button class="switch" role="switch" aria-checked="false"></button></div>
+      <div class="row"><div><b>Medientasten</b><small>Play/Pause, Weiter, Zurück über die Tastatur</small></div><button class="switch" role="switch" aria-checked="true"></button></div>
+      <div class="row"><div><b>Mini-Player immer im Vordergrund</b><small>Tastenkürzel <span class="kbd modkey">Strg</span> + <span class="kbd">M</span></small></div><button class="switch" role="switch" aria-checked="true"></button></div>
+    </div>
+    <div class="section"><h4>Integrationen</h4>
+      <div class="row"><div><b>Discord-Status</b><small>„Hört Pegel – Nachtfahrt von Lumen Atlas“</small></div><button class="switch" role="switch" aria-checked="true"></button></div>
+      <div class="row"><div><b>Pausiert nicht anzeigen</b><small>Status ausblenden, wenn nichts läuft</small></div><button class="switch" role="switch" aria-checked="true"></button></div>
+    </div>
+    <div class="section"><h4>Über</h4>
+      <div class="row"><div><b>Pegel 0.1.0</b><small>Inoffizieller Desktop-Client für YouTube Music. Nicht mit Google verbunden.</small></div><button class="btn" style="flex:none;padding:0 14px">Abmelden</button></div>
+    </div>
+  </div></div>
+
+  <!-- Willkommen -->
+  <div class="page" id="page-welcome"><div class="welcome"><div>
+    <svg class="logo-big" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="10" width="3.2" height="10" rx="1.6" fill="var(--accent)"/><rect x="7.6" y="4" width="3.2" height="16" rx="1.6" fill="var(--accent)"/><rect x="13.2" y="8" width="3.2" height="12" rx="1.6" fill="var(--accent)" opacity=".75"/><rect x="18.8" y="13" width="3.2" height="7" rx="1.6" fill="var(--accent)" opacity=".5"/></svg>
+    <h2>Willkommen bei Pegel</h2>
+    <p class="lead" style="margin:0">YouTube Music als eigene App – mit Equalizer.</p>
+    <div class="note-card">Hey! Hab dir was gebaut, damit du YT Music nicht mehr im Browser offen haben musst. Sakura ist schon eingestellt 🌸 Viel Spaß!<small>— Johann</small></div>
+    <button class="cta">Mit Google-Konto anmelden</button>
+    <div class="fine">Die Anmeldung läuft direkt bei Google. Pegel speichert kein Passwort.</div>
+  </div></div></div>
+</div>
+
+<!-- ================= MINI-PLAYER ================= -->
+<div class="mini-stage" id="miniStage">
+  <div class="mini">
+    <div class="progress"><i></i></div>
+    <div class="mini-top">
+      <div class="cover c6"></div>
+      <div class="meta"><b>Nachtfahrt</b><small>Lumen Atlas</small><div style="margin-top:6px"><span class="eq-badge">EQ · Bass Boost</span></div></div>
+      <div class="mini-tools">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="Anpinnen"><path d="M12 17v5M9 3h6l-1 6 3 3H7l3-3z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="Vergrößern"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+      </div>
+    </div>
+    <div class="mini-ctrl">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 10v11M15 5.9 14 10h5.8a2 2 0 0 1 1.9 2.6l-2.3 7A2 2 0 0 1 17.5 21H7V10l4-8a3 3 0 0 1 3 3.9z"/></svg>
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+      <span class="play"><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></span>
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7"/></svg>
+    </div>
+  </div>
+  <div class="desk-hint">Mini-Player: 360 × 150 px, rahmenlos, verschiebbar, optional immer im Vordergrund</div>
+</div>
+
+</div>
+
+<p class="note">Die mittlere Fläche ist die echte YouTube-Music-Seite, die Pegel nur per CSS an das gewählte Theme anpasst. Eigene Pegel-Oberflächen: Titelleiste, Equalizer-Panel, Einstellungen, Willkommensseite und Mini-Player. Die EQ-Regler im Mockup sind bedienbar (ziehen oder Pfeiltasten).</p>
+
+<script>
+const root = document.getElementById('root');
+const FREQS = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+const PRESETS = {
+  'Flat':        [0,0,0,0,0,0,0,0,0,0],
+  'Bass Boost':  [6,5,4,2,0,0,0,0,0,0],
+  'Vocal':       [-2,-2,-1,0,2,4,4,2,0,-1],
+  'Akustik':     [3,2,1,0,1,1,2,3,2,1],
+  'Elektronisch':[5,4,1,0,-2,1,0,2,4,5],
+  'Loudness':    [5,3,0,0,-1,0,-1,0,3,4],
+};
+let gains = PRESETS['Bass Boost'].slice();
+let current = 'Bass Boost';
+
+function seg(id, attr, fn) {
+  const el = document.getElementById(id);
+  el.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    fn(b.dataset[attr]);
+  });
+  return el;
+}
+function setTheme(t) {
+  root.dataset.theme = t;
+  document.querySelectorAll('#themeSeg button').forEach(x => x.setAttribute('aria-pressed', x.dataset.t === t));
+  document.querySelectorAll('.theme-card').forEach(x => x.setAttribute('aria-pressed', x.dataset.t === t));
+  drawCurve();
+}
+function setView(v) {
+  document.querySelectorAll('#viewSeg button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === v));
+  document.getElementById('win').classList.toggle('hidden', v === 'mini');
+  document.getElementById('miniStage').classList.toggle('show', v === 'mini');
+  document.getElementById('page-settings').classList.toggle('show', v === 'settings');
+  document.getElementById('page-welcome').classList.toggle('show', v === 'welcome');
+  document.getElementById('settingsBtn').setAttribute('aria-pressed', v === 'settings');
+  document.getElementById('eqToggle').setAttribute('aria-pressed', v === 'main' && document.getElementById('eq').classList.contains('open'));
+}
+seg('themeSeg', 't', setTheme);
+seg('viewSeg', 'v', setView);
+seg('osSeg', 'o', o => { root.dataset.os = o; document.querySelectorAll('.osname').forEach(x => x.textContent = o === 'mac' ? 'macOS' : 'Windows'); document.querySelectorAll('.modkey').forEach(x => x.textContent = o === 'mac' ? '⌘' : 'Strg'); });
+document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => setView(b.dataset.goto)));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') setView('main'); });
+
+/* Theme-Karten in den Einstellungen */
+const THEME_INFO = { standard: ['Standard', '#030303', '#ff1f4b'], sakura: ['Sakura', '#1a1117', '#f4a6c3'], nordlicht: ['Nordlicht', '#070d10', '#4fd6b8'], bernstein: ['Bernstein', '#0f0b07', '#f2a93b'] };
+const tc = document.getElementById('themeCards');
+for (const [k, [name, bg, ac]] of Object.entries(THEME_INFO)) {
+  const b = document.createElement('button');
+  b.className = 'theme-card'; b.dataset.t = k; b.setAttribute('aria-pressed', k === 'standard');
+  b.innerHTML = `<div class="pv" style="background:${bg}">${[10,22,16,30,12].map((h,i)=>`<i style="height:${h}px;background:${ac};opacity:${1-i*.12}"></i>`).join('')}</div><div class="nm">${name}</div>`;
+  b.onclick = () => setTheme(k);
+  tc.appendChild(b);
+}
+
+/* EQ */
+const bandsEl = document.getElementById('bands');
+const sliders = [];
+FREQS.forEach((f, i) => {
+  const band = document.createElement('div'); band.className = 'band';
+  band.innerHTML = `<span class="val"></span><div class="slider" tabindex="0" role="slider" aria-valuemin="-12" aria-valuemax="12" aria-label="${fmtHz(f)}"><div class="track"></div><div class="zero"></div><div class="fill"></div><div class="thumb"></div></div><span class="hz">${fmtHz(f)}</span>`;
+  bandsEl.appendChild(band);
+  const s = band.querySelector('.slider');
+  const set = y => { const r = s.getBoundingClientRect(); let v = 12 - ((y - r.top) / r.height) * 24; v = Math.max(-12, Math.min(12, Math.round(v * 2) / 2)); gains[i] = v; markCustom(); render(); };
+  s.addEventListener('pointerdown', e => { s.setPointerCapture(e.pointerId); set(e.clientY); s.onpointermove = ev => set(ev.clientY); });
+  s.addEventListener('pointerup', () => s.onpointermove = null);
+  s.addEventListener('keydown', e => { const d = {ArrowUp: .5, ArrowDown: -.5, PageUp: 3, PageDown: -3}[e.key]; if (d) { gains[i] = Math.max(-12, Math.min(12, gains[i] + d)); markCustom(); render(); e.preventDefault(); } });
+  sliders.push(band);
+});
+function fmtHz(f) { return f >= 1000 ? (f / 1000) + 'k' : String(f); }
+function fmtDb(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(v % 1 ? 1 : 0); }
+
+const presetsEl = document.getElementById('presets');
+function renderPresets() {
+  presetsEl.innerHTML = '';
+  [...Object.keys(PRESETS), ...(current === 'Eigene' ? ['Eigene'] : [])].forEach(n => {
+    const b = document.createElement('button'); b.textContent = n; b.setAttribute('aria-pressed', n === current);
+    b.onclick = () => { if (PRESETS[n]) { gains = PRESETS[n].slice(); current = n; renderPresets(); render(); } };
+    presetsEl.appendChild(b);
+  });
+  document.querySelectorAll('.eq-badge').forEach(x => x.textContent = 'EQ · ' + current);
+}
+function markCustom() { if (current !== 'Eigene') { current = 'Eigene'; renderPresets(); } }
+
+function render() {
+  sliders.forEach((band, i) => {
+    const v = gains[i], p = (12 - v) / 24 * 100;
+    band.querySelector('.thumb').style.top = p + '%';
+    const fill = band.querySelector('.fill');
+    fill.style.top = Math.min(p, 50) + '%'; fill.style.height = Math.abs(p - 50) + '%';
+    band.querySelector('.val').textContent = fmtDb(v);
+    band.querySelector('.slider').setAttribute('aria-valuenow', v);
+  });
+  drawCurve();
+}
+/* Näherung der Gesamtkurve (Peaking-Filter, Q≈1.41, Glocke in log2-Frequenz) */
+function drawCurve() {
+  const svg = document.getElementById('curve'), W = 332, H = 86;
+  const accent = getComputedStyle(root).getPropertyValue('--accent').trim();
+  const dim = getComputedStyle(root).getPropertyValue('--text-dim').trim();
+  let d = '';
+  for (let x = 0; x <= W; x += 2) {
+    const f = 20 * Math.pow(1000, x / W);   // 20 Hz … 20 kHz
+    let db = 0;
+    FREQS.forEach((f0, i) => {
+      const o = Math.log2(f / f0);
+      if (i === 0 && o < 0) db += gains[i];                    // Low-Shelf
+      else if (i === 9 && o > 0) db += gains[i];               // High-Shelf
+      else db += gains[i] * Math.exp(-(o * o) / (2 * 0.42 * 0.42));
+    });
+    db = Math.max(-15, Math.min(15, db));
+    const y = H / 2 - db / 15 * (H / 2 - 6);
+    d += (x ? 'L' : 'M') + x + ' ' + y.toFixed(1);
+  }
+  const grid = FREQS.map(f => { const x = Math.log(f / 20) / Math.log(1000) * W; return `<line x1="${x}" x2="${x}" y1="0" y2="${H}" stroke="${dim}" stroke-opacity=".12"/>`; }).join('');
+  svg.innerHTML = `${grid}<line x1="0" x2="${W}" y1="${H/2}" y2="${H/2}" stroke="${dim}" stroke-opacity=".3" stroke-dasharray="3 3"/>
+    <path d="${d} L${W} ${H} L0 ${H}Z" fill="${accent}" fill-opacity=".12"/>
+    <path d="${d}" fill="none" stroke="${accent}" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+}
+
+document.getElementById('eqToggle').onclick = e => {
+  const eq = document.getElementById('eq');
+  if (document.querySelector('.page.show')) { eq.classList.add('open'); setView('main'); return; }
+  eq.classList.toggle('open');
+  e.currentTarget.setAttribute('aria-pressed', eq.classList.contains('open'));
+};
+document.getElementById('eqPower').onclick = e => {
+  const on = e.currentTarget.getAttribute('aria-checked') !== 'true';
+  e.currentTarget.setAttribute('aria-checked', on);
+  document.getElementById('eq').classList.toggle('off', !on);
+};
+document.querySelectorAll('.page .switch').forEach(s => s.onclick = () => s.setAttribute('aria-checked', s.getAttribute('aria-checked') !== 'true'));
+const pre = document.getElementById('preamp');
+pre.oninput = () => document.getElementById('preampVal').textContent = fmtDb(+pre.value).replace(/^(.?\d+)$/, '$1.0') + ' dB';
+pre.oninput();
+document.getElementById('reset').onclick = () => { gains = PRESETS.Flat.slice(); current = 'Flat'; renderPresets(); render(); };
+
+renderPresets(); render();
+</script>
+</body>
+</html>

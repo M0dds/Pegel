@@ -1,0 +1,6 @@
+out/
+dist/
+node_modules/
+design/
+package-lock.json
+*.md

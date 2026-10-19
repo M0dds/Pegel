@@ -1,0 +1,47 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family:
+    'Segoe UI Variable',
+    'Segoe UI',
+    -apple-system,
+    BlinkMacSystemFont,
+    Roboto,
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  user-select: none;
+}
+
+.dim {
+  color: var(--text-dim);
+}
+
+.empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.empty h1 {
+  margin: 12px 0 0;
+  font-size: 28px;
+  font-weight: 650;
+}
+
+.empty p {
+  margin: 0;
+  font-size: 13px;
+}

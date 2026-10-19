@@ -1,0 +1,21 @@
+# Packaging is finalised in M8 (icons, profiles, signing).
+appId: app.pegel.desktop
+productName: Pegel
+directories:
+  output: dist
+  buildResources: resources
+files:
+  - out/**/*
+  - package.json
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  category: public.app-category.music
