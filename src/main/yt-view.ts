@@ -136,6 +136,12 @@ export function createYtView(events: YtViewEvents): WebContentsView {
     return { action: 'deny' };
   });
 
+  // While music plays YT registers a "leave page?" beforeunload handler. A browser
+  // would ask; Electron silently cancels the reload or navigation instead (F5,
+  // "Jetzt aktualisieren", sign-out, quitting). Pegel has no such dialog, so the
+  // unload always proceeds.
+  wc.on('will-prevent-unload', (event) => event.preventDefault());
+
   let failed = false;
   wc.on('did-start-loading', () => {
     failed = false;

@@ -1,7 +1,7 @@
 import type { ThemeId, View } from '@shared/types';
 import { Logo } from './Logo';
 import { WindowControls } from './WindowControls';
-import { CloseIcon, EqIcon, MiniPlayerIcon, SettingsIcon } from './icons';
+import { CloseIcon, EqIcon, MiniPlayerIcon, RefreshIcon, SettingsIcon } from './icons';
 
 const MOD = window.pegel.platform === 'darwin' ? '⌘' : 'Strg';
 
@@ -63,6 +63,14 @@ export function Titlebar({
         </div>
       )}
       <div className="tb-spacer" />
+      <button
+        className="tb-btn"
+        title={`YT Music neu laden (F5)`}
+        aria-label="YT Music neu laden"
+        onClick={() => window.pegel.reloadYt()}
+      >
+        <RefreshIcon />
+      </button>
       <button
         className="tb-btn"
         aria-pressed={view === 'music' && eqOpen}

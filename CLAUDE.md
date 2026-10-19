@@ -37,4 +37,5 @@ Pegel ist ein inoffizieller Desktop-Client für YouTube Music, gebaut mit Electr
 - Google-Login: YT Music bekommt einen Chrome-UA, aber Anfragen an `accounts.google.com` müssen den **unveränderten Electron-UA** senden. Ein vorgetäuschter Chrome (auch mit passenden Client Hints) führt zu „Browser nicht sicher“. Gleiches Vorgehen wie Pear Desktop.
 - `insertCSS` nach jeder Navigation bzw. jedem `dom-ready` erneut anwenden.
 - YT setzt `scrollbar-color` auf allen Elementen; solange das gesetzt ist, ignoriert Chromium `::-webkit-scrollbar`.
+- Während Musik läuft, registriert YT einen `beforeunload`-Handler. Electron bricht Neuladen und Navigation dann stillschweigend ab (kein Dialog). Pegel übergeht ihn per `will-prevent-unload` → `preventDefault()`. Zum Testen braucht es echte Benutzeraktion (DevTools `Input.dispatchMouseEvent`), per Skript gestartete Wiedergabe löst den Handler nicht aus.
 - macOS: Tray-Icons als Template-Image. Schließen versteckt das Fenster nur. Arm64-Builds ad-hoc signieren.
