@@ -764,7 +764,7 @@ social: {
 - [ ] Messen auf zwei Rechnern über den echten Server
 - [ ] Test mit 3+ Leuten, davon einer ohne Premium (Werbung) und einer mit Bluetooth-Kopfhörer
 - [x] README: Abschnitt „Freunde & Hör-Party“ und Datenschutz
-- [ ] Version 1.1.0 mit dem Commit aus M9 veröffentlichen (nach Rückfrage)
+- [x] Version 1.1.0 mit dem Commit aus M9 veröffentlicht (vor dem Test mit Freunden, damit alle dieselbe Version haben; Fehler werden in 1.1.x behoben)
 - **Fertig, wenn:** Johann und mindestens zwei Freunde sich per Code hinzufügen, einander online mit „Hört gerade“ sehen und eine Party über mehrere Titel synchron hören, auch wenn einer mitten im Lied beitritt, Werbung bekommt oder kurz die Verbindung verliert.
 
 ### Später (optional)
