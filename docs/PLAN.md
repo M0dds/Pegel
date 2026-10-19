@@ -823,6 +823,11 @@ social: {
 - **Gefundener Fehler:** Lädt ein Gast seine YT-Seite neu, pausiert der Browser das Media-Element. Mit „Alle dürfen steuern“ wurde daraus eine Pause für alle. Pausen während `pagehide`/`beforeunload` zählen jetzt nicht als Bedienung.
 - **YTs „Weiter“-Knopf** beim Gast wird am Klick erkannt (Selektor `nextButton`) und zum Überspringen für alle. „Zurück“ gibt es in der Party nicht.
 - **Angenommene Vorschläge** (ohne „Alle dürfen steuern“) gehen in die Warteschlange, statt sofort zu spielen.
+- **Nach dem ersten Test mit 1.2.0 (Johann und Leon):**
+  - *Fehler:* Kam ein Titel aus der Warteschlange dran, landete beim Gast automatisch ein Titel aus der Playlist des Hosts in der Warteschlange, „von Leon“. Ursache: Direkt nach dem Laden meldete YT beim Host noch die alte Playlist. Der Gast lud den Titel mit dieser Playlist, sein YT sprang in die Playlist, und Pegel hielt das für eine eigene Wahl.
+  - *Behebung:* Titel aus der Warteschlange gehen ohne Playlist an die Gäste. Ein anderer Titel zählt nur dann als Wahl des Gasts, wenn er kurz vorher (≤ 4 s) wirklich in YT geklickt hat.
+  - *Wunsch:* Hat ein Freund eine offene Party, steht in seiner Zeile „Beitreten“. „Zu meiner Party einladen“ wandert ins ⋯-Menü.
+  - Die Interpreten-Zeile aus der Suche („Song • Künstler • 3,6 Mrd. Wiedergaben“) wird auf den Künstler gekürzt.
 
 **Schritte**
 

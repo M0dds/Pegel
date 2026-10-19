@@ -43,6 +43,12 @@ const ADVANCE_BEFORE_END_MS = 300;
 const REQUEST_GRACE_MS = 1500;
 /** A click on YT's "next" button counts as "skip" for this long. */
 const SKIP_INTENT_MS = 3000;
+/**
+ * Another track only counts as the guest's own pick if the guest clicked in
+ * YT this shortly before. Without a click YT switched by itself (e.g. its own
+ * queue after a load) and Pegel simply goes back to the party's track.
+ */
+const PICK_CLICK_MS = 4000;
 
 /**
  * Listening party in the YT view, right at the media element.
@@ -76,6 +82,7 @@ export class PartyEngine {
   private request: { action: ControlAction; positionMs?: number } | undefined;
   private requestUntil = 0;
   private skipIntentUntil = 0;
+  private lastUserClick = 0;
   /** Host: playing from the party queue; where the own playlist resumes afterwards. */
   private queueMode = false;
   private resumeAt: WatchEndpoint | null = null;
@@ -100,6 +107,8 @@ export class PartyEngine {
     document.addEventListener(
       'click',
       (e) => {
+        if (!e.isTrusted) return;
+        this.lastUserClick = Date.now();
         const target = e.target instanceof Element ? e.target : null;
         if (target?.closest(SELECTORS.nextButton))
           this.skipIntentUntil = Date.now() + SKIP_INTENT_MS;
@@ -353,7 +362,7 @@ export class PartyEngine {
           // YT's "next" button: skip for everybody.
           this.skipIntentUntil = 0;
           this.ask('skip');
-        } else {
+        } else if (now - this.lastUserClick < PICK_CLICK_MS) {
           // The guest picked a track: it goes to the queue (or is suggested), the party continues.
           const metadata = navigator.mediaSession.metadata;
           this.picked = {
@@ -483,7 +492,10 @@ export class PartyEngine {
     this.lastReport = now;
 
     const metadata = navigator.mediaSession.metadata;
-    const playlistId = playerApi<string>('getPlaylistId');
+    // Queued tracks play on their own: right after loading one, YT may still name the
+    // previous playlist, and guests loading the track with it would land in that list.
+    const playlistId =
+      control.role === 'host' && this.queueMode ? undefined : playerApi<string>('getPlaylistId');
     const report: PartyReport = {
       videoId,
       positionMs,

@@ -469,8 +469,12 @@ function FriendRow({ friend, state }: { friend: FriendView; state: SocialState }
     !inMyParty &&
     (!party || party.role === 'host') &&
     state.connection === 'online';
+  // A friend's open party: joining is the main action, inviting moves into the ⋯ menu.
   const canJoin =
-    friend.online && !!friend.party?.open && friend.party.partyId !== party?.partyId && !canInvite;
+    friend.online &&
+    !!friend.party?.open &&
+    friend.party.partyId !== party?.partyId &&
+    state.connection === 'online';
 
   let sub = friend.online ? 'online' : 'offline';
   if (inMyParty) sub = 'in deiner Party';
@@ -484,19 +488,28 @@ function FriendRow({ friend, state }: { friend: FriendView; state: SocialState }
         <b>{friend.name}</b>
         <small title={sub}>{sub}</small>
       </div>
-      {canInvite && (
-        <button className="chip-action" onClick={() => window.pegel.partyInvite(friend.id)}>
-          Einladen
-        </button>
-      )}
-      {canJoin && !canInvite && (
+      {canJoin ? (
         <button className="chip-action" onClick={() => window.pegel.partyJoin(friend.id)}>
           Beitreten
         </button>
+      ) : (
+        canInvite && (
+          <button className="chip-action" onClick={() => window.pegel.partyInvite(friend.id)}>
+            Einladen
+          </button>
+        )
       )}
       <RowMenu
         label={`${friend.name}: Aktionen`}
         items={[
+          ...(canJoin && canInvite
+            ? [
+                {
+                  label: 'Zu meiner Party einladen',
+                  onSelect: () => window.pegel.partyInvite(friend.id),
+                },
+              ]
+            : []),
           {
             label: 'Entfernen',
             danger: true,
