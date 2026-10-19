@@ -19,8 +19,12 @@ export type EqAction =
   | { type: 'setPreamp'; preamp: number }
   | { type: 'setAutoPreamp'; auto: boolean }
   | { type: 'applyPreset'; name: string }
-  | { type: 'reset' }
-  | { type: 'savePreset'; name: string }
+  /** New custom preset from a template preset, or from the current values (`from: null`). */
+  | { type: 'createPreset'; name: string; from: string | null }
+  /** Overwrites the active custom preset with the current values. */
+  | { type: 'saveChanges' }
+  /** Goes back to the stored values of the active preset. */
+  | { type: 'discardChanges' }
   | { type: 'renamePreset'; from: string; to: string }
   | { type: 'deletePreset'; name: string };
 
@@ -42,6 +46,43 @@ export function allPresets(custom: readonly EqPreset[]): EqPreset[] {
 
 function isBuiltinName(name: string): boolean {
   return BUILTIN_PRESETS.some((p) => p.name.toLowerCase() === name.toLowerCase());
+}
+
+export function findPreset(
+  eq: Pick<EqSettings, 'customPresets'>,
+  name: string,
+): EqPreset | undefined {
+  return allPresets(eq.customPresets).find((p) => p.name === name);
+}
+
+export function isBuiltinPreset(name: string): boolean {
+  return BUILTIN_PRESETS.some((p) => p.name === name);
+}
+
+/**
+ * True if the current values differ from the active preset (or no stored
+ * preset is active). The preamp only counts when it is set manually.
+ */
+export function isDirty(eq: EqSettings): boolean {
+  const preset = findPreset(eq, eq.preset);
+  if (!preset) return true;
+  if (preset.gains.some((g, i) => g !== eq.gains[i])) return true;
+  return !eq.autoPreamp && preset.preamp !== eq.preamp;
+}
+
+/** German error message for a new or renamed preset name, or null if it is fine. */
+export function presetNameError(
+  name: string,
+  custom: readonly EqPreset[],
+  renaming?: string,
+): string | null {
+  const trimmed = name.trim();
+  if (!trimmed) return 'Bitte einen Namen eingeben.';
+  if (trimmed.length > PRESET_NAME_MAX) return `Höchstens ${PRESET_NAME_MAX} Zeichen.`;
+  if (!validPresetName(trimmed)) return 'Dieser Name ist für ein Standard-Preset reserviert.';
+  const lower = validPresetName(trimmed)!.toLowerCase();
+  const clash = custom.some((p) => p.name.toLowerCase() === lower && p.name !== renaming);
+  return clash ? 'Ein Preset mit diesem Namen gibt es schon.' : null;
 }
 
 /** Trimmed preset name, or null if it is empty, too long or reserved. */
@@ -66,7 +107,8 @@ export function reduceEq(eq: EqSettings, action: EqAction): EqSettings {
       if (!Number.isInteger(index) || index < 0 || index >= EQ_BAND_COUNT) return eq;
       const gains = [...eq.gains];
       gains[index] = clampDb(action.gain, EQ_GAIN_MIN, EQ_GAIN_MAX);
-      return { ...eq, gains, preset: CUSTOM_PRESET_NAME };
+      // The preset stays selected; the difference shows up as unsaved changes.
+      return { ...eq, gains };
     }
     case 'setPreamp':
       return {
@@ -80,19 +122,35 @@ export function reduceEq(eq: EqSettings, action: EqAction): EqSettings {
         ? { ...eq, autoPreamp: true }
         : { ...eq, autoPreamp: false, preamp: effectivePreamp(eq) };
     case 'applyPreset': {
-      const preset = allPresets(eq.customPresets).find((p) => p.name === action.name);
+      const preset = findPreset(eq, action.name);
       if (!preset) return eq;
       return { ...eq, preset: preset.name, gains: [...preset.gains], preamp: preset.preamp };
     }
-    case 'reset':
-      return reduceEq({ ...eq, autoPreamp: true }, { type: 'applyPreset', name: 'Flat' });
-    case 'savePreset': {
-      const name = validPresetName(action.name);
-      if (!name) return eq;
-      const preset: EqPreset = { name, gains: [...eq.gains], preamp: effectivePreamp(eq) };
-      const others = eq.customPresets.filter((p) => p.name.toLowerCase() !== name.toLowerCase());
-      return { ...eq, preset: name, customPresets: [...others, preset] };
+    case 'createPreset': {
+      if (presetNameError(action.name, eq.customPresets)) return eq;
+      const name = validPresetName(action.name)!;
+      const template = action.from === null ? null : findPreset(eq, action.from);
+      if (action.from !== null && !template) return eq;
+      const preset: EqPreset = template
+        ? { name, gains: [...template.gains], preamp: template.preamp }
+        : { name, gains: [...eq.gains], preamp: effectivePreamp(eq) };
+      return reduceEq(
+        { ...eq, customPresets: [...eq.customPresets, preset] },
+        { type: 'applyPreset', name },
+      );
     }
+    case 'saveChanges': {
+      const index = eq.customPresets.findIndex((p) => p.name === eq.preset);
+      if (index < 0) return eq;
+      const saved: EqPreset = {
+        name: eq.preset,
+        gains: [...eq.gains],
+        preamp: effectivePreamp(eq),
+      };
+      return { ...eq, customPresets: eq.customPresets.map((p, i) => (i === index ? saved : p)) };
+    }
+    case 'discardChanges':
+      return reduceEq(eq, { type: 'applyPreset', name: eq.preset });
     case 'renamePreset': {
       const to = validPresetName(action.to);
       const index = eq.customPresets.findIndex((p) => p.name === action.from);
@@ -106,11 +164,11 @@ export function reduceEq(eq: EqSettings, action: EqAction): EqSettings {
     }
     case 'deletePreset': {
       if (!eq.customPresets.some((p) => p.name === action.name)) return eq;
-      return {
-        ...eq,
-        customPresets: eq.customPresets.filter((p) => p.name !== action.name),
-        preset: eq.preset === action.name ? CUSTOM_PRESET_NAME : eq.preset,
-      };
+      const rest = { ...eq, customPresets: eq.customPresets.filter((p) => p.name !== action.name) };
+      // Deleting the active preset falls back to Flat.
+      return eq.preset === action.name
+        ? reduceEq(rest, { type: 'applyPreset', name: 'Flat' })
+        : rest;
     }
   }
 }
@@ -135,12 +193,14 @@ export function isEqAction(value: unknown): value is EqAction {
     case 'setAutoPreamp':
       return isBool(a['auto']);
     case 'applyPreset':
-    case 'savePreset':
     case 'deletePreset':
       return isStr(a['name']);
+    case 'createPreset':
+      return isStr(a['name']) && (a['from'] === null || isStr(a['from']));
     case 'renamePreset':
       return isStr(a['from']) && isStr(a['to']);
-    case 'reset':
+    case 'saveChanges':
+    case 'discardChanges':
       return true;
     default:
       return false;

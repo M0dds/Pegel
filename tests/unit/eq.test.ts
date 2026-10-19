@@ -3,7 +3,9 @@ import {
   autoPreamp,
   effectivePreamp,
   formatDb,
+  isDirty,
   isEqAction,
+  presetNameError,
   reduceEq,
   validPresetName,
   type EqAction,
@@ -39,18 +41,46 @@ describe('preamp', () => {
 });
 
 describe('bands', () => {
-  it('clamps, rounds and marks the preset as custom', () => {
+  it('clamps, rounds and keeps the preset selected', () => {
     const eq = run(
+      { type: 'applyPreset', name: 'Vocal' },
       { type: 'setBand', index: 2, gain: 13.2 },
       { type: 'setBand', index: 3, gain: 1.26 },
     );
-    expect(eq.gains.slice(0, 4)).toEqual([0, 0, 12, 1.5]);
-    expect(eq.preset).toBe('Eigene');
+    expect(eq.gains.slice(0, 4)).toEqual([-2, -2, 12, 1.5]);
+    expect(eq.preset).toBe('Vocal');
+    expect(isDirty(eq)).toBe(true);
   });
 
   it('ignores invalid band indices', () => {
     expect(run({ type: 'setBand', index: 10, gain: 3 })).toBe(base);
     expect(run({ type: 'setBand', index: 1.5, gain: 3 })).toBe(base);
+  });
+});
+
+describe('dirty state', () => {
+  it('is clean right after applying a preset', () => {
+    expect(isDirty(run({ type: 'applyPreset', name: 'Loudness' }))).toBe(false);
+  });
+
+  it('counts the preamp only when it is set manually', () => {
+    const eq = run({ type: 'applyPreset', name: 'Vocal' }, { type: 'setPreamp', preamp: -1 });
+    expect(isDirty(eq)).toBe(true);
+    expect(isDirty(reduceEq(eq, { type: 'setAutoPreamp', auto: true }))).toBe(false);
+  });
+
+  it('treats an unknown active preset as unsaved', () => {
+    expect(isDirty({ ...base, preset: 'Eigene' })).toBe(true);
+  });
+
+  it('discarding restores the stored values', () => {
+    const eq = run(
+      { type: 'applyPreset', name: 'Bass Boost' },
+      { type: 'setBand', index: 0, gain: -3 },
+      { type: 'discardChanges' },
+    );
+    expect(eq.gains[0]).toBe(6);
+    expect(isDirty(eq)).toBe(false);
   });
 });
 
@@ -65,57 +95,94 @@ describe('presets', () => {
     expect(run({ type: 'applyPreset', name: 'Gibt es nicht' })).toBe(base);
   });
 
-  it('reset goes back to Flat with auto preamp', () => {
-    const eq = run(
-      { type: 'applyPreset', name: 'Loudness' },
-      { type: 'setPreamp', preamp: -3 },
-      { type: 'reset' },
-    );
-    expect(eq).toMatchObject({ preset: 'Flat', autoPreamp: true, gains: base.gains });
+  it('creates a preset from a template and selects it', () => {
+    const eq = run({ type: 'createPreset', name: '  Abends  ', from: 'Akustik' });
+    expect(eq.preset).toBe('Abends');
+    expect(eq.customPresets).toEqual([
+      { name: 'Abends', gains: [3, 2, 1, 0, 1, 1, 2, 3, 2, 1], preamp: -3 },
+    ]);
+    expect(isDirty(eq)).toBe(false);
   });
 
-  it('saves, overwrites, renames and deletes custom presets', () => {
-    let eq = run({ type: 'setBand', index: 0, gain: 4 }, { type: 'savePreset', name: '  Auto  ' });
-    expect(eq.preset).toBe('Auto');
-    expect(eq.customPresets).toEqual([
-      { name: 'Auto', gains: [4, 0, 0, 0, 0, 0, 0, 0, 0, 0], preamp: -4 },
-    ]);
-
-    eq = reduceEq(reduceEq(eq, { type: 'setBand', index: 0, gain: 2 }), {
-      type: 'savePreset',
-      name: 'auto',
+  it('creates a preset from the current values', () => {
+    const eq = run(
+      { type: 'applyPreset', name: 'Flat' },
+      { type: 'setBand', index: 0, gain: 4 },
+      { type: 'createPreset', name: 'Bass light', from: null },
+    );
+    expect(eq.customPresets[0]).toEqual({
+      name: 'Bass light',
+      gains: [4, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      preamp: -4,
     });
-    expect(eq.customPresets).toHaveLength(1);
-    expect(eq.customPresets[0]!.gains[0]).toBe(2);
+    expect(eq.preset).toBe('Bass light');
+  });
 
-    eq = reduceEq(eq, { type: 'renamePreset', from: 'auto', to: 'Im Auto' });
+  it('rejects duplicate, reserved and unknown-template presets', () => {
+    const eq = run({ type: 'createPreset', name: 'A', from: null });
+    expect(reduceEq(eq, { type: 'createPreset', name: 'a', from: null })).toBe(eq);
+    expect(run({ type: 'createPreset', name: 'Vocal', from: null })).toBe(base);
+    expect(run({ type: 'createPreset', name: 'B', from: 'Gibt es nicht' })).toBe(base);
+  });
+
+  it('saves changes into the active custom preset only', () => {
+    let eq = run(
+      { type: 'createPreset', name: 'Mix', from: 'Flat' },
+      { type: 'setBand', index: 9, gain: 3 },
+      { type: 'saveChanges' },
+    );
+    expect(eq.customPresets[0]!.gains[9]).toBe(3);
+    expect(isDirty(eq)).toBe(false);
+
+    // Built-in presets stay read-only.
+    eq = reduceEq(reduceEq(eq, { type: 'applyPreset', name: 'Vocal' }), {
+      type: 'setBand',
+      index: 0,
+      gain: 5,
+    });
+    expect(reduceEq(eq, { type: 'saveChanges' })).toBe(eq);
+  });
+
+  it('renames and deletes custom presets', () => {
+    let eq = run({ type: 'createPreset', name: 'Auto', from: 'Loudness' });
+    eq = reduceEq(eq, { type: 'renamePreset', from: 'Auto', to: 'Im Auto' });
     expect(eq.preset).toBe('Im Auto');
     expect(eq.customPresets[0]!.name).toBe('Im Auto');
 
     eq = reduceEq(eq, { type: 'deletePreset', name: 'Im Auto' });
     expect(eq.customPresets).toEqual([]);
-    expect(eq.preset).toBe('Eigene');
-  });
-
-  it('rejects reserved or empty names', () => {
-    expect(validPresetName('flat')).toBeNull();
-    expect(validPresetName('Eigene')).toBeNull();
-    expect(validPresetName('   ')).toBeNull();
-    expect(validPresetName('x'.repeat(31))).toBeNull();
-    expect(validPresetName(' Mein   Mix ')).toBe('Mein Mix');
-    expect(run({ type: 'savePreset', name: 'Vocal' })).toBe(base);
+    expect(eq.preset).toBe('Flat');
+    expect(eq.gains).toEqual(base.gains);
   });
 
   it('does not rename onto an existing preset', () => {
-    const eq = run({ type: 'savePreset', name: 'A' }, { type: 'savePreset', name: 'B' });
+    const eq = run(
+      { type: 'createPreset', name: 'A', from: null },
+      { type: 'createPreset', name: 'B', from: null },
+    );
     expect(reduceEq(eq, { type: 'renamePreset', from: 'A', to: 'b' })).toBe(eq);
+  });
+
+  it('validates names with German messages', () => {
+    expect(validPresetName('flat')).toBeNull();
+    expect(validPresetName(' Mein   Mix ')).toBe('Mein Mix');
+    expect(presetNameError('', [])).toBe('Bitte einen Namen eingeben.');
+    expect(presetNameError('x'.repeat(31), [])).toBe('Höchstens 30 Zeichen.');
+    expect(presetNameError('Vocal', [])).toBe(
+      'Dieser Name ist für ein Standard-Preset reserviert.',
+    );
+    const custom = [{ name: 'Mix', gains: base.gains, preamp: 0 }];
+    expect(presetNameError('mix', custom)).toBe('Ein Preset mit diesem Namen gibt es schon.');
+    expect(presetNameError('Mix', custom, 'Mix')).toBeNull(); // renaming to itself
   });
 });
 
 describe('isEqAction', () => {
   it('accepts valid actions', () => {
     expect(isEqAction({ type: 'setBand', index: 1, gain: 2 })).toBe(true);
-    expect(isEqAction({ type: 'reset' })).toBe(true);
+    expect(isEqAction({ type: 'saveChanges' })).toBe(true);
+    expect(isEqAction({ type: 'createPreset', name: 'x', from: null })).toBe(true);
+    expect(isEqAction({ type: 'createPreset', name: 'x', from: 3 })).toBe(false);
     expect(isEqAction({ type: 'renamePreset', from: 'a', to: 'b' })).toBe(true);
   });
 

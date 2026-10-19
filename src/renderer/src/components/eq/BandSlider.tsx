@@ -57,7 +57,7 @@ export function BandSlider({ label, value, onChange }: Props) {
 
   return (
     <div className="band">
-      <span className="val">{formatDb(value)}</span>
+      <span className={value === 0 ? 'val' : 'val set'}>{formatDb(value)}</span>
       <div
         ref={ref}
         className="slider"
@@ -75,7 +75,6 @@ export function BandSlider({ label, value, onChange }: Props) {
         onDoubleClick={() => onChange(0)}
       >
         <div className="track" />
-        <div className="zero" />
         <div
           className="fill"
           style={{ top: `${Math.min(percent, 50)}%`, height: `${Math.abs(percent - 50)}%` }}

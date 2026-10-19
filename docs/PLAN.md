@@ -133,7 +133,10 @@ Die EQ-Panel-Breite und die Titelleistenhöhe sind Konstanten in `shared/layout.
 - **Ausschalten:** Alle Gains sanft auf 0 setzen (`setTargetAtTime`, ca. 30 ms). Die Kette nicht umstecken, um Knackser zu vermeiden.
 - **Änderungen** kommen per IPC von der UI über den Main-Prozess in die YT-Ansicht. Der Main-Prozess ist die einzige Quelle für die Werte und speichert sie.
 - **Presets (eingebaut):** Flat, Bass Boost, Vocal, Akustik, Elektronisch, Loudness. Die Werte stehen in `shared/presets.ts`, abgestimmt mit dem Mockup.
-- **Eigene Presets:** speichern, umbenennen, löschen. Ändert der Nutzer einen Regler, springt die Anzeige auf „Eigene“.
+- **Eigene Presets** (überarbeitet nach M2): Der Chip „+ Preset“ öffnet ein Overlay mit Name und Vorlage (aktuelle Einstellung, Standard- oder eigenes Preset) samt Vorschaukurve. Das neue Preset ist danach ausgewählt.
+  - Beim Verstellen bleibt das Preset ausgewählt. Der Chip bekommt einen Punkt, unten erscheint eine Leiste mit „Verwerfen“, „Als neues Preset“ und, nur bei eigenen Presets, „Speichern“. Standard-Presets sind schreibgeschützt.
+  - Umbenennen und Löschen über dasselbe Overlay (Doppelklick auf den Chip oder Link darunter). Löschen fragt nach, danach ist Flat aktiv.
+  - Die Regler stehen ohne Skala gleichmäßig über die Panelbreite, mit durchgehender 0-dB-Linie. Werte ungleich 0 sind hervorgehoben.
 - **Frequenzkurve im Panel:** Die echte Kurve aus `BiquadFilterNode.getFrequencyResponse` berechnen (128 Punkte). Umgesetzt in der Pegel-UI mit denselben Filtern auf einem `OfflineAudioContext`, nicht in der YT-Ansicht: gleiche Kurve, funktioniert aber auch ohne geladene YT-Seite und braucht keinen IPC-Rückweg. Fallback: die Näherung aus dem Mockup.
 - **Tastatur:** Strg/⌘+E klappt das Panel ein und aus. In den Reglern gilt: Pfeil hoch/runter = ±0,5 dB, Bild hoch/runter = ±3 dB, Doppelklick = 0 dB.
 

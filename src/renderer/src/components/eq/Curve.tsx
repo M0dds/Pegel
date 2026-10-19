@@ -8,7 +8,13 @@ const RANGE_DB = 15;
 
 const xForFreq = (f: number) => (Math.log(f / 20) / Math.log(1000)) * W;
 
-export function Curve({ gains }: { gains: readonly number[] }) {
+interface Props {
+  gains: readonly number[];
+  /** Smaller variant, e.g. as preview in the preset dialog. */
+  compact?: boolean;
+}
+
+export function Curve({ gains, compact = false }: Props) {
   const path = useMemo(() => {
     const db = frequencyResponse(gains);
     return db
@@ -22,7 +28,7 @@ export function Curve({ gains }: { gains: readonly number[] }) {
   }, [gains]);
 
   return (
-    <div className="curve">
+    <div className={compact ? 'curve compact' : 'curve'}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
         {EQ_FREQUENCIES.map((f) => (
           <line

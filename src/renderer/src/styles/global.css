@@ -324,6 +324,7 @@ button {
 
 /* ---------- EQ panel ---------- */
 .eq {
+  position: relative;
   width: 0;
   flex: none;
   overflow: hidden;
@@ -418,6 +419,31 @@ button {
   border-color: transparent;
 }
 
+.presets button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Unsaved changes on the active preset. */
+.presets .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.presets .add {
+  background: transparent;
+  border-style: dashed;
+  color: var(--text-dim);
+}
+
+.presets .add:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
 .preset-tools {
   display: flex;
   gap: 6px;
@@ -443,9 +469,21 @@ button {
 
 .bands {
   display: grid;
-  grid-template-columns: 34px repeat(10, 1fr);
-  gap: 2px;
-  align-items: stretch;
+  grid-template-columns: repeat(10, 1fr);
+  justify-items: center;
+  position: relative;
+}
+
+/* One continuous 0 dB line behind all sliders (value label 14px + gap 6px + half of 168px). */
+.bands::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 104px;
+  height: 1px;
+  background: var(--text-dim);
+  opacity: 0.25;
 }
 
 .band {
@@ -466,10 +504,15 @@ button {
   height: 14px;
 }
 
+.band .val.set {
+  color: var(--text);
+}
+
 .slider {
+  position: relative;
+  z-index: 1;
   width: 22px;
   height: 168px;
-  position: relative;
   cursor: ns-resize;
   touch-action: none;
   outline: none;
@@ -484,16 +527,6 @@ button {
   margin-left: -2px;
   border-radius: 2px;
   background: var(--surface-3);
-}
-
-.slider .zero {
-  position: absolute;
-  left: 3px;
-  right: 3px;
-  top: 50%;
-  height: 1px;
-  background: var(--text-dim);
-  opacity: 0.4;
 }
 
 .slider .fill {
@@ -521,18 +554,6 @@ button {
   outline-offset: 2px;
 }
 
-.scale {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 168px;
-  margin-top: 20px;
-  font-size: 10px;
-  color: var(--text-dim);
-  text-align: right;
-  padding-right: 4px;
-}
-
 .preamp {
   display: flex;
   align-items: center;
@@ -556,27 +577,6 @@ button {
   display: flex;
   gap: 8px;
   margin-top: auto;
-}
-
-.name-form {
-  flex-direction: column;
-}
-
-.name-form input {
-  height: 34px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text);
-  padding: 0 10px;
-  font: inherit;
-  font-size: 13px;
-  user-select: text;
-}
-
-.row-buttons {
-  display: flex;
-  gap: 8px;
 }
 
 .eq.off .bands,
@@ -691,4 +691,138 @@ button {
   padding: 10px 14px;
   font-size: 13px;
   margin: 0 0 18px;
+}
+
+.curve.compact {
+  height: 64px;
+}
+
+.btn.danger {
+  flex: none;
+  padding: 0 12px;
+  color: var(--text);
+  background: transparent;
+}
+
+.btn.danger:hover {
+  background: #e811231f;
+  border-color: #e8112366;
+}
+
+/* ---------- Unsaved changes bar ---------- */
+.eq-changes {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.eq-changes .eq-actions {
+  margin-top: 0;
+}
+
+.changes-label {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* ---------- Preset dialog (overlay over the EQ panel) ---------- */
+.eq-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: #0009;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 64px 16px 16px;
+  animation: fade-in 0.15s ease-out;
+}
+
+.eq-dialog {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 18px 50px #0008;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.eq-dialog h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.field input,
+.field select {
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  user-select: text;
+}
+
+.field select option,
+.field select optgroup {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.field input[aria-invalid='true'] {
+  border-color: #e81123;
+}
+
+.field-error {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #ff8a8a;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.dialog-actions .spacer {
+  flex: 1;
+}
+
+.dialog-actions .btn:not(.danger) {
+  flex: none;
+  padding: 0 14px;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-overlay {
+    animation: none;
+  }
+}
+
+/* Three buttons in one row: size to content instead of equal thirds. */
+.eq-changes .btn {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  padding: 0 10px;
 }
