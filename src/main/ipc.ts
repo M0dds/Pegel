@@ -1,8 +1,16 @@
 import { app, ipcMain, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron';
 import type { InvokeArgs, InvokeChannel, InvokeResult, UiToMainChannels } from '@shared/ipc';
+import { isEqAction, reduceEq } from '@shared/eq';
 import { isView } from '@shared/types';
-import { getSettings } from './settings';
-import { getView, retryYt, showView } from './windows/main-window';
+import { getSettings, updateSettings } from './settings';
+import {
+  getView,
+  handleYtReady,
+  onPanelAnimationDone,
+  retryYt,
+  showView,
+  toggleEqPanel,
+} from './windows/main-window';
 
 function handle<C extends InvokeChannel>(
   channel: C,
@@ -38,4 +46,19 @@ export function registerIpc(): void {
     if (isView(view)) showView(view);
   });
   on('yt:retry', () => retryYt());
+
+  on('eq:action', (_event, action) => {
+    if (!isEqAction(action)) return;
+    updateSettings((s) => {
+      s.eq = reduceEq(s.eq, action);
+    });
+  });
+  on('eq:toggle-panel', () => toggleEqPanel());
+  on('eq-panel:animation-done', (_event, payload) => {
+    const open = (payload as { open?: unknown } | null)?.open;
+    if (typeof open === 'boolean') onPanelAnimationDone(open);
+  });
+
+  // Sent by the YT view's preload; checked against the sender in handleYtReady.
+  ipcMain.on('yt:ready', (event) => handleYtReady(event.sender));
 }

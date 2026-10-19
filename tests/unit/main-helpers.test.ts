@@ -58,6 +58,15 @@ describe('matchShortcut', () => {
     expect(matchShortcut(key(',', { control: true }), 'darwin', 'music', false)).toBeNull();
   });
 
+  it('toggles the equalizer with Ctrl+E / ⌘+E', () => {
+    const toggle = { type: 'toggleEq' };
+    expect(matchShortcut(key('e', { control: true }), 'win32', 'music', false)).toEqual(toggle);
+    expect(matchShortcut(key('E', { meta: true }), 'darwin', 'settings', false)).toEqual(toggle);
+    expect(
+      matchShortcut(key('e', { control: true, shift: true }), 'win32', 'music', false),
+    ).toBeNull();
+  });
+
   it('leaves Escape to YT on the music view', () => {
     expect(matchShortcut(key('Escape'), 'win32', 'music', false)).toBeNull();
     expect(matchShortcut(key('Escape'), 'win32', 'offline', false)).toBeNull();

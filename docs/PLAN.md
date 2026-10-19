@@ -134,7 +134,7 @@ Die EQ-Panel-Breite und die Titelleistenhöhe sind Konstanten in `shared/layout.
 - **Änderungen** kommen per IPC von der UI über den Main-Prozess in die YT-Ansicht. Der Main-Prozess ist die einzige Quelle für die Werte und speichert sie.
 - **Presets (eingebaut):** Flat, Bass Boost, Vocal, Akustik, Elektronisch, Loudness. Die Werte stehen in `shared/presets.ts`, abgestimmt mit dem Mockup.
 - **Eigene Presets:** speichern, umbenennen, löschen. Ändert der Nutzer einen Regler, springt die Anzeige auf „Eigene“.
-- **Frequenzkurve im Panel:** Die echte Kurve aus `BiquadFilterNode.getFrequencyResponse` berechnen. Die werden in der YT-Ansicht berechnet und als Array (ca. 128 Punkte) an die UI geschickt. Fallback: die Näherung aus dem Mockup.
+- **Frequenzkurve im Panel:** Die echte Kurve aus `BiquadFilterNode.getFrequencyResponse` berechnen (128 Punkte). Umgesetzt in der Pegel-UI mit denselben Filtern auf einem `OfflineAudioContext`, nicht in der YT-Ansicht: gleiche Kurve, funktioniert aber auch ohne geladene YT-Seite und braucht keinen IPC-Rückweg. Fallback: die Näherung aus dem Mockup.
 - **Tastatur:** Strg/⌘+E klappt das Panel ein und aus. In den Reglern gilt: Pfeil hoch/runter = ±0,5 dB, Bild hoch/runter = ±3 dB, Doppelklick = 0 dB.
 
 > Hinweis: Dieser Ansatz (Web Audio im Kontext der YT-Seite) wird von bestehenden Open-Source-Clients erfolgreich genutzt. YT Music spielt über MediaSource bzw. Blob-URLs ab, das Audio ist also _same-origin_ und für Web Audio zugänglich.
@@ -305,10 +305,10 @@ Die Meilensteine werden in dieser Reihenfolge abgearbeitet. Jeder endet mit eine
 
 ### M2 – Equalizer
 
-- [ ] Audio-Engine in `preload/yt.ts`, inklusive Wiederanschluss bei neuem Media-Element
-- [ ] EQ-Panel wie im Mockup: Regler, Presets, Kurve, Vorverstärkung, an/aus
-- [ ] Werte gespeichert und nach dem Neustart aktiv, eigene Presets
-- [ ] Unit-Tests für Presets und Gain-Begrenzung, manueller Hörtest (Bass Boost deutlich hörbar, kein Knacksen beim Umschalten)
+- [x] Audio-Engine in `preload/yt.ts`, inklusive Wiederanschluss bei neuem Media-Element
+- [x] EQ-Panel wie im Mockup: Regler, Presets, Kurve, Vorverstärkung, an/aus
+- [x] Werte gespeichert und nach dem Neustart aktiv, eigene Presets
+- [x] Unit-Tests für Presets und Gain-Begrenzung, manueller Hörtest (Bass Boost deutlich hörbar, kein Knacksen beim Umschalten)
 - **Fertig, wenn:** Der EQ hörbar wirkt, auch nach Titelwechsel, Seitenwechsel und Neustart.
 
 ### M3 – Themes

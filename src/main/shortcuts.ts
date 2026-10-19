@@ -10,7 +10,8 @@ export interface KeyInput {
   shift: boolean;
 }
 
-export type ShortcutAction = { type: 'show'; view: View } | { type: 'devtools' };
+export type ShortcutAction =
+  { type: 'show'; view: View } | { type: 'toggleEq' } | { type: 'devtools' };
 
 /**
  * Maps a key press to a Pegel action. Ctrl on Windows/Linux, ⌘ on macOS.
@@ -27,6 +28,7 @@ export function matchShortcut(
   const plainMod = mod && !input.alt && !input.shift;
 
   if (plainMod && input.key === ',') return { type: 'show', view: 'settings' };
+  if (plainMod && input.key.toLowerCase() === 'e') return { type: 'toggleEq' };
   if (input.key === 'Escape' && !mod && (currentView === 'settings' || currentView === 'welcome')) {
     return { type: 'show', view: 'music' };
   }

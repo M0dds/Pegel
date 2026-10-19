@@ -1,20 +1,30 @@
 import { join } from 'node:path';
 import { app, BrowserWindow, screen, shell, type WebContents, WebContentsView } from 'electron';
-import type { MainToUiChannels, PayloadArgs } from '@shared/ipc';
-import { MAIN_WINDOW_DEFAULT, MAIN_WINDOW_MIN, TITLEBAR_HEIGHT } from '@shared/layout';
+import type { MainToUiChannels, MainToYtChannels, PayloadArgs } from '@shared/ipc';
+import {
+  EQ_PANEL_WIDTH,
+  MAIN_WINDOW_DEFAULT,
+  MAIN_WINDOW_MIN,
+  TITLEBAR_HEIGHT,
+} from '@shared/layout';
 import { THEMES } from '@shared/themes';
-import type { View } from '@shared/types';
+import type { EqSettings, Settings, View } from '@shared/types';
 import { isExternalWebUrl } from '../navigation';
-import { getSettings, updateSettings } from '../settings';
+import { getSettings, onSettingsChanged, updateSettings } from '../settings';
 import { matchShortcut } from '../shortcuts';
 import { isRectVisible } from '../window-state';
 import { createYtView, reloadYtView } from '../yt-view';
 
 const SAVE_BOUNDS_DELAY_MS = 400;
+/** Fallback if the UI never reports the end of the panel's close animation. */
+const PANEL_CLOSE_FALLBACK_MS = 450;
 
 let win: BrowserWindow | null = null;
 let ytView: WebContentsView | null = null;
 let currentView: View = 'music';
+/** Whether the YT view currently leaves room for the EQ panel. */
+let panelSpace = false;
+let panelCloseTimer: NodeJS.Timeout | null = null;
 
 export function getMainWindow(): BrowserWindow | null {
   return win;
@@ -41,18 +51,79 @@ export function showView(view: View): void {
   sendToUi('view:changed', view);
 }
 
+function sendToYt<C extends keyof MainToYtChannels>(
+  channel: C,
+  ...args: PayloadArgs<MainToYtChannels[C]>
+): void {
+  ytView?.webContents.send(channel, ...args);
+}
+
+/** Sends the EQ to the YT preload once it reports ready (after every page load). */
+export function handleYtReady(sender: WebContents): void {
+  if (sender === ytView?.webContents) sendToYt('yt:eq-apply', getSettings().eq);
+}
+
+/** Equalizer button and Ctrl/⌘+E: toggle on the music view, otherwise go there and open. */
+export function toggleEqPanel(): void {
+  const open = currentView !== 'music' || !getSettings().eq.panelOpen;
+  if (currentView !== 'music') showView('music');
+  updateSettings((s) => {
+    s.eq.panelOpen = open;
+  });
+}
+
+/**
+ * Opening: the YT view shrinks at once and the panel slides into the free space.
+ * Closing: the panel slides out first, then the YT view takes the space back.
+ */
+function updatePanelSpace(open: boolean): void {
+  if (panelCloseTimer) clearTimeout(panelCloseTimer);
+  panelCloseTimer = null;
+  if (open) {
+    panelSpace = true;
+    layout();
+  } else if (panelSpace) {
+    panelCloseTimer = setTimeout(() => onPanelAnimationDone(false), PANEL_CLOSE_FALLBACK_MS);
+  }
+}
+
+export function onPanelAnimationDone(open: boolean): void {
+  if (open || getSettings().eq.panelOpen) return;
+  if (panelCloseTimer) clearTimeout(panelCloseTimer);
+  panelCloseTimer = null;
+  panelSpace = false;
+  layout();
+}
+
+/** EQ values relevant for the audio engine (panelOpen is UI only). */
+function audioKey(eq: EqSettings): string {
+  const { panelOpen: _, ...audio } = eq;
+  return JSON.stringify(audio);
+}
+
+function watchSettings(): () => void {
+  let previous = getSettings();
+  return onSettingsChanged((settings: Settings) => {
+    sendToUi('settings:changed', settings);
+    if (audioKey(settings.eq) !== audioKey(previous.eq)) sendToYt('yt:eq-apply', settings.eq);
+    if (settings.eq.panelOpen !== previous.eq.panelOpen) updatePanelSpace(settings.eq.panelOpen);
+    previous = settings;
+  });
+}
+
 export function retryYt(): void {
   if (ytView) reloadYtView(ytView);
 }
 
-/** Places the YT view below the title bar. The EQ panel (M2) will take space on the right. */
+/** Places the YT view below the title bar and left of the EQ panel. */
 function layout(): void {
   if (!win || !ytView) return;
   const [width, height] = win.getContentSize() as [number, number];
+  const panel = panelSpace ? EQ_PANEL_WIDTH : 0;
   ytView.setBounds({
     x: 0,
     y: TITLEBAR_HEIGHT,
-    width: Math.max(0, width),
+    width: Math.max(0, width - panel),
     height: Math.max(0, height - TITLEBAR_HEIGHT),
   });
 }
@@ -83,6 +154,7 @@ function handleShortcuts(wc: WebContents): void {
     if (!action) return;
     event.preventDefault();
     if (action.type === 'show') showView(action.view);
+    else if (action.type === 'toggleEq') toggleEqPanel();
     else wc.toggleDevTools();
   });
 }
@@ -128,6 +200,8 @@ export function createMainWindow(): BrowserWindow {
     },
   });
   win = window;
+  panelSpace = getSettings().eq.panelOpen;
+  const stopWatching = watchSettings();
 
   const view = createYtView({
     onLoadFailed: () => showView('offline'),
@@ -153,6 +227,7 @@ export function createMainWindow(): BrowserWindow {
   });
 
   window.on('closed', () => {
+    stopWatching();
     if (!view.webContents.isDestroyed()) view.webContents.close();
     win = null;
     ytView = null;

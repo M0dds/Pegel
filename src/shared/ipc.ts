@@ -1,3 +1,4 @@
+import type { EqAction } from './eq';
 import type { AppInfo, EqSettings, PlayerCommand, PlayerState, Settings, View } from './types';
 
 /**
@@ -15,9 +16,12 @@ export interface InvokeChannels {
 /** Fire-and-forget: Pegel UI → main via `ipcRenderer.send`. */
 export interface UiToMainChannels {
   'settings:patch': Partial<Omit<Settings, 'version'>>;
-  'eq:update': Partial<EqSettings>;
+  'eq:action': EqAction;
+  /** Equalizer button / Ctrl+E: from a Pegel page back to the music with the panel open. */
+  'eq:toggle-panel': void;
   'view:show': View;
   'yt:retry': void;
+  /** The panel's open/close transition ended, so the YT view may take the space back. */
   'eq-panel:animation-done': { open: boolean };
   'player:command': PlayerCommand;
   'mini:open': void;
@@ -27,14 +31,14 @@ export interface UiToMainChannels {
 export interface MainToUiChannels {
   'settings:changed': Settings;
   'player:state': PlayerState;
-  'eq:response': number[];
   'view:changed': View;
 }
 
 /** YT view preload → main. */
 export interface YtToMainChannels {
+  /** Preload is running on music.youtube.com and wants the current EQ. */
+  'yt:ready': void;
   'yt:player-state': PlayerState;
-  'yt:eq-response': number[];
 }
 
 /** Main → YT view preload. */
@@ -56,6 +60,11 @@ export interface PegelApi {
   platform: string;
   getAppInfo(): Promise<AppInfo>;
   getView(): Promise<View>;
+  getSettings(): Promise<Settings>;
+  onSettingsChanged(listener: (settings: Settings) => void): () => void;
+  eqAction(action: EqAction): void;
+  toggleEqPanel(): void;
+  eqPanelAnimationDone(open: boolean): void;
   showView(view: View): void;
   retryLoad(): void;
   /** Returns a function that removes the listener. */
