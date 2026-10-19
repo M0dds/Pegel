@@ -9,15 +9,19 @@ import { SettingsPage } from './routes/SettingsPage';
 export function App() {
   const [view, setView] = useState<View>('music');
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [selectorIssues, setSelectorIssues] = useState<string[]>([]);
 
   useEffect(() => {
     void window.pegel.getView().then(setView);
     void window.pegel.getSettings().then(setSettings);
     const offView = window.pegel.onViewChanged(setView);
     const offSettings = window.pegel.onSettingsChanged(setSettings);
+    void window.pegel.getSelectorIssues().then(setSelectorIssues);
+    const offIssues = window.pegel.onSelectorIssues(setSelectorIssues);
     return () => {
       offView();
       offSettings();
+      offIssues();
     };
   }, []);
 
@@ -37,7 +41,9 @@ export function App() {
           <div className="yt-slot" />
           {settings && <EqPanel eq={settings.eq} open={panelOpen} />}
         </div>
-        {view === 'settings' && settings && <SettingsPage settings={settings} />}
+        {view === 'settings' && settings && (
+          <SettingsPage settings={settings} selectorIssues={selectorIssues} />
+        )}
         {view === 'offline' && <OfflinePage />}
       </div>
     </div>

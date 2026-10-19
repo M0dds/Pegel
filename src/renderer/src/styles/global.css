@@ -659,3 +659,36 @@ button {
   font-size: 13px;
   background: var(--surface-2);
 }
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  gap: 16px;
+}
+
+.section h4 + .row {
+  border-top: 0;
+}
+
+.row b {
+  font-weight: 550;
+  font-size: 14px;
+  display: block;
+}
+
+.row small {
+  color: var(--text-dim);
+  font-size: 12.5px;
+}
+
+.notice {
+  background: var(--accent-soft);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin: 0 0 18px;
+}

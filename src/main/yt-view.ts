@@ -86,6 +86,8 @@ export function createYtView(events: YtViewEvents): WebContentsView {
     webPreferences: {
       session: getYtSession(),
       preload: join(__dirname, '../preload/yt.js'),
+      // Keeps the player bridge's state updates on time while the window is hidden.
+      backgroundThrottling: false,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,

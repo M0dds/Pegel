@@ -5,6 +5,7 @@ import type {
   PlayerCommand,
   PlayerState,
   Settings,
+  SettingsPatch,
   ThemeId,
   View,
 } from './types';
@@ -19,11 +20,13 @@ export interface InvokeChannels {
   'app:get-info': { args: []; result: AppInfo };
   'settings:get': { args: []; result: Settings };
   'view:get': { args: []; result: View };
+  'player:get': { args: []; result: PlayerState | null };
+  'player:get-issues': { args: []; result: string[] };
 }
 
 /** Fire-and-forget: Pegel UI → main via `ipcRenderer.send`. */
 export interface UiToMainChannels {
-  'settings:patch': Partial<Omit<Settings, 'version'>>;
+  'settings:patch': SettingsPatch;
   'eq:action': EqAction;
   /** Equalizer button / Ctrl+E: from a Pegel page back to the music with the panel open. */
   'eq:toggle-panel': void;
@@ -39,7 +42,9 @@ export interface UiToMainChannels {
 /** Main → Pegel UI (main and mini window) via `webContents.send`. */
 export interface MainToUiChannels {
   'settings:changed': Settings;
-  'player:state': PlayerState;
+  'player:state': PlayerState | null;
+  /** Features limited because YT changed its page (selector self-test). */
+  'player:selector-issues': string[];
   'view:changed': View;
 }
 
@@ -48,6 +53,8 @@ export interface YtToMainChannels {
   /** Preload is running on music.youtube.com and wants the current EQ. */
   'yt:ready': void;
   'yt:player-state': PlayerState;
+  /** Result of the selector self-test: German names of affected features. */
+  'yt:selector-issues': string[];
 }
 
 /** Main → YT view preload. */
@@ -73,6 +80,12 @@ export interface PegelApi {
   onSettingsChanged(listener: (settings: Settings) => void): () => void;
   eqAction(action: EqAction): void;
   setTheme(theme: ThemeId): void;
+  patchSettings(patch: SettingsPatch): void;
+  getPlayerState(): Promise<PlayerState | null>;
+  onPlayerState(listener: (state: PlayerState | null) => void): () => void;
+  playerCommand(command: PlayerCommand): void;
+  getSelectorIssues(): Promise<string[]>;
+  onSelectorIssues(listener: (features: string[]) => void): () => void;
   toggleEqPanel(): void;
   eqPanelAnimationDone(open: boolean): void;
   showView(view: View): void;

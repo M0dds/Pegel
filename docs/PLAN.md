@@ -157,7 +157,7 @@ interface PlayerState {
 ```
 
 - **Quellen, in dieser Reihenfolge:** `navigator.mediaSession.metadata` (am stabilsten), dann die Events des Media-Elements (`play`, `pause`, `timeupdate`, gedrosselt auf 1/s), zuletzt das DOM der Player-Leiste.
-- **Befehle:** `playPause`, `next`, `previous`, `seek(sec)`, `setVolume`, `toggleLike`. Wo es geht, über das Media-Element (Play/Pause, Seek), sonst per Klick auf die Buttons der Player-Leiste. Die Selektoren stehen ausschließlich in `yt/selectors.ts`.
+- **Befehle:** `playPause`, `next`, `previous`, `seek(sec)`, `setVolume`, `toggleLike`. `setVolume` läuft über YTs Player-API (`#movie_player.setVolume`) per `contextBridge.executeInMainWorld`, weil `video.volume` YTs eigenen Lautstärkezustand umgeht. Wo es geht, über das Media-Element (Play/Pause, Seek), sonst per Klick auf die Buttons der Player-Leiste. Die Selektoren stehen ausschließlich in `yt/selectors.ts`.
 - **Selektor-Selbsttest** beim Start: Fehlt ein Selektor, schreibt Pegel eine Warnung ins Log und zeigt einen dezenten Hinweis in den Einstellungen („YouTube hat etwas geändert – Funktion X eingeschränkt“).
 
 ### 4.4 Themes
@@ -194,7 +194,7 @@ interface PlayerState {
 - **Tray-Menü:** aktueller Titel (deaktiviert, nur Anzeige), Play/Pause, Weiter, Zurück, EQ-Preset (Untermenü), Mini-Player, Fenster anzeigen, Beenden.
 - **Windows:** Ein Linksklick auf das Tray-Symbol zeigt das Fenster. „Schließen“ minimiert in den Infobereich, wenn die Einstellung an ist (Standard: an). Beim ersten Mal erscheint ein Hinweis: „Pegel läuft im Hintergrund weiter“.
 - **macOS:** Menüleisten-Symbol als Template-Image (schwarz/transparent, `…Template.png`). Schließen versteckt das Fenster, die App bleibt im Dock (macOS-Konvention). Ein Klick aufs Dock-Symbol zeigt das Fenster wieder.
-- **Medientasten:** Chromium bindet die MediaSession der YT-Seite automatisch an die Systemsteuerung (Windows-Medienüberlagerung, macOS „Now Playing“). Zuerst prüfen, ob das ohne Zusatzcode reicht. Fallback: `globalShortcut` für `MediaPlayPause`, `MediaNextTrack` und `MediaPreviousTrack`. Unter macOS braucht das ggf. die Bedienungshilfen-Berechtigung, deshalb nur als Fallback.
+- **Medientasten:** Chromium bindet die MediaSession der YT-Seite automatisch an die Systemsteuerung (Windows-Medienüberlagerung, macOS „Now Playing“). Zuerst prüfen, ob das ohne Zusatzcode reicht. **Ergebnis Windows (M4):** reicht. Pegel erscheint als Mediensitzung (SMTC) mit Titel, Interpret und Weiter/Zurück; Steuerung von außen funktioniert. Fallback (nur falls macOS es braucht): `globalShortcut` für `MediaPlayPause`, `MediaNextTrack` und `MediaPreviousTrack`. Unter macOS braucht das ggf. die Bedienungshilfen-Berechtigung, deshalb nur als Fallback.
 - **Single Instance:** Ein zweiter Start fokussiert das bestehende Fenster.
 
 ### 4.7 Mini-Player
@@ -255,6 +255,7 @@ interface Settings {
   discord: { enabled: boolean; hideWhenPaused: boolean };
   window: { bounds?: Rect; maximized: boolean };
   welcomeShown: boolean;
+  trayHintShown: boolean;          // einmaliger Hinweis „läuft im Hintergrund weiter“ (Windows)
 }
 ```
 
@@ -320,10 +321,10 @@ Die Meilensteine werden in dieser Reihenfolge abgearbeitet. Jeder endet mit eine
 
 ### M4 – Player-Bridge, Tray, Medientasten, Autostart
 
-- [ ] `PlayerState` und Befehle, `yt/selectors.ts` mit Selbsttest
-- [ ] Tray mit Menü, Schließen in den Tray, macOS-Menüleiste
-- [ ] Medientasten verifizieren (ggf. Fallback)
-- [ ] Autostart mit `--hidden`
+- [x] `PlayerState` und Befehle, `yt/selectors.ts` mit Selbsttest
+- [x] Tray mit Menü, Schließen in den Tray, macOS-Menüleiste (macOS noch ungetestet)
+- [x] Medientasten verifizieren (ggf. Fallback): Windows über SMTC ohne Zusatzcode, kein Fallback nötig; macOS noch prüfen
+- [x] Autostart mit `--hidden` (versteckter Start geprüft; die Registrierung als Login-Item greift nur im Installer-Build, Test in M8)
 - **Fertig, wenn:** Pegel minimiert weiterspielt und per Tray und Tastatur steuerbar ist.
 
 ### M5 – Mini-Player

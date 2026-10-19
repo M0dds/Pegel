@@ -36,7 +36,12 @@ export interface Settings {
   discord: { enabled: boolean; hideWhenPaused: boolean };
   window: { bounds?: Rect; maximized: boolean };
   welcomeShown: boolean;
+  /** The one-time "Pegel keeps running in the tray" hint was shown (Windows). */
+  trayHintShown: boolean;
 }
+
+/** Settings the UI may change directly (validated in the main process). */
+export type SettingsPatch = Partial<Pick<Settings, 'closeToTray' | 'startAtLogin'>>;
 
 export interface PlayerState {
   title: string;

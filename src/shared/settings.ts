@@ -30,6 +30,7 @@ export const DEFAULT_SETTINGS: Settings = {
   discord: { enabled: true, hideWhenPaused: true },
   window: { maximized: false },
   welcomeShown: false,
+  trayHintShown: false,
 };
 
 type Obj = Record<string, unknown>;
@@ -142,5 +143,6 @@ export function normalizeSettings(input: unknown): Settings {
       ...(windowBounds && { bounds: windowBounds }),
     },
     welcomeShown: bool(raw['welcomeShown'], d.welcomeShown),
+    trayHintShown: bool(raw['trayHintShown'], d.trayHintShown),
   };
 }

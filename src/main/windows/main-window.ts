@@ -8,10 +8,13 @@ import {
   TITLEBAR_HEIGHT,
 } from '@shared/layout';
 import { THEMES } from '@shared/themes';
-import type { EqSettings, Settings, View } from '@shared/types';
+import type { EqSettings, PlayerCommand, Settings, View } from '@shared/types';
+import { isQuitting } from '../app-state';
 import { isExternalWebUrl } from '../navigation';
+import { clearPlayerState, onPlayerState, onSelectorIssues } from '../player';
 import { getSettings, onSettingsChanged, updateSettings } from '../settings';
 import { matchShortcut } from '../shortcuts';
+import { showBackgroundHint } from '../tray';
 import { isRectVisible } from '../window-state';
 import { applyYtTheme, createYtView, reloadYtView } from '../yt-view';
 
@@ -56,6 +59,15 @@ function sendToYt<C extends keyof MainToYtChannels>(
   ...args: PayloadArgs<MainToYtChannels[C]>
 ): void {
   ytView?.webContents.send(channel, ...args);
+}
+
+/** True for messages that really come from the YT view (not from the Pegel UI). */
+export function isYtSender(sender: WebContents): boolean {
+  return sender === ytView?.webContents;
+}
+
+export function sendPlayerCommand(command: PlayerCommand): void {
+  sendToYt('yt:player-command', command);
 }
 
 /** Sends the EQ to the YT preload once it reports ready (after every page load). */
@@ -194,7 +206,7 @@ function trackBounds(window: BrowserWindow): void {
   window.on('close', save);
 }
 
-export function createMainWindow(): BrowserWindow {
+export function createMainWindow({ show = true }: { show?: boolean } = {}): BrowserWindow {
   const bounds = restoredBounds();
   const window = new BrowserWindow({
     ...(bounds ?? MAIN_WINDOW_DEFAULT),
@@ -214,6 +226,8 @@ export function createMainWindow(): BrowserWindow {
   win = window;
   panelSpace = getSettings().eq.panelOpen;
   const stopWatching = watchSettings();
+  const stopPlayer = onPlayerState((state) => sendToUi('player:state', state));
+  const stopIssues = onSelectorIssues((issues) => sendToUi('player:selector-issues', issues));
 
   const view = createYtView({
     onLoadFailed: () => showView('offline'),
@@ -232,14 +246,33 @@ export function createMainWindow(): BrowserWindow {
   handleShortcuts(window.webContents);
   handleShortcuts(view.webContents);
 
+  // A full page load in the YT view starts without a track.
+  view.webContents.on('did-start-navigation', (event) => {
+    if (event.isMainFrame && !event.isSameDocument) clearPlayerState();
+  });
+
   window.once('ready-to-show', () => {
+    if (!show) return; // autostart: tray only
     if (getSettings().window.maximized) window.maximize();
     window.show();
     view.webContents.focus();
   });
 
+  // Closing keeps Pegel running (music continues): always on macOS, on
+  // Windows/Linux when "close to tray" is on. Quitting goes via tray or ⌘Q.
+  window.on('close', (event) => {
+    if (isQuitting()) return;
+    if (process.platform !== 'darwin' && !getSettings().closeToTray) return;
+    event.preventDefault();
+    if (window.isFullScreen()) window.setFullScreen(false);
+    window.hide();
+    showBackgroundHint();
+  });
+
   window.on('closed', () => {
     stopWatching();
+    stopPlayer();
+    stopIssues();
     if (!view.webContents.isDestroyed()) view.webContents.close();
     win = null;
     ytView = null;
@@ -272,6 +305,7 @@ export function focusMainWindow(): void {
     return;
   }
   if (win.isMinimized()) win.restore();
+  if (!win.isVisible() && getSettings().window.maximized) win.maximize();
   win.show();
   win.focus();
 }
