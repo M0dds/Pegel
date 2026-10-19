@@ -20,28 +20,216 @@ body {
   background: var(--bg);
   color: var(--text);
   user-select: none;
+  overflow: hidden;
 }
 
-.dim {
-  color: var(--text-dim);
+button {
+  font: inherit;
 }
 
-.empty {
+.app {
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* ---------- Title bar ---------- */
+.titlebar {
+  height: 38px;
+  flex: none;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
+  gap: 10px;
+  padding: 0 6px 0 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  -webkit-app-region: drag;
 }
 
-.empty h1 {
-  margin: 12px 0 0;
-  font-size: 28px;
+/* Windows: keep clear of the native window controls (Window Controls Overlay). */
+[data-platform='win32'] .titlebar,
+[data-platform='linux'] .titlebar {
+  padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 6px);
+}
+
+/* macOS: traffic lights sit on the left. */
+[data-platform='darwin'] .titlebar {
+  padding-left: 80px;
+}
+
+.titlebar button {
+  -webkit-app-region: no-drag;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 650;
+  font-size: 13.5px;
+  letter-spacing: 0.2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 5px 8px;
+  margin-left: -8px;
+  border-radius: 7px;
+  cursor: pointer;
 }
 
-.empty p {
+.brand:hover {
+  background: var(--surface-2);
+}
+
+.brand svg {
+  width: 18px;
+  height: 18px;
+}
+
+.tb-spacer {
+  flex: 1;
+}
+
+.tb-btn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 7px;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.tb-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.tb-btn[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tb-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- Pegel pages ---------- */
+.page {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  overflow: auto;
+}
+
+.page-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 28px 48px;
+}
+
+.page h2 {
+  font-size: 26px;
+  margin: 0 0 4px;
+}
+
+.page-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: -46px;
+}
+
+.page-head h2 {
   margin: 0;
-  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .page-head {
+    margin-left: 0;
+  }
+}
+
+.page-head + .lead {
+  margin-top: 4px;
+}
+
+.back {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.back:hover {
+  background: var(--surface-2);
+}
+
+.back svg {
+  width: 20px;
+  height: 20px;
+}
+
+.lead {
+  color: var(--text-dim);
+  margin: 0 0 28px;
+  font-size: 14px;
+}
+
+.kbd {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+
+.center {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  text-align: center;
+  padding: 40px 24px;
+}
+
+.center h2 {
+  margin-top: 16px;
+}
+
+.center .lead {
+  margin-bottom: 22px;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 22px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 650;
+  font-size: 14.5px;
+  border: 0;
+  cursor: pointer;
 }

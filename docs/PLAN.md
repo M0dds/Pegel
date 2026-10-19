@@ -297,10 +297,10 @@ Die Meilensteine werden in dieser Reihenfolge abgearbeitet. Jeder endet mit eine
 
 ### M1 – YT Music im eigenen Fenster
 
-- [ ] Hauptfenster mit eigener Titelleiste (Windows-Overlay bzw. macOS-Ampel)
-- [ ] YT-Ansicht mit Partition, User-Agent, Bounds-Layout, Navigations-Schutz
+- [x] Hauptfenster mit eigener Titelleiste (Windows-Overlay bzw. macOS-Ampel)
+- [x] YT-Ansicht mit Partition, User-Agent, Bounds-Layout, Navigations-Schutz
 - [ ] Login mit Google funktioniert und übersteht einen Neustart
-- [ ] Fensterposition und -größe gespeichert, Single-Instance-Lock
+- [x] Fensterposition und -größe gespeichert, Single-Instance-Lock
 - **Fertig, wenn:** Johann sich anmelden und Musik hören kann. Externe Links öffnen im Browser.
 
 ### M2 – Equalizer

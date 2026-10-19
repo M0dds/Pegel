@@ -58,8 +58,17 @@ export type PlayerCommand =
   | { type: 'setVolume'; volume: number }
   | { type: 'toggleLike' };
 
-/** Pegel's own pages shown instead of the YT view. 'music' means the YT view is visible. */
-export type View = 'music' | 'settings' | 'welcome';
+/**
+ * What fills the content area. 'music' means the YT view is visible; the
+ * others are Pegel's own pages ('offline' after YT failed to load).
+ */
+export type View = 'music' | 'settings' | 'welcome' | 'offline';
+
+export const VIEWS: readonly View[] = ['music', 'settings', 'welcome', 'offline'];
+
+export function isView(value: unknown): value is View {
+  return typeof value === 'string' && (VIEWS as readonly string[]).includes(value);
+}
 
 export interface AppInfo {
   version: string;

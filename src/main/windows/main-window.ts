@@ -1,18 +1,125 @@
 import { join } from 'node:path';
-import { BrowserWindow, shell } from 'electron';
-import { MAIN_WINDOW_DEFAULT, MAIN_WINDOW_MIN } from '@shared/layout';
+import { app, BrowserWindow, screen, shell, type WebContents, WebContentsView } from 'electron';
+import type { MainToUiChannels, PayloadArgs } from '@shared/ipc';
+import { MAIN_WINDOW_DEFAULT, MAIN_WINDOW_MIN, TITLEBAR_HEIGHT } from '@shared/layout';
 import { THEMES } from '@shared/themes';
+import type { View } from '@shared/types';
+import { isExternalWebUrl } from '../navigation';
+import { getSettings, updateSettings } from '../settings';
+import { matchShortcut } from '../shortcuts';
+import { isRectVisible } from '../window-state';
+import { createYtView, reloadYtView } from '../yt-view';
+
+const SAVE_BOUNDS_DELAY_MS = 400;
+
+let win: BrowserWindow | null = null;
+let ytView: WebContentsView | null = null;
+let currentView: View = 'music';
+
+export function getMainWindow(): BrowserWindow | null {
+  return win;
+}
+
+export function getView(): View {
+  return currentView;
+}
+
+function sendToUi<C extends keyof MainToUiChannels>(
+  channel: C,
+  ...args: PayloadArgs<MainToUiChannels[C]>
+): void {
+  win?.webContents.send(channel, ...args);
+}
+
+export function showView(view: View): void {
+  if (!win || !ytView) return;
+  currentView = view;
+  const showYt = view === 'music';
+  ytView.setVisible(showYt);
+  if (showYt) ytView.webContents.focus();
+  else win.webContents.focus();
+  sendToUi('view:changed', view);
+}
+
+export function retryYt(): void {
+  if (ytView) reloadYtView(ytView);
+}
+
+/** Places the YT view below the title bar. The EQ panel (M2) will take space on the right. */
+function layout(): void {
+  if (!win || !ytView) return;
+  const [width, height] = win.getContentSize() as [number, number];
+  ytView.setBounds({
+    x: 0,
+    y: TITLEBAR_HEIGHT,
+    width: Math.max(0, width),
+    height: Math.max(0, height - TITLEBAR_HEIGHT),
+  });
+}
+
+function platformChrome(): Electron.BrowserWindowConstructorOptions {
+  const { surface, 'text-dim': textDim } = THEMES[getSettings().theme].tokens;
+  if (process.platform === 'darwin') {
+    // Traffic lights (12 px high) vertically centred in the 38 px title bar.
+    return { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 14, y: 13 } };
+  }
+  return {
+    titleBarStyle: 'hidden',
+    // One pixel less than the title bar so its bottom border stays visible under the buttons.
+    titleBarOverlay: { color: surface, symbolColor: textDim, height: TITLEBAR_HEIGHT - 1 },
+  };
+}
+
+function restoredBounds(): Electron.Rectangle | undefined {
+  const { bounds } = getSettings().window;
+  if (!bounds) return undefined;
+  const workAreas = screen.getAllDisplays().map((d) => d.workArea);
+  return isRectVisible(bounds, workAreas) ? bounds : undefined;
+}
+
+function handleShortcuts(wc: WebContents): void {
+  wc.on('before-input-event', (event, input) => {
+    const action = matchShortcut(input, process.platform, currentView, !app.isPackaged);
+    if (!action) return;
+    event.preventDefault();
+    if (action.type === 'show') showView(action.view);
+    else wc.toggleDevTools();
+  });
+}
+
+function trackBounds(window: BrowserWindow): void {
+  let timer: NodeJS.Timeout | null = null;
+  const save = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    if (window.isDestroyed() || window.isMinimized()) return;
+    updateSettings((s) => {
+      s.window.maximized = window.isMaximized();
+      // Normal bounds = size before maximising, so un-maximising after a restart works.
+      s.window.bounds = window.getNormalBounds();
+    });
+  };
+  const schedule = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(save, SAVE_BOUNDS_DELAY_MS);
+  };
+  window.on('resize', schedule);
+  window.on('move', schedule);
+  window.on('maximize', save);
+  window.on('unmaximize', save);
+  window.on('close', save);
+}
 
 export function createMainWindow(): BrowserWindow {
-  const win = new BrowserWindow({
-    width: MAIN_WINDOW_DEFAULT.width,
-    height: MAIN_WINDOW_DEFAULT.height,
+  const bounds = restoredBounds();
+  const window = new BrowserWindow({
+    ...(bounds ?? MAIN_WINDOW_DEFAULT),
     minWidth: MAIN_WINDOW_MIN.width,
     minHeight: MAIN_WINDOW_MIN.height,
     title: 'Pegel',
     show: false,
-    backgroundColor: THEMES.standard.tokens.bg,
-    autoHideMenuBar: true,
+    backgroundColor: THEMES[getSettings().theme].tokens.bg,
+    ...platformChrome(),
     webPreferences: {
       preload: join(__dirname, '../preload/ui.js'),
       contextIsolation: true,
@@ -20,21 +127,62 @@ export function createMainWindow(): BrowserWindow {
       sandbox: true,
     },
   });
+  win = window;
 
-  win.once('ready-to-show', () => win.show());
+  const view = createYtView({
+    onLoadFailed: () => showView('offline'),
+    onLoaded: () => {
+      if (currentView === 'offline') showView('music');
+    },
+  });
+  ytView = view;
+  window.contentView.addChildView(view);
+  layout();
+
+  window.on('resize', layout);
+  window.on('maximize', layout);
+  window.on('unmaximize', layout);
+  trackBounds(window);
+  handleShortcuts(window.webContents);
+  handleShortcuts(view.webContents);
+
+  window.once('ready-to-show', () => {
+    if (getSettings().window.maximized) window.maximize();
+    window.show();
+    view.webContents.focus();
+  });
+
+  window.on('closed', () => {
+    if (!view.webContents.isDestroyed()) view.webContents.close();
+    win = null;
+    ytView = null;
+    currentView = 'music';
+  });
 
   // Never open new Electron windows from the UI; external links go to the default browser.
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('https://') || url.startsWith('http://')) void shell.openExternal(url);
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    if (isExternalWebUrl(url)) void shell.openExternal(url);
     return { action: 'deny' };
   });
+  window.webContents.on('will-navigate', (event) => event.preventDefault());
 
   const devUrl = process.env['ELECTRON_RENDERER_URL'];
   if (devUrl) {
-    void win.loadURL(devUrl);
+    void window.loadURL(devUrl);
   } else {
-    void win.loadFile(join(__dirname, '../renderer/index.html'));
+    void window.loadFile(join(__dirname, '../renderer/index.html'));
   }
 
-  return win;
+  return window;
+}
+
+/** Brings the main window to the front (second app start, dock click, …). */
+export function focusMainWindow(): void {
+  if (!win) {
+    createMainWindow();
+    return;
+  }
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
 }

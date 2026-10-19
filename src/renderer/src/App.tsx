@@ -1,19 +1,25 @@
 import { useEffect, useState } from 'react';
-import type { AppInfo } from '@shared/types';
-import { Logo } from './components/Logo';
+import type { View } from '@shared/types';
+import { Titlebar } from './components/Titlebar';
+import { OfflinePage } from './routes/OfflinePage';
+import { SettingsPage } from './routes/SettingsPage';
 
 export function App() {
-  const [info, setInfo] = useState<AppInfo | null>(null);
+  const [view, setView] = useState<View>('music');
 
   useEffect(() => {
-    void window.pegel.getAppInfo().then(setInfo);
+    void window.pegel.getView().then(setView);
+    return window.pegel.onViewChanged(setView);
   }, []);
 
   return (
-    <main className="empty">
-      <Logo size={64} />
-      <h1>Pegel</h1>
-      {info && <p className="dim">Version {info.version}</p>}
-    </main>
+    <div className="app">
+      <Titlebar view={view} />
+      {/* For 'music' the main process lays the YT view over this area. */}
+      <div className="content">
+        {view === 'settings' && <SettingsPage />}
+        {view === 'offline' && <OfflinePage />}
+      </div>
+    </div>
   );
 }

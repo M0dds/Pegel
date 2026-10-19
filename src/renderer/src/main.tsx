@@ -5,6 +5,7 @@ import { App } from './App';
 import './styles/global.css';
 
 applyTheme('standard');
+document.documentElement.dataset['platform'] = window.pegel.platform;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -1,17 +1,36 @@
-import { app, BrowserWindow } from 'electron';
+import { app } from 'electron';
 import { registerIpc } from './ipc';
-import { createMainWindow } from './windows/main-window';
+import { setupMenu } from './menu';
+import { flushSettings, loadSettings } from './settings';
+import { getYtSession } from './yt-view';
+import { createMainWindow, focusMainWindow, getMainWindow } from './windows/main-window';
 
-app.whenReady().then(() => {
-  registerIpc();
-  createMainWindow();
+if (!app.requestSingleInstanceLock()) {
+  // Another Pegel is already running; it gets focused via 'second-instance'.
+  app.quit();
+} else {
+  app.on('second-instance', () => focusMainWindow());
 
-  app.on('activate', () => {
-    // macOS: re-create a window when the dock icon is clicked and none is open.
-    if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+  app.whenReady().then(() => {
+    loadSettings();
+    setupMenu();
+    registerIpc();
+    createMainWindow();
+
+    app.on('activate', () => {
+      // macOS: dock icon clicked.
+      if (!getMainWindow()) createMainWindow();
+      else focusMainWindow();
+    });
   });
-});
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit();
+  });
+
+  app.on('before-quit', () => {
+    flushSettings();
+    // Make sure login cookies reach the disk before the process ends.
+    void getYtSession().cookies.flushStore();
+  });
+}
