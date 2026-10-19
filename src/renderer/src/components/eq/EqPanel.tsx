@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import {
   allPresets,
   effectivePreamp,
@@ -16,6 +16,16 @@ import { Curve } from './Curve';
 import { PresetDialog, type DialogMode } from './PresetDialog';
 
 const dispatch = (action: EqAction) => window.pegel.eqAction(action);
+
+/** Track fill from 0 dB to the value, see input[type='range'] in global.css. */
+function rangeFill(value: number, min: number, max: number): CSSProperties {
+  const pos = (v: number) => `${((v - min) / (max - min)) * 100}%`;
+  const zero = Math.min(max, Math.max(min, 0));
+  return {
+    '--from': pos(Math.min(value, zero)),
+    '--to': pos(Math.max(value, zero)),
+  } as CSSProperties;
+}
 
 export function EqPanel({ eq, open }: { eq: EqSettings; open: boolean }) {
   const [dialog, setDialog] = useState<DialogMode | null>(null);
@@ -123,6 +133,7 @@ export function EqPanel({ eq, open }: { eq: EqSettings; open: boolean }) {
               max={EQ_PREAMP_MAX}
               step={EQ_STEP}
               value={preamp}
+              style={rangeFill(preamp, EQ_PREAMP_MIN, EQ_PREAMP_MAX)}
               onChange={(e) => dispatch({ type: 'setPreamp', preamp: Number(e.target.value) })}
               onDoubleClick={() => dispatch({ type: 'setAutoPreamp', auto: true })}
             />

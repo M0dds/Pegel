@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { findPreset, presetNameError, PRESET_NAME_MAX, type EqAction } from '@shared/eq';
 import { BUILTIN_PRESETS } from '@shared/presets';
 import type { EqSettings } from '@shared/types';
+import { Select } from '../Select';
 import { Curve } from './Curve';
 
 /** `template: null` means "the current slider values". */
@@ -92,28 +93,31 @@ export function PresetDialog({ eq, mode, onClose, dispatch }: Props) {
         </label>
 
         {mode.kind === 'create' && (
-          <label className="field">
-            <span className="field-label">Vorlage</span>
-            <select value={template} onChange={(e) => setTemplate(e.target.value)}>
-              <option value={CURRENT}>Aktuelle Einstellung</option>
-              <optgroup label="Standard">
-                {BUILTIN_PRESETS.map((p) => (
-                  <option key={p.name} value={p.name}>
-                    {p.name}
-                  </option>
-                ))}
-              </optgroup>
-              {eq.customPresets.length > 0 && (
-                <optgroup label="Eigene">
-                  {eq.customPresets.map((p) => (
-                    <option key={p.name} value={p.name}>
-                      {p.name}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
-          </label>
+          <div className="field">
+            <span className="field-label" id="preset-template-label">
+              Vorlage
+            </span>
+            <Select
+              value={template}
+              onChange={setTemplate}
+              aria-label="Vorlage"
+              groups={[
+                { options: [{ value: CURRENT, label: 'Aktuelle Einstellung' }] },
+                {
+                  label: 'Standard',
+                  options: BUILTIN_PRESETS.map((p) => ({ value: p.name, label: p.name })),
+                },
+                ...(eq.customPresets.length > 0
+                  ? [
+                      {
+                        label: 'Eigene',
+                        options: eq.customPresets.map((p) => ({ value: p.name, label: p.name })),
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          </div>
         )}
 
         <Curve gains={previewGains} compact />

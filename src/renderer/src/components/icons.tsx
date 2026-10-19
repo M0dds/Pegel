@@ -39,3 +39,37 @@ export function BackIcon() {
     </svg>
   );
 }
+
+export function ChevronIcon() {
+  return (
+    <svg
+      className="chevron"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+export function CheckIcon() {
+  return (
+    <svg
+      className="check-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M5 12.5 10 17 19 7.5" />
+    </svg>
+  );
+}
