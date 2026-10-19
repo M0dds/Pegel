@@ -8,7 +8,7 @@ import {
   EQ_STEP,
 } from './presets';
 import { isThemeId } from './themes';
-import type { EqPreset, Rect, Settings } from './types';
+import type { EqPreset, PlaylistPreset, Rect, Settings } from './types';
 
 export const SETTINGS_VERSION = 1;
 
@@ -23,6 +23,7 @@ export const DEFAULT_SETTINGS: Settings = {
     autoPreamp: true,
     panelOpen: true,
     customPresets: [],
+    playlistPresets: [],
   },
   closeToTray: true,
   startAtLogin: false,
@@ -77,6 +78,27 @@ function rect(value: unknown): Rect | undefined {
   };
 }
 
+export const PLAYLIST_ID_PATTERN = /^[A-Za-z0-9_-]{2,100}$/;
+export const MAX_PLAYLIST_PRESETS = 300;
+
+function playlistPresets(value: unknown): PlaylistPreset[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const result: PlaylistPreset[] = [];
+  for (const item of value) {
+    if (!isObj(item)) continue;
+    const { playlistId, title, preset } = item;
+    if (typeof playlistId !== 'string' || !PLAYLIST_ID_PATTERN.test(playlistId)) continue;
+    if (typeof preset !== 'string' || !preset.trim() || seen.has(playlistId)) continue;
+    seen.add(playlistId);
+    const name =
+      typeof title === 'string' && title.trim() ? title.trim().slice(0, 200) : playlistId;
+    result.push({ playlistId, title: name, preset });
+    if (result.length >= MAX_PLAYLIST_PRESETS) break;
+  }
+  return result;
+}
+
 function customPresets(value: unknown): EqPreset[] {
   if (!Array.isArray(value)) return [];
   const result: EqPreset[] = [];
@@ -126,6 +148,11 @@ export function normalizeSettings(input: unknown): Settings {
       autoPreamp: bool(eq['autoPreamp'], d.eq.autoPreamp),
       panelOpen: bool(eq['panelOpen'], d.eq.panelOpen),
       customPresets: customPresets(eq['customPresets']),
+      playlistPresets: playlistPresets(eq['playlistPresets']),
+      ...(isObj(eq['autoPreset']) &&
+        typeof eq['autoPreset']['from'] === 'string' && {
+          autoPreset: { from: eq['autoPreset']['from'] },
+        }),
     },
     closeToTray: bool(raw['closeToTray'], d.closeToTray),
     startAtLogin: bool(raw['startAtLogin'], d.startAtLogin),

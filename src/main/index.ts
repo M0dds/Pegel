@@ -3,6 +3,7 @@ import { trackQuitting } from './app-state';
 import { shouldStartHidden, syncStartAtLogin } from './autostart';
 import { registerIpc } from './ipc';
 import { setupMenu } from './menu';
+import { startPlaylistEq } from './playlist-eq';
 import { flushSettings, getSettings, loadSettings } from './settings';
 import { createTray } from './tray';
 import { getYtSession } from './yt-view';
@@ -31,6 +32,7 @@ if (!app.requestSingleInstanceLock()) {
     loadSettings();
     setupMenu({ toggleMini: toggleMiniPlayer });
     registerIpc();
+    startPlaylistEq();
     syncStartAtLogin(getSettings().startAtLogin);
     createTray({
       showWindow: focusMainWindow,

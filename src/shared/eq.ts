@@ -8,7 +8,7 @@ import {
   EQ_PREAMP_MAX,
   EQ_PREAMP_MIN,
 } from './presets';
-import { clampDb } from './settings';
+import { clampDb, MAX_PLAYLIST_PRESETS, PLAYLIST_ID_PATTERN } from './settings';
 import type { EqPreset, EqSettings } from './types';
 
 /** Changes to the EQ, sent from the UI to the main process. */
@@ -26,6 +26,8 @@ export type EqAction =
   /** Goes back to the stored values of the active preset. */
   | { type: 'discardChanges' }
   | { type: 'renamePreset'; from: string; to: string }
+  /** Assigns a preset to a playlist (`preset: null` removes the assignment). */
+  | { type: 'setPlaylistPreset'; playlistId: string; title: string; preset: string | null }
   | { type: 'deletePreset'; name: string };
 
 export const PRESET_NAME_MAX = 30;
@@ -95,6 +97,43 @@ export function validPresetName(name: string): string | null {
   return trimmed;
 }
 
+/** Loads a preset's values without touching `autoPreset`. */
+function withPreset(eq: EqSettings, name: string): EqSettings {
+  const preset = findPreset(eq, name);
+  if (!preset) return eq;
+  return { ...eq, preset: preset.name, gains: [...preset.gains], preamp: preset.preamp };
+}
+
+function withoutAuto(eq: EqSettings): EqSettings {
+  if (!eq.autoPreset) return eq;
+  const { autoPreset: _, ...rest } = eq;
+  return rest;
+}
+
+/** The preset assigned to a playlist, if it still exists. */
+export function playlistPreset(eq: EqSettings, playlistId: string | undefined): string | null {
+  if (!playlistId) return null;
+  const preset = eq.playlistPresets.find((p) => p.playlistId === playlistId)?.preset;
+  return preset && findPreset(eq, preset) ? preset : null;
+}
+
+/**
+ * Called when the playing playlist changes (`null`: no playlist). Switches
+ * to the playlist's preset and remembers the previous one; leaving the
+ * playlist goes back to it, unless the user picked a preset in between.
+ */
+export function applyPlaylistContext(eq: EqSettings, playlistId: string | null): EqSettings {
+  const target = playlistPreset(eq, playlistId ?? undefined);
+  if (target) {
+    if (eq.preset === target && !isDirty(eq)) return eq;
+    const from = eq.autoPreset?.from ?? eq.preset;
+    return { ...withPreset(eq, target), autoPreset: { from } };
+  }
+  if (!eq.autoPreset) return eq;
+  const back = findPreset(eq, eq.autoPreset.from) ? eq.autoPreset.from : 'Flat';
+  return withoutAuto(withPreset(eq, back));
+}
+
 /** Applies an action and returns the new EQ state; invalid actions change nothing. */
 export function reduceEq(eq: EqSettings, action: EqAction): EqSettings {
   switch (action.type) {
@@ -121,11 +160,9 @@ export function reduceEq(eq: EqSettings, action: EqAction): EqSettings {
       return action.auto
         ? { ...eq, autoPreamp: true }
         : { ...eq, autoPreamp: false, preamp: effectivePreamp(eq) };
-    case 'applyPreset': {
-      const preset = findPreset(eq, action.name);
-      if (!preset) return eq;
-      return { ...eq, preset: preset.name, gains: [...preset.gains], preamp: preset.preamp };
-    }
+    case 'applyPreset':
+      // A manual choice wins over the automatic playlist preset.
+      return findPreset(eq, action.name) ? withoutAuto(withPreset(eq, action.name)) : eq;
     case 'createPreset': {
       if (presetNameError(action.name, eq.customPresets)) return eq;
       const name = validPresetName(action.name)!;
@@ -159,16 +196,45 @@ export function reduceEq(eq: EqSettings, action: EqAction): EqSettings {
         (p, i) => i !== index && p.name.toLowerCase() === to.toLowerCase(),
       );
       if (clash) return eq;
+      const rename = (name: string) => (name === action.from ? to : name);
       const customPresets = eq.customPresets.map((p, i) => (i === index ? { ...p, name: to } : p));
-      return { ...eq, customPresets, preset: eq.preset === action.from ? to : eq.preset };
+      return {
+        ...eq,
+        customPresets,
+        preset: rename(eq.preset),
+        playlistPresets: eq.playlistPresets.map((p) => ({ ...p, preset: rename(p.preset) })),
+        ...(eq.autoPreset && { autoPreset: { from: rename(eq.autoPreset.from) } }),
+      };
     }
     case 'deletePreset': {
       if (!eq.customPresets.some((p) => p.name === action.name)) return eq;
-      const rest = { ...eq, customPresets: eq.customPresets.filter((p) => p.name !== action.name) };
+      const rest: EqSettings = {
+        ...eq,
+        customPresets: eq.customPresets.filter((p) => p.name !== action.name),
+        // Playlists that used it go back to "no preset of their own".
+        playlistPresets: eq.playlistPresets.filter((p) => p.preset !== action.name),
+        ...(eq.autoPreset?.from === action.name && { autoPreset: { from: 'Flat' } }),
+      };
       // Deleting the active preset falls back to Flat.
       return eq.preset === action.name
         ? reduceEq(rest, { type: 'applyPreset', name: 'Flat' })
         : rest;
+    }
+    case 'setPlaylistPreset': {
+      if (!PLAYLIST_ID_PATTERN.test(action.playlistId)) return eq;
+      const others = eq.playlistPresets.filter((p) => p.playlistId !== action.playlistId);
+      if (action.preset === null) return { ...eq, playlistPresets: others };
+      if (!findPreset(eq, action.preset) || others.length >= MAX_PLAYLIST_PRESETS) return eq;
+      const title = action.title.trim().slice(0, 200) || action.playlistId;
+      const assigned: EqSettings = {
+        ...eq,
+        playlistPresets: [
+          ...others,
+          { playlistId: action.playlistId, title, preset: action.preset },
+        ],
+      };
+      // Assigning happens while the playlist plays: switch right away.
+      return applyPlaylistContext(assigned, action.playlistId);
     }
   }
 }
@@ -199,6 +265,10 @@ export function isEqAction(value: unknown): value is EqAction {
       return isStr(a['name']) && (a['from'] === null || isStr(a['from']));
     case 'renamePreset':
       return isStr(a['from']) && isStr(a['to']);
+    case 'setPlaylistPreset':
+      return (
+        isStr(a['playlistId']) && isStr(a['title']) && (a['preset'] === null || isStr(a['preset']))
+      );
     case 'saveChanges':
     case 'discardChanges':
       return true;

@@ -37,6 +37,15 @@ function playerApi<T>(method: string, ...args: (string | number | boolean)[]): T
   }
 }
 
+/** The playlist the current track plays from: `list=` on /watch, name from the queue header. */
+function readPlaylist(): { id: string; title?: string } | null {
+  if (location.pathname !== '/watch') return null;
+  const id = new URLSearchParams(location.search).get('list');
+  if (!id) return null;
+  const title = document.querySelector(SELECTORS.queueTitle)?.textContent?.trim();
+  return title ? { id, title } : { id };
+}
+
 function readLiked(): boolean | undefined {
   const status = document.querySelector(SELECTORS.likeRenderer)?.getAttribute('like-status');
   return status ? status === 'LIKE' : undefined;
@@ -63,6 +72,11 @@ export function readState(): PlayerState | null {
   if (artworkUrl) state.artworkUrl = artworkUrl;
   const liked = readLiked();
   if (liked !== undefined) state.liked = liked;
+  const playlist = readPlaylist();
+  if (playlist) {
+    state.playlistId = playlist.id;
+    if (playlist.title) state.playlistTitle = playlist.title;
+  }
   const volume = playerApi<number>('getVolume');
   if (typeof volume === 'number') state.volume = volume / 100;
   const muted = playerApi<boolean>('isMuted');

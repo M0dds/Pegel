@@ -353,7 +353,7 @@ button {
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   height: 100%;
   overflow: auto;
 }
@@ -404,28 +404,6 @@ button {
   gap: 6px;
 }
 
-.presets button {
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text);
-  font-size: 12.5px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-.presets button[aria-pressed='true'] {
-  background: var(--accent);
-  color: var(--on-accent);
-  border-color: transparent;
-}
-
-.presets button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
 /* Unsaved changes on the active preset. */
 .presets .dot {
   width: 6px;
@@ -434,13 +412,13 @@ button {
   background: currentColor;
 }
 
-.presets .add {
+.presets .chip.add {
   background: transparent;
   border-style: dashed;
   color: var(--text-dim);
 }
 
-.presets .add:hover {
+.presets .chip.add:hover {
   color: var(--text);
   border-color: var(--text-dim);
 }
@@ -475,13 +453,13 @@ button {
   position: relative;
 }
 
-/* One continuous 0 dB line behind all sliders (value label 14px + gap 6px + half of 168px). */
+/* One continuous 0 dB line behind all sliders (value label 14px + gap 6px + half of 160px). */
 .bands::before {
   content: '';
   position: absolute;
   left: 4px;
   right: 4px;
-  top: 104px;
+  top: 100px;
   height: 1px;
   background: var(--text-dim);
   opacity: 0.25;
@@ -513,7 +491,7 @@ button {
   position: relative;
   z-index: 1;
   width: 22px;
-  height: 168px;
+  height: 160px;
   cursor: ns-resize;
   touch-action: none;
   outline: none;
@@ -714,8 +692,8 @@ button {
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-top: 12px;
+  gap: 6px;
+  padding-top: 10px;
   border-top: 1px solid var(--border);
 }
 
@@ -1313,4 +1291,166 @@ input[type='checkbox']:checked::after {
   font-size: 11px;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Preset chips with menu (custom presets) ---------- */
+.presets .chip {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 12.5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.presets .chip[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: transparent;
+}
+
+/* Custom preset: chip and ⋯ form one pill. The ⋯ always has its space (no reflow on
+   hover) and is faint until hovered, so deleting/renaming stays discoverable. */
+.chip-group {
+  position: relative;
+  display: inline-flex;
+}
+
+.chip-group .chip {
+  padding-right: 28px;
+}
+
+.chip-more {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  margin-top: -10px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  opacity: 0.45;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+
+.chip-more svg {
+  width: 14px;
+  height: 14px;
+}
+
+.chip-group:hover .chip-more,
+.chip-group:focus-within .chip-more,
+.chip-group.menu-open .chip-more {
+  opacity: 0.85;
+}
+
+.chip-group .chip:not([aria-pressed='true']) + .chip-more {
+  color: var(--text-dim);
+}
+
+.chip-group.active .chip-more {
+  color: var(--on-accent);
+}
+
+.chip-more:hover {
+  opacity: 1 !important;
+  background: #ffffff1f;
+}
+
+.chip-menu {
+  position: absolute;
+  z-index: 15;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 150px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px #0009;
+  animation: fade-in 0.1s ease-out;
+}
+
+.chip-menu button {
+  height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chip-menu button:hover,
+.chip-menu button:focus-visible {
+  background: var(--surface-2);
+  outline: none;
+}
+
+.chip-menu button.danger {
+  color: #ff8a8a;
+}
+
+/* ---------- Playlist preset ---------- */
+.playlist-preset {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.playlist-preset .field-label {
+  margin-bottom: 0;
+}
+
+.playlist-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 550;
+  min-width: 0;
+}
+
+.playlist-name svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--accent);
+}
+
+.playlist-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hint,
+.empty-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.45;
+}
+
+.empty-hint {
+  margin: 4px 0 14px;
+}
+
+.row .icon-btn svg {
+  width: 16px;
+  height: 16px;
 }

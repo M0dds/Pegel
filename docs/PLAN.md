@@ -135,8 +135,12 @@ Die EQ-Panel-Breite und die Titelleistenhöhe sind Konstanten in `shared/layout.
 - **Presets (eingebaut):** Flat, Bass Boost, Vocal, Akustik, Elektronisch, Loudness. Die Werte stehen in `shared/presets.ts`, abgestimmt mit dem Mockup.
 - **Eigene Presets** (überarbeitet nach M2): Der Chip „+ Preset“ öffnet ein Overlay mit Name und Vorlage (aktuelle Einstellung, Standard- oder eigenes Preset) samt Vorschaukurve. Das neue Preset ist danach ausgewählt.
   - Beim Verstellen bleibt das Preset ausgewählt. Der Chip bekommt einen Punkt, unten erscheint eine Leiste mit „Verwerfen“, „Als neues Preset“ und, nur bei eigenen Presets, „Speichern“. Standard-Presets sind schreibgeschützt.
-  - Umbenennen und Löschen über dasselbe Overlay (Doppelklick auf den Chip oder Link darunter). Löschen fragt nach, danach ist Flat aktiv.
+  - Umbenennen und Löschen über das „⋯“ an eigenen Preset-Chips (auch Rechtsklick; Doppelklick öffnet direkt Umbenennen). Löschen fragt nach, danach ist Flat aktiv.
   - Die Regler stehen ohne Skala gleichmäßig über die Panelbreite, mit durchgehender 0-dB-Linie. Werte ungleich 0 sind hervorgehoben.
+- **Playlist-Presets** (Wunsch nach M5): Einer YT-Playlist lässt sich ein Preset zuordnen.
+  - Erkennung: Playlist-ID aus `list=` der `/watch`-URL, Name aus dem Warteschlangen-Kopf („Playing from …“, Selektor `queueTitle`). Beides kommt mit dem `PlayerState` (`playlistId`, `playlistTitle`).
+  - Zuordnen im EQ-Panel, solange die Playlist läuft (Zeile „Preset für diese Playlist“). Verwalten und Entfernen in den Einstellungen unter „Playlist-Presets“.
+  - Automatik: Beim Wechsel in die Playlist schaltet der EQ auf ihr Preset und merkt sich das vorherige (`eq.autoPreset.from`). Beim Verlassen kommt es zurück. Wählt man in der Zwischenzeit selbst ein Preset, bleibt diese Wahl. Umbenennen zieht die Zuordnungen mit, Löschen entfernt sie.
 - **Frequenzkurve im Panel:** Die echte Kurve aus `BiquadFilterNode.getFrequencyResponse` berechnen (128 Punkte). Umgesetzt in der Pegel-UI mit denselben Filtern auf einem `OfflineAudioContext`, nicht in der YT-Ansicht: gleiche Kurve, funktioniert aber auch ohne geladene YT-Seite und braucht keinen IPC-Rückweg. Fallback: die Näherung aus dem Mockup.
 - **Tastatur:** Strg/⌘+E klappt das Panel ein und aus. In den Reglern gilt: Pfeil hoch/runter = ±0,5 dB, Bild hoch/runter = ±3 dB, Doppelklick = 0 dB.
 
@@ -253,6 +257,8 @@ interface Settings {
     autoPreamp: boolean;
     panelOpen: boolean;
     customPresets: { name: string; gains: number[]; preamp: number }[];
+    playlistPresets: { playlistId: string; title: string; preset: string }[];
+    autoPreset?: { from: string };   // gesetzt, solange ein Playlist-Preset automatisch aktiv ist
   };
   closeToTray: boolean;
   startAtLogin: boolean;

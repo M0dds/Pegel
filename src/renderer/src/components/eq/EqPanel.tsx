@@ -9,10 +9,12 @@ import {
   type EqAction,
 } from '@shared/eq';
 import { EQ_FREQUENCIES, EQ_PREAMP_MAX, EQ_PREAMP_MIN, EQ_STEP } from '@shared/presets';
-import type { EqSettings } from '@shared/types';
+import type { EqSettings, PlayerState } from '@shared/types';
 import { Switch } from '../Switch';
 import { BandSlider } from './BandSlider';
 import { Curve } from './Curve';
+import { PlaylistPresetRow } from './PlaylistPresetRow';
+import { PresetChip } from './PresetChip';
 import { PresetDialog, type DialogMode } from './PresetDialog';
 
 const dispatch = (action: EqAction) => window.pegel.eqAction(action);
@@ -27,7 +29,14 @@ function rangeFill(value: number, min: number, max: number): CSSProperties {
   } as CSSProperties;
 }
 
-export function EqPanel({ eq, open }: { eq: EqSettings; open: boolean }) {
+interface Props {
+  eq: EqSettings;
+  open: boolean;
+  /** Current track, for the playlist preset row. */
+  playing: PlayerState | null;
+}
+
+export function EqPanel({ eq, open, playing }: Props) {
   const [dialog, setDialog] = useState<DialogMode | null>(null);
 
   const presets = allPresets(eq.customPresets);
@@ -60,30 +69,20 @@ export function EqPanel({ eq, open }: { eq: EqSettings; open: boolean }) {
         <div>
           <div className="field-label">Preset</div>
           <div className="presets">
-            {presets.map((p) => {
-              const active = p.name === eq.preset;
-              const custom = !isBuiltinPreset(p.name);
-              return (
-                <button
-                  key={p.name}
-                  aria-pressed={active}
-                  title={
-                    custom
-                      ? 'Doppelklick: umbenennen oder löschen'
-                      : active && dirty
-                        ? 'Geändert'
-                        : undefined
-                  }
-                  onClick={() => dispatch({ type: 'applyPreset', name: p.name })}
-                  onDoubleClick={() => custom && setDialog({ kind: 'edit', name: p.name })}
-                >
-                  {p.name}
-                  {active && dirty && <span className="dot" aria-label="(geändert)" />}
-                </button>
-              );
-            })}
+            {presets.map((p) => (
+              <PresetChip
+                key={p.name}
+                name={p.name}
+                active={p.name === eq.preset}
+                dirty={dirty}
+                custom={!isBuiltinPreset(p.name)}
+                onApply={() => dispatch({ type: 'applyPreset', name: p.name })}
+                onRename={() => setDialog({ kind: 'edit', name: p.name })}
+                onDelete={() => dispatch({ type: 'deletePreset', name: p.name })}
+              />
+            ))}
             <button
-              className="add"
+              className="chip add"
               onClick={() =>
                 setDialog({ kind: 'create', template: activeExists && !dirty ? eq.preset : null })
               }
@@ -91,14 +90,15 @@ export function EqPanel({ eq, open }: { eq: EqSettings; open: boolean }) {
               + Preset
             </button>
           </div>
-          {canSave && !dialog && (
-            <div className="preset-tools">
-              <button className="link" onClick={() => setDialog({ kind: 'edit', name: eq.preset })}>
-                Umbenennen oder löschen
-              </button>
-            </div>
-          )}
         </div>
+
+        {playing?.playlistId && (
+          <PlaylistPresetRow
+            eq={eq}
+            playlistId={playing.playlistId}
+            title={playing.playlistTitle}
+          />
+        )}
 
         <Curve gains={eq.gains} />
 

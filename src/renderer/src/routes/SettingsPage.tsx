@@ -3,6 +3,7 @@ import { THEME_IDS, THEMES } from '@shared/themes';
 import type { Settings } from '@shared/types';
 import { PageHead } from '../components/PageHead';
 import { Switch } from '../components/Switch';
+import { CloseIcon } from '../components/icons';
 
 const isMac = window.pegel.platform === 'darwin';
 const OS_NAME = isMac ? 'macOS' : 'Windows';
@@ -68,6 +69,36 @@ export function SettingsPage({ settings, selectorIssues }: Props) {
               );
             })}
           </div>
+        </section>
+
+        <section className="section">
+          <h4>Playlist-Presets</h4>
+          {settings.eq.playlistPresets.length === 0 ? (
+            <p className="empty-hint">
+              Noch keine Playlist hat ein eigenes Preset. Zuordnen kannst du es im Equalizer,
+              während die Playlist läuft.
+            </p>
+          ) : (
+            settings.eq.playlistPresets.map((p) => (
+              <Row key={p.playlistId} title={p.title} hint={`Preset: ${p.preset}`}>
+                <button
+                  className="icon-btn"
+                  title="Zuordnung entfernen"
+                  aria-label={`Preset-Zuordnung für ${p.title} entfernen`}
+                  onClick={() =>
+                    window.pegel.eqAction({
+                      type: 'setPlaylistPreset',
+                      playlistId: p.playlistId,
+                      title: p.title,
+                      preset: null,
+                    })
+                  }
+                >
+                  <CloseIcon />
+                </button>
+              </Row>
+            ))
+          )}
         </section>
 
         <section className="section">

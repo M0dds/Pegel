@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { findPreset, presetNameError, PRESET_NAME_MAX, type EqAction } from '@shared/eq';
-import { BUILTIN_PRESETS } from '@shared/presets';
 import type { EqSettings } from '@shared/types';
 import { Select } from '../Select';
 import { Curve } from './Curve';
+import { presetGroups } from './preset-options';
 
 /** `template: null` means "the current slider values". */
 export type DialogMode =
@@ -101,21 +101,7 @@ export function PresetDialog({ eq, mode, onClose, dispatch }: Props) {
               value={template}
               onChange={setTemplate}
               aria-label="Vorlage"
-              groups={[
-                { options: [{ value: CURRENT, label: 'Aktuelle Einstellung' }] },
-                {
-                  label: 'Standard',
-                  options: BUILTIN_PRESETS.map((p) => ({ value: p.name, label: p.name })),
-                },
-                ...(eq.customPresets.length > 0
-                  ? [
-                      {
-                        label: 'Eigene',
-                        options: eq.customPresets.map((p) => ({ value: p.name, label: p.name })),
-                      },
-                    ]
-                  : []),
-              ]}
+              groups={presetGroups(eq, [{ value: CURRENT, label: 'Aktuelle Einstellung' }])}
             />
           </div>
         )}

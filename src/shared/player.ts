@@ -1,3 +1,4 @@
+import { PLAYLIST_ID_PATTERN } from './settings';
 import type { PlayerCommand, PlayerState } from './types';
 
 const isStr = (v: unknown): v is string => typeof v === 'string';
@@ -21,6 +22,10 @@ export function toPlayerState(value: unknown): PlayerState | null {
     state.artworkUrl = v['artworkUrl'];
   }
   if (typeof v['liked'] === 'boolean') state.liked = v['liked'];
+  if (isStr(v['playlistId']) && PLAYLIST_ID_PATTERN.test(v['playlistId'])) {
+    state.playlistId = v['playlistId'];
+    if (isStr(v['playlistTitle'])) state.playlistTitle = v['playlistTitle'].slice(0, 200);
+  }
   if (isNum(v['volume'])) state.volume = Math.min(1, Math.max(0, v['volume']));
   if (typeof v['muted'] === 'boolean') state.muted = v['muted'];
   return state;

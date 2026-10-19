@@ -24,6 +24,21 @@ export interface EqSettings {
   autoPreamp: boolean;
   panelOpen: boolean;
   customPresets: EqPreset[];
+  /** Presets assigned to YT playlists; applied automatically when one plays. */
+  playlistPresets: PlaylistPreset[];
+  /**
+   * Set while a playlist preset was applied automatically: the preset to
+   * return to when the playlist is left. Cleared by any manual preset choice.
+   */
+  autoPreset?: { from: string };
+}
+
+export interface PlaylistPreset {
+  /** YT playlist id from the `list=` parameter. */
+  playlistId: string;
+  /** Display name, as YT showed it when the preset was assigned. */
+  title: string;
+  preset: string;
 }
 
 export interface Settings {
@@ -55,6 +70,9 @@ export interface PlayerState {
   positionSec: number;
   durationSec: number;
   liked?: boolean;
+  /** The playlist the track plays from (`list=` in the URL), if any. */
+  playlistId?: string;
+  playlistTitle?: string;
   /** YT's own volume, 0…1. */
   volume?: number;
   muted?: boolean;

@@ -167,3 +167,30 @@ export function VolumeIcon({ volume, muted }: { volume: number; muted: boolean }
     </svg>
   );
 }
+
+export function MoreIcon() {
+  return (
+    <svg {...filled}>
+      <circle cx="5" cy="12" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="19" cy="12" r="1.8" />
+    </svg>
+  );
+}
+
+export function CloseIcon() {
+  return (
+    <svg {...stroke}>
+      <path d="M6 6l12 12M18 6 6 18" />
+    </svg>
+  );
+}
+
+export function PlaylistIcon() {
+  return (
+    <svg {...stroke}>
+      <path d="M3 6h12M3 12h12M3 18h7M17 18V8l4-1" />
+      <circle cx="15" cy="18" r="2" />
+    </svg>
+  );
+}
