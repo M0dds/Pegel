@@ -1,10 +1,12 @@
 import { contextBridge } from 'electron';
 import { largestArtwork } from '@shared/player';
-import type { PlayerCommand, PlayerState } from '@shared/types';
+import type { PagePlaylist, PlayerCommand, PlayerState } from '@shared/types';
 import { runSelfTest, SELECTORS } from '../selectors';
 
 /** Position updates while playing; everything else is sent right away. */
 const POSITION_INTERVAL_MS = 1000;
+/** How often the shown page is checked for a playlist. */
+const PAGE_POLL_MS = 700;
 /** The self-test waits a bit after the first playback so the player bar is complete. */
 const SELF_TEST_DELAY_MS = 2000;
 
@@ -188,4 +190,30 @@ export function startBridge(
   );
 
   return { report };
+}
+
+/** The playlist page currently shown (/playlist?list=…), independent of playback. */
+export function readPagePlaylist(): PagePlaylist | null {
+  if (location.pathname !== '/playlist') return null;
+  const playlistId = new URLSearchParams(location.search).get('list');
+  if (!playlistId) return null;
+  const title = document.querySelector(SELECTORS.playlistPageTitle)?.textContent?.trim();
+  return title ? { playlistId, title } : { playlistId };
+}
+
+/**
+ * Reports which playlist page is shown. YT navigates without page loads, so
+ * a light poll catches both the URL change and the heading rendering later.
+ */
+export function startPageWatcher(onPage: (page: PagePlaylist | null) => void): void {
+  let lastKey = '';
+  const check = () => {
+    const page = readPagePlaylist();
+    const key = JSON.stringify(page);
+    if (key === lastKey) return;
+    lastKey = key;
+    onPage(page);
+  };
+  check();
+  setInterval(check, PAGE_POLL_MS);
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { PlayerState, Settings, View } from '@shared/types';
+import type { PagePlaylist, PlayerState, Settings, View } from '@shared/types';
 import { EqPanel } from './components/eq/EqPanel';
 import { Titlebar } from './components/Titlebar';
 import { applyTheme } from './styles/theme';
@@ -11,6 +11,7 @@ export function App() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [selectorIssues, setSelectorIssues] = useState<string[]>([]);
   const [playing, setPlaying] = useState<PlayerState | null>(null);
+  const [pagePlaylist, setPagePlaylist] = useState<PagePlaylist | null>(null);
 
   useEffect(() => {
     void window.pegel.getView().then(setView);
@@ -21,11 +22,14 @@ export function App() {
     const offIssues = window.pegel.onSelectorIssues(setSelectorIssues);
     void window.pegel.getPlayerState().then(setPlaying);
     const offPlayer = window.pegel.onPlayerState(setPlaying);
+    void window.pegel.getPagePlaylist().then(setPagePlaylist);
+    const offPage = window.pegel.onPagePlaylist(setPagePlaylist);
     return () => {
       offView();
       offSettings();
       offIssues();
       offPlayer();
+      offPage();
     };
   }, []);
 
@@ -43,7 +47,14 @@ export function App() {
         <div className="music">
           {/* The main process lays the YT view over this slot. */}
           <div className="yt-slot" />
-          {settings && <EqPanel eq={settings.eq} open={panelOpen} playing={playing} />}
+          {settings && (
+            <EqPanel
+              eq={settings.eq}
+              open={panelOpen}
+              playing={playing}
+              pagePlaylist={pagePlaylist}
+            />
+          )}
         </div>
         {view === 'settings' && settings && (
           <SettingsPage settings={settings} selectorIssues={selectorIssues} />

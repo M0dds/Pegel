@@ -9,7 +9,7 @@ import {
   type EqAction,
 } from '@shared/eq';
 import { EQ_FREQUENCIES, EQ_PREAMP_MAX, EQ_PREAMP_MIN, EQ_STEP } from '@shared/presets';
-import type { EqSettings, PlayerState } from '@shared/types';
+import type { EqSettings, PagePlaylist, PlayerState } from '@shared/types';
 import { Switch } from '../Switch';
 import { BandSlider } from './BandSlider';
 import { Curve } from './Curve';
@@ -34,9 +34,15 @@ interface Props {
   open: boolean;
   /** Current track, for the playlist preset row. */
   playing: PlayerState | null;
+  /** Playlist page shown in the YT view; takes precedence for the playlist row. */
+  pagePlaylist: PagePlaylist | null;
 }
 
-export function EqPanel({ eq, open, playing }: Props) {
+export function EqPanel({ eq, open, playing, pagePlaylist }: Props) {
+  // The playlist the user is looking at, otherwise the one that plays.
+  const playlist =
+    pagePlaylist ??
+    (playing?.playlistId ? { playlistId: playing.playlistId, title: playing.playlistTitle } : null);
   const [dialog, setDialog] = useState<DialogMode | null>(null);
 
   const presets = allPresets(eq.customPresets);
@@ -92,12 +98,8 @@ export function EqPanel({ eq, open, playing }: Props) {
           </div>
         </div>
 
-        {playing?.playlistId && (
-          <PlaylistPresetRow
-            eq={eq}
-            playlistId={playing.playlistId}
-            title={playing.playlistTitle}
-          />
+        {playlist && (
+          <PlaylistPresetRow eq={eq} playlistId={playlist.playlistId} title={playlist.title} />
         )}
 
         <Curve gains={eq.gains} />

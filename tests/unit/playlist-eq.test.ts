@@ -55,19 +55,26 @@ describe('playlist presets', () => {
     expect(applyPlaylistContext(eq, null)).toBe(eq);
   });
 
-  it('assigning applies the preset at once and replaces an older assignment', () => {
+  it('assigning only stores; the playing playlist applies it', () => {
     let eq = run(setup(), {
       type: 'setPlaylistPreset',
       playlistId: ROADTRIP,
       title: 'Roadtrip 2026',
       preset: 'Loudness',
     });
-    expect(eq.preset).toBe('Loudness');
+    // Assigning from a playlist page that is not playing must not change the sound.
+    expect(eq.preset).toBe('Vocal');
     expect(eq.playlistPresets.filter((p) => p.playlistId === ROADTRIP)).toHaveLength(1);
     expect(playlistPreset(eq, ROADTRIP)).toBe('Loudness');
 
+    // While it plays, the main process re-applies the context.
+    eq = applyPlaylistContext(eq, ROADTRIP);
+    expect(eq.preset).toBe('Loudness');
+
+    // Removing the assignment of the playing playlist goes back to the previous preset.
     eq = reduceEq(eq, { type: 'setPlaylistPreset', playlistId: ROADTRIP, title: '', preset: null });
     expect(playlistPreset(eq, ROADTRIP)).toBeNull();
+    expect(applyPlaylistContext(eq, ROADTRIP).preset).toBe('Vocal');
   });
 
   it('rejects invalid ids and unknown presets', () => {

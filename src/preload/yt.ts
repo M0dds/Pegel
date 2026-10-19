@@ -3,7 +3,7 @@
 import { ipcRenderer, type IpcRendererEvent } from 'electron';
 import type { MainToYtChannels, YtToMainChannels } from '@shared/ipc';
 import { EqEngine } from '../yt/audio/eq';
-import { NEEDS_REPORT, runCommand, startBridge } from '../yt/player/bridge';
+import { NEEDS_REPORT, runCommand, startBridge, startPageWatcher } from '../yt/player/bridge';
 
 function send<C extends keyof YtToMainChannels>(channel: C, payload: YtToMainChannels[C]): void {
   ipcRenderer.send(channel, payload);
@@ -30,6 +30,7 @@ if (location.hostname === 'music.youtube.com') {
     },
   );
   ipcRenderer.send('yt:ready' satisfies keyof YtToMainChannels);
+  startPageWatcher((page) => send('yt:page-playlist', page));
   // Development only, reachable from DevTools in the preload's isolated world (not the page).
   if (import.meta.env.DEV) Object.assign(globalThis, { pegelEq: eq });
 }

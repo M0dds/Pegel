@@ -233,8 +233,8 @@ export function reduceEq(eq: EqSettings, action: EqAction): EqSettings {
           { playlistId: action.playlistId, title, preset: action.preset },
         ],
       };
-      // Assigning happens while the playlist plays: switch right away.
-      return applyPlaylistContext(assigned, action.playlistId);
+      // Applied by the main process only if this playlist is playing (reapplyPlaylistContext).
+      return assigned;
     }
   }
 }

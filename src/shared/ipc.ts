@@ -3,6 +3,7 @@ import type {
   AppInfo,
   EqSettings,
   PlayerCommand,
+  PagePlaylist,
   PlayerState,
   Settings,
   SettingsPatch,
@@ -22,6 +23,7 @@ export interface InvokeChannels {
   'view:get': { args: []; result: View };
   'player:get': { args: []; result: PlayerState | null };
   'player:get-issues': { args: []; result: string[] };
+  'player:get-page-playlist': { args: []; result: PagePlaylist | null };
 }
 
 /** Fire-and-forget: Pegel UI → main via `ipcRenderer.send`. */
@@ -47,6 +49,7 @@ export interface MainToUiChannels {
   'player:state': PlayerState | null;
   /** Features limited because YT changed its page (selector self-test). */
   'player:selector-issues': string[];
+  'player:page-playlist': PagePlaylist | null;
   'view:changed': View;
 }
 
@@ -57,6 +60,8 @@ export interface YtToMainChannels {
   'yt:player-state': PlayerState;
   /** Result of the selector self-test: German names of affected features. */
   'yt:selector-issues': string[];
+  /** The playlist page shown in the YT view changed (null: no playlist page). */
+  'yt:page-playlist': PagePlaylist | null;
 }
 
 /** Main → YT view preload. */
@@ -90,6 +95,8 @@ export interface PegelApi {
   playerCommand(command: PlayerCommand): void;
   getSelectorIssues(): Promise<string[]>;
   onSelectorIssues(listener: (features: string[]) => void): () => void;
+  getPagePlaylist(): Promise<PagePlaylist | null>;
+  onPagePlaylist(listener: (page: PagePlaylist | null) => void): () => void;
   toggleEqPanel(): void;
   eqPanelAnimationDone(open: boolean): void;
   showView(view: View): void;

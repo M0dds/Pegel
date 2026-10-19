@@ -33,6 +33,12 @@ export interface EqSettings {
   autoPreset?: { from: string };
 }
 
+/** A playlist page that is shown in the YT view (not necessarily playing). */
+export interface PagePlaylist {
+  playlistId: string;
+  title?: string;
+}
+
 export interface PlaylistPreset {
   /** YT playlist id from the `list=` parameter. */
   playlistId: string;

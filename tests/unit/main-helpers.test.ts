@@ -75,6 +75,14 @@ describe('matchShortcut', () => {
     expect(matchShortcut(key('m', { meta: true }), 'darwin', 'music', false)).toBeNull();
   });
 
+  it('reloads YT with F5 and Ctrl+R / ⌘R', () => {
+    const reload = { type: 'reloadYt' };
+    expect(matchShortcut(key('F5'), 'win32', 'music', false)).toEqual(reload);
+    expect(matchShortcut(key('r', { control: true }), 'win32', 'settings', false)).toEqual(reload);
+    expect(matchShortcut(key('r', { meta: true }), 'darwin', 'music', false)).toEqual(reload);
+    expect(matchShortcut(key('r'), 'win32', 'music', false)).toBeNull();
+  });
+
   it('leaves Escape to YT on the music view', () => {
     expect(matchShortcut(key('Escape'), 'win32', 'music', false)).toBeNull();
     expect(matchShortcut(key('Escape'), 'win32', 'offline', false)).toBeNull();

@@ -1,5 +1,5 @@
 import { PLAYLIST_ID_PATTERN } from './settings';
-import type { PlayerCommand, PlayerState } from './types';
+import type { PagePlaylist, PlayerCommand, PlayerState } from './types';
 
 const isStr = (v: unknown): v is string => typeof v === 'string';
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -77,4 +77,14 @@ export function largestArtwork(
     }
   }
   return best?.src;
+}
+
+/** Validates the playlist page reported by the YT preload. */
+export function toPagePlaylist(value: unknown): PagePlaylist | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const v = value as Record<string, unknown>;
+  if (!isStr(v['playlistId']) || !PLAYLIST_ID_PATTERN.test(v['playlistId'])) return null;
+  const page: PagePlaylist = { playlistId: v['playlistId'] };
+  if (isStr(v['title']) && v['title'].trim()) page.title = v['title'].trim().slice(0, 200);
+  return page;
 }

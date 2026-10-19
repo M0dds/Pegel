@@ -9,7 +9,7 @@ import {
 import { THEMES } from '@shared/themes';
 import type { EqSettings, PlayerCommand, Settings, View } from '@shared/types';
 import { isQuitting } from '../app-state';
-import { clearPlayerState, onPlayerState, onSelectorIssues } from '../player';
+import { clearPlayerState, onPagePlaylist, onPlayerState, onSelectorIssues } from '../player';
 import { getSettings, onSettingsChanged, updateSettings } from '../settings';
 import { matchShortcut } from '../shortcuts';
 import { showBackgroundHint } from '../tray';
@@ -153,6 +153,13 @@ function watchSettings(): () => void {
   });
 }
 
+/** F5 / Ctrl+R: reloads YT Music (the page itself, not Pegel). */
+export function reloadYt(): void {
+  if (!ytView) return;
+  if (currentView !== 'music') showView('music');
+  ytView.webContents.reload();
+}
+
 export function retryYt(): void {
   if (ytView) reloadYtView(ytView);
 }
@@ -197,6 +204,10 @@ function handleShortcuts(wc: WebContents): void {
     event.preventDefault();
     if (action.type === 'devtools') return wc.toggleDevTools();
     if (action.type === 'toggleMini') return toggleMiniPlayer();
+    if (action.type === 'reloadYt') {
+      if (wc !== win?.webContents && wc !== ytView?.webContents) closeMiniPlayer();
+      return reloadYt();
+    }
     // From the mini player, Pegel pages and the EQ open in the main window.
     if (wc !== win?.webContents && wc !== ytView?.webContents) closeMiniPlayer();
     if (action.type === 'show') showView(action.view);
@@ -244,6 +255,7 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
   const stopWatching = watchSettings();
   const stopPlayer = onPlayerState((state) => sendToUi('player:state', state));
   const stopIssues = onSelectorIssues((issues) => sendToUi('player:selector-issues', issues));
+  const stopPage = onPagePlaylist((page) => sendToUi('player:page-playlist', page));
 
   const view = createYtView({
     onLoadFailed: () => showView('offline'),
@@ -291,6 +303,7 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
     stopWatching();
     stopPlayer();
     stopIssues();
+    stopPage();
     if (!view.webContents.isDestroyed()) view.webContents.close();
     win = null;
     ytView = null;

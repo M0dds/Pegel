@@ -14,6 +14,7 @@ export type ShortcutAction =
   | { type: 'show'; view: View }
   | { type: 'toggleEq' }
   | { type: 'toggleMini' }
+  | { type: 'reloadYt' }
   | { type: 'devtools' };
 
 /**
@@ -32,6 +33,10 @@ export function matchShortcut(
 
   if (plainMod && input.key === ',') return { type: 'show', view: 'settings' };
   if (plainMod && input.key.toLowerCase() === 'e') return { type: 'toggleEq' };
+  // YT's sidebar etc. do not always refresh by themselves (e.g. after creating a playlist).
+  if ((plainMod && input.key.toLowerCase() === 'r') || (input.key === 'F5' && !mod)) {
+    return { type: 'reloadYt' };
+  }
   // macOS: ⌘M is a menu accelerator there (see menu.ts), so it never reaches this point.
   if (plainMod && input.key.toLowerCase() === 'm' && platform !== 'darwin') {
     return { type: 'toggleMini' };

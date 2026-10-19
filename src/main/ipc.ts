@@ -5,7 +5,15 @@ import { isPlayerCommand } from '@shared/player';
 import { isThemeId } from '@shared/themes';
 import { isView } from '@shared/types';
 import { applyStartAtLogin } from './autostart';
-import { getPlayerState, getSelectorIssues, setPlayerState, setSelectorIssues } from './player';
+import {
+  getPagePlaylist,
+  getPlayerState,
+  getSelectorIssues,
+  setPagePlaylist,
+  setPlayerState,
+  setSelectorIssues,
+} from './player';
+import { reapplyPlaylistContext } from './playlist-eq';
 import { getSettings, updateSettings } from './settings';
 import {
   getView,
@@ -51,6 +59,7 @@ export function registerIpc(): void {
   handle('view:get', () => getView());
   handle('player:get', () => getPlayerState());
   handle('player:get-issues', () => getSelectorIssues());
+  handle('player:get-page-playlist', () => getPagePlaylist());
 
   on('view:show', (_event, view) => {
     if (isView(view)) showView(view);
@@ -62,6 +71,7 @@ export function registerIpc(): void {
     updateSettings((s) => {
       s.eq = reduceEq(s.eq, action);
     });
+    if (action.type === 'setPlaylistPreset') reapplyPlaylistContext();
   });
   on('eq:toggle-panel', () => toggleEqPanel());
   on('theme:set', (_event, theme) => {
@@ -105,5 +115,8 @@ export function registerIpc(): void {
   });
   ipcMain.on('yt:selector-issues', (event, issues: unknown) => {
     if (isYtSender(event.sender)) setSelectorIssues(issues);
+  });
+  ipcMain.on('yt:page-playlist', (event, page: unknown) => {
+    if (isYtSender(event.sender)) setPagePlaylist(page);
   });
 }

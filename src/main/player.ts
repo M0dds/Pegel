@@ -1,8 +1,10 @@
-import { toPlayerState } from '@shared/player';
-import type { PlayerState } from '@shared/types';
+import { toPagePlaylist, toPlayerState } from '@shared/player';
+import type { PagePlaylist, PlayerState } from '@shared/types';
 
 let current: PlayerState | null = null;
 let selectorIssues: string[] = [];
+let pagePlaylist: PagePlaylist | null = null;
+const pageListeners = new Set<(page: PagePlaylist | null) => void>();
 const stateListeners = new Set<(state: PlayerState | null) => void>();
 const issueListeners = new Set<(issues: string[]) => void>();
 
@@ -43,4 +45,19 @@ export function onPlayerState(listener: (state: PlayerState | null) => void): ()
 export function onSelectorIssues(listener: (issues: string[]) => void): () => void {
   issueListeners.add(listener);
   return () => issueListeners.delete(listener);
+}
+
+export function getPagePlaylist(): PagePlaylist | null {
+  return pagePlaylist;
+}
+
+/** The YT view reports which playlist page it shows (null: none). */
+export function setPagePlaylist(raw: unknown): void {
+  pagePlaylist = raw === null ? null : toPagePlaylist(raw);
+  for (const listener of pageListeners) listener(pagePlaylist);
+}
+
+export function onPagePlaylist(listener: (page: PagePlaylist | null) => void): () => void {
+  pageListeners.add(listener);
+  return () => pageListeners.delete(listener);
 }
