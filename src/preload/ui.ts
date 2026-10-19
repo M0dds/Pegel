@@ -72,6 +72,8 @@ const api: PegelApi = {
   onUpdateStatus: (listener) => subscribe('update:status', listener),
   checkForUpdates: () => send('update:check'),
   installUpdate: () => send('update:install'),
+  setSpectrumBars: (bars) => send('mini:spectrum-bars', bars),
+  onSpectrum: (listener) => subscribe('mini:spectrum', listener),
 };
 
 contextBridge.exposeInMainWorld('pegel', api);

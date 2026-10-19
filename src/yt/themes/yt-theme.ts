@@ -1,5 +1,6 @@
 import type { Theme, ThemeToken } from '@shared/themes';
 import { SELECTORS } from '../selectors';
+import { NO_SCROLLBAR_ATTR } from '../decor/scrollbar';
 
 /**
  * YT Music's own colour variables (defined on `html`), grouped by the Pegel
@@ -99,12 +100,19 @@ export const YT_ELEMENT_COLORS: readonly {
  * no horizontal scrollbar inside menus (it only appears because the vertical
  * one takes width).
  */
+/** Width of Pegel's scrollbars on the YT page. */
+const SCROLLBAR_PX = 10;
+
 export function buildYtPolishCss(theme: Theme): string {
   const t = theme.tokens;
   return `
 /* YT sets scrollbar-color everywhere, which makes Chromium ignore ::-webkit-scrollbar. */
 * { scrollbar-color: auto !important; scrollbar-width: auto !important; }
-::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
+::-webkit-scrollbar { width: ${SCROLLBAR_PX}px !important; height: ${SCROLLBAR_PX}px !important; }
+/* YT keeps the player bar this far from the right edge for its 12 px scrollbar:
+   match Pegel's scrollbar, and no gap at all where the page has none. */
+html { --ytmusic-scrollbar-width: ${SCROLLBAR_PX}px !important; }
+html[${NO_SCROLLBAR_ATTR}] { --ytmusic-scrollbar-width: 0px !important; }
 ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent !important; }
 ::-webkit-scrollbar-thumb {
   background: ${t['surface-3']} !important; border: 3px solid transparent !important;

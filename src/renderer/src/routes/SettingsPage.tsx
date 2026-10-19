@@ -222,6 +222,16 @@ export function SettingsPage({ settings, appInfo, selectorIssues, update }: Prop
             />
           </Row>
           <Row
+            title="Visualizer im Mini-Player"
+            hint="Frequenzbalken hinter den Tasten des Mini-Players"
+          >
+            <Switch
+              checked={settings.mini.visualizer}
+              label="Visualizer im Mini-Player"
+              onChange={(visualizer) => window.pegel.patchSettings({ mini: { visualizer } })}
+            />
+          </Row>
+          <Row
             title="Hauptfenster beim Mini-Player ausblenden"
             hint="Der Mini-Player ersetzt das Fenster, die Musik läuft weiter"
           >

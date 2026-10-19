@@ -1,5 +1,14 @@
-import { useEffect, useState, type CSSProperties, type MouseEvent, type WheelEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+  type WheelEvent,
+} from 'react';
 import { isDirty } from '@shared/eq';
+import { barCount, BarMeter, drawBars, fitCanvas } from '@shared/spectrum';
+import { THEMES } from '@shared/themes';
 import type { PlayerCommand, PlayerState, Settings } from '@shared/types';
 import {
   ExpandIcon,
@@ -38,6 +47,69 @@ function usePosition(state: PlayerState | null): number {
   }, [state]);
 
   return state ? position : 0;
+}
+
+const BAR_WIDTH = 7;
+const BAR_GAP = 3;
+
+/**
+ * Frequency bars behind the controls, from the window's bottom edge up to just
+ * below the cover. The levels come from the YT view (via the main process);
+ * the bars fall and the caps sink here, so it stays smooth between messages.
+ */
+function MiniVisualizer({ color }: { color: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const meter = new BarMeter();
+    let targets: number[] | null = null;
+    let frame = 0;
+    let last = 0;
+    let bars = 0;
+
+    const draw = (time: number) => {
+      frame = 0;
+      const dt = last ? Math.min(0.1, (time - last) / 1000) : 1 / 60;
+      last = time;
+      const dpr = window.devicePixelRatio || 1;
+      if (!fitCanvas(canvas, dpr)) return;
+      const count = barCount(canvas.clientWidth, BAR_WIDTH, BAR_GAP);
+      if (count !== bars) {
+        bars = count;
+        window.pegel.setSpectrumBars(count);
+      }
+      meter.update(targets, count, dt);
+      const ctx = canvas.getContext('2d')!;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawBars(ctx, canvas.clientWidth, canvas.clientHeight, meter, {
+        barWidth: BAR_WIDTH,
+        gap: BAR_GAP,
+        usable: 0.94,
+        color,
+      });
+      // Keep animating while something moves; a new message starts it again.
+      if (targets || !meter.isIdle()) frame = requestAnimationFrame(draw);
+      else last = 0;
+    };
+    const wake = () => {
+      if (!frame) frame = requestAnimationFrame(draw);
+    };
+
+    const off = window.pegel.onSpectrum((levels) => {
+      targets = levels.length ? levels.map((v) => v / 255) : null;
+      wake();
+    });
+    wake();
+    return () => {
+      off();
+      if (frame) cancelAnimationFrame(frame);
+      window.pegel.setSpectrumBars(0);
+    };
+  }, [color]);
+
+  return <canvas ref={canvasRef} className="mini-visualizer" aria-hidden="true" />;
 }
 
 function formatTime(sec: number): string {
@@ -141,6 +213,9 @@ export function MiniPlayer() {
       </div>
 
       <div className="mini-ctrl">
+        {settings?.mini.visualizer && (
+          <MiniVisualizer color={THEMES[settings.theme].tokens.accent} />
+        )}
         <button
           className="icon-btn"
           disabled={!has}

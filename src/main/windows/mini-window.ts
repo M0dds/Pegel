@@ -12,6 +12,10 @@ const SAVE_DELAY_MS = 400;
 let mini: BrowserWindow | null = null;
 const listeners = new Set<() => void>();
 
+export function getMiniWindow(): BrowserWindow | null {
+  return mini && !mini.isDestroyed() ? mini : null;
+}
+
 export function isMiniOpen(): boolean {
   return !!mini && !mini.isDestroyed();
 }

@@ -69,7 +69,8 @@ export interface Settings {
   mediaKeys: boolean;
   /** Offer YT links from the clipboard when the window gets focus. */
   clipboardLinks: boolean;
-  mini: { alwaysOnTop: boolean; bounds?: Rect; hideMainOnOpen: boolean };
+  /** `visualizer`: frequency bars behind the mini player's controls. */
+  mini: { alwaysOnTop: boolean; bounds?: Rect; hideMainOnOpen: boolean; visualizer: boolean };
   discord: { enabled: boolean; hideWhenPaused: boolean };
   window: { bounds?: Rect; maximized: boolean };
   welcomeShown: boolean;
@@ -83,7 +84,7 @@ export interface Settings {
 export type SettingsPatch = Partial<
   Pick<Settings, 'closeToTray' | 'startAtLogin' | 'mediaKeys' | 'clipboardLinks'>
 > & {
-  mini?: Partial<Pick<Settings['mini'], 'alwaysOnTop' | 'hideMainOnOpen'>>;
+  mini?: Partial<Pick<Settings['mini'], 'alwaysOnTop' | 'hideMainOnOpen' | 'visualizer'>>;
   effects?: Partial<Settings['effects']>;
 };
 

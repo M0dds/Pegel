@@ -391,6 +391,11 @@ Die Meilensteine werden in dieser Reihenfolge abgearbeitet. Jeder endet mit eine
   - Pegel hebt leise Titel um bis zu 6 dB an. Dafür hat die Kette eine Gain-Stufe vor dem Preamp und einen Limiter am Ende, der transparent bleibt, solange nichts angehoben wird.
   - Geprüft: Ein Titel mit −9 dB wird um 6 dB angehoben.
 - [x] Windows-Icon füllt das Quadrat (wie andere Apps in der Taskleiste), macOS behält Apples Rand
+- [x] **Visualizer im Mini-Player** (Einstellung, standardmäßig an):
+  - Die YT-Ansicht schickt rund 30-mal pro Sekunde Balkenwerte (Bytes) über den Main-Prozess an den Mini-Player. Das läuft per Timer, weil das Hauptfenster dabei meist versteckt ist.
+  - Fallen und Kappen rechnet der Mini-Player selbst (`src/shared/spectrum.ts`, gemeinsam mit dem YT-Visualizer).
+  - Die Balken reichen von unten bis 10 px unter das Cover.
+- [x] **Lücke rechts neben der Player-Leiste geschlossen.** YT hält die Leiste `--ytmusic-scrollbar-width` (12 px) vom Rand fern, auch ohne Scrollleiste. Pegel setzt die Variable auf die eigene Scrollleiste (10 px) und auf 0, solange keine da ist (`src/yt/decor/scrollbar.ts`).
 - [ ] Test durch Johann: Installer 1.0.0, Update von 1.0.0 auf 1.0.1 (erst mit dem zweiten Release prüfbar), Link aus Discord
 - **Risiko macOS:** Neuere macOS-Versionen können beim Lesen der Zwischenablage nachfragen. Dann hilft der Schalter, oder Pegel liest nur noch auf Knopfdruck.
 

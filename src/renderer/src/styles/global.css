@@ -1144,6 +1144,8 @@ input[type='checkbox']:checked::after {
 
 .mini-ctrl {
   flex: 1;
+  position: relative;
+  isolation: isolate; /* the visualizer (z-index -1) stays behind the buttons */
   display: flex;
   justify-content: center;
   gap: 14px;
@@ -1693,4 +1695,17 @@ input[type='checkbox']:checked::after {
 .eq-levelling small {
   color: var(--text-dim);
   font-size: 12px;
+}
+
+/* From the bottom edge up to 10 px below the cover (mini-top ends 6 px below it). */
+.mini-visualizer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 4px;
+  bottom: 0;
+  width: 100%;
+  height: calc(100% - 4px);
+  z-index: -1;
+  pointer-events: none;
 }

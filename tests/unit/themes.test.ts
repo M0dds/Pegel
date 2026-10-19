@@ -91,6 +91,8 @@ describe('buildYtThemeCss', () => {
       'background-repeat',
       'scrollbar-color',
       'scrollbar-width',
+      // YT's own scrollbar room next to the player bar, matched to Pegel's scrollbar.
+      '--ytmusic-scrollbar-width',
     ]);
     const props = [...buildYtPolishCss(THEMES.sakura).matchAll(/([a-z-]+)\s*:\s*[^;{}]+;/g)].map(
       (m) => m[1]!,

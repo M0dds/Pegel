@@ -4,8 +4,9 @@ import { ipcRenderer, type IpcRendererEvent } from 'electron';
 import type { MainToYtChannels, YtToMainChannels } from '@shared/ipc';
 import { watchLinkDrops } from '@shared/link-drop';
 import { EqEngine } from '../yt/audio/eq';
-import { Visualizer } from '../yt/audio/visualizer';
+import { SpectrumFeed, Visualizer } from '../yt/audio/visualizer';
 import { YtDecor } from '../yt/decor/effects';
+import { watchScrollbar } from '../yt/decor/scrollbar';
 import {
   NEEDS_REPORT,
   runCommand,
@@ -32,6 +33,14 @@ if (location.hostname === 'music.youtube.com') {
     'yt:effects' satisfies keyof MainToYtChannels,
     (_event: IpcRendererEvent, effects: MainToYtChannels['yt:effects']) => decor.apply(effects),
   );
+  const feed = new SpectrumFeed(
+    () => eq.getAnalyser(),
+    (levels) => send('yt:spectrum', levels),
+  );
+  ipcRenderer.on(
+    'yt:spectrum-feed' satisfies keyof MainToYtChannels,
+    (_event: IpcRendererEvent, bars: MainToYtChannels['yt:spectrum-feed']) => feed.setBars(bars),
+  );
   const bridge = startBridge(
     (state) => send('yt:player-state', state),
     (issues) => send('yt:selector-issues', issues),
@@ -47,6 +56,7 @@ if (location.hostname === 'music.youtube.com') {
   ipcRenderer.send('yt:ready' satisfies keyof YtToMainChannels);
   startPageWatcher((page) => send('yt:page-playlist', page));
   watchLinkDrops(window, (url) => send('yt:drop-link', url));
+  watchScrollbar();
   // Development only, reachable from DevTools in the preload's isolated world (not the page).
   if (import.meta.env.DEV) Object.assign(globalThis, { pegelEq: eq, pegelDecor: decor });
 }

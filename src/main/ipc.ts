@@ -2,6 +2,7 @@ import { app, ipcMain, type IpcMainEvent, type IpcMainInvokeEvent } from 'electr
 import type { InvokeArgs, InvokeChannel, InvokeResult, UiToMainChannels } from '@shared/ipc';
 import { isEqAction, reduceEq } from '@shared/eq';
 import { findPegelLink } from '@shared/links';
+import { MAX_FEED_BARS } from '@shared/spectrum';
 import { isPlayerCommand } from '@shared/player';
 import { isThemeId } from '@shared/themes';
 import { isView } from '@shared/types';
@@ -32,6 +33,8 @@ import {
   isMainMaximized,
   windowControl,
   openLink,
+  setMiniSpectrumBars,
+  forwardSpectrum,
   openOfferedLink,
   dismissOfferedLink,
   openMiniPlayer,
@@ -122,6 +125,11 @@ export function registerIpc(): void {
   });
   on('update:check', () => checkForUpdates(true));
   on('update:install', () => installUpdate());
+  on('mini:spectrum-bars', (_event, bars) => {
+    if (typeof bars === 'number' && Number.isFinite(bars)) {
+      setMiniSpectrumBars(Math.max(0, Math.min(MAX_FEED_BARS, Math.round(bars))));
+    }
+  });
   on('mini:open', () => openMiniPlayer());
   on('mini:close', () => closeMiniPlayer());
   on('player:command', (_event, command) => {
@@ -141,6 +149,7 @@ export function registerIpc(): void {
         const m = mini as Record<string, unknown>;
         if (typeof m['alwaysOnTop'] === 'boolean') s.mini.alwaysOnTop = m['alwaysOnTop'];
         if (typeof m['hideMainOnOpen'] === 'boolean') s.mini.hideMainOnOpen = m['hideMainOnOpen'];
+        if (typeof m['visualizer'] === 'boolean') s.mini.visualizer = m['visualizer'];
       }
       const effects = p['effects'];
       if (typeof effects === 'object' && effects !== null) {
@@ -163,6 +172,12 @@ export function registerIpc(): void {
   });
   ipcMain.on('yt:page-playlist', (event, page: unknown) => {
     if (isYtSender(event.sender)) setPagePlaylist(page);
+  });
+  ipcMain.on('yt:spectrum', (event, levels: unknown) => {
+    if (!isYtSender(event.sender) || !Array.isArray(levels)) return;
+    if (levels.length > MAX_FEED_BARS) return;
+    if (!levels.every((v) => Number.isInteger(v) && v >= 0 && v <= 255)) return;
+    forwardSpectrum(levels as number[]);
   });
   ipcMain.on('yt:drop-link', (event, text: unknown) => {
     const link = isYtSender(event.sender) && typeof text === 'string' ? findPegelLink(text) : null;

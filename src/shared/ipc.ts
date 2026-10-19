@@ -51,6 +51,8 @@ export interface UiToMainChannels {
   'mini:open': void;
   /** "Enlarge": close the mini player and show the main window. */
   'mini:close': void;
+  /** Mini player visualizer: how many bars it draws (0: none, stops the feed). */
+  'mini:spectrum-bars': number;
   /** Opens the link offered in the title bar (copied to the clipboard). */
   'link:open': void;
   'link:dismiss': void;
@@ -75,6 +77,8 @@ export interface MainToUiChannels {
   /** A YT link in the clipboard that Pegel can open (null: none / hint gone). */
   'link:offer': PegelLink | null;
   'update:status': UpdateStatus;
+  /** Bar levels 0…255 for the mini player's visualizer (empty: silence). */
+  'mini:spectrum': number[];
 }
 
 /** YT view preload → main. */
@@ -88,6 +92,8 @@ export interface YtToMainChannels {
   'yt:page-playlist': PagePlaylist | null;
   /** Text dropped onto YT where YT itself does not take it. */
   'yt:drop-link': string;
+  /** Bar levels for the mini player, while it asks for them. */
+  'yt:spectrum': number[];
 }
 
 /** Main → YT view preload. */
@@ -95,6 +101,8 @@ export interface MainToYtChannels {
   'yt:eq-apply': EqSettings;
   'yt:player-command': PlayerCommand;
   'yt:effects': YtEffects;
+  /** Number of bars the mini player wants (0: stop). */
+  'yt:spectrum-feed': number;
 }
 
 export type InvokeChannel = keyof InvokeChannels;
@@ -143,6 +151,8 @@ export interface PegelApi {
   onUpdateStatus(listener: (status: UpdateStatus) => void): () => void;
   checkForUpdates(): void;
   installUpdate(): void;
+  setSpectrumBars(bars: number): void;
+  onSpectrum(listener: (levels: number[]) => void): () => void;
   /** Returns a function that removes the listener. */
   onViewChanged(listener: (view: View) => void): () => void;
 }

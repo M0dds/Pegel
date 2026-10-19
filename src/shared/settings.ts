@@ -30,7 +30,7 @@ export const DEFAULT_SETTINGS: Settings = {
   startAtLogin: false,
   mediaKeys: true,
   clipboardLinks: true,
-  mini: { alwaysOnTop: true, hideMainOnOpen: true },
+  mini: { alwaysOnTop: true, hideMainOnOpen: true, visualizer: true },
   discord: { enabled: true, hideWhenPaused: true },
   window: { maximized: false },
   welcomeShown: false,
@@ -167,6 +167,7 @@ export function normalizeSettings(input: unknown): Settings {
     mini: {
       alwaysOnTop: bool(mini['alwaysOnTop'], d.mini.alwaysOnTop),
       hideMainOnOpen: bool(mini['hideMainOnOpen'], d.mini.hideMainOnOpen),
+      visualizer: bool(mini['visualizer'], d.mini.visualizer),
       ...(miniBounds && { bounds: miniBounds }),
     },
     discord: {

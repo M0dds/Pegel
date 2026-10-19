@@ -33,7 +33,13 @@ import {
   startSignIn,
 } from '../yt-view';
 import { loadUi, UI_WEB_PREFERENCES } from './load-ui';
-import { closeMiniWindow, isMiniOpen, openMiniWindow } from './mini-window';
+import {
+  closeMiniWindow,
+  getMiniWindow,
+  isMiniOpen,
+  onMiniChanged,
+  openMiniWindow,
+} from './mini-window';
 
 const SAVE_BOUNDS_DELAY_MS = 400;
 /** Lets YT finish its follow-up requests after creating a playlist before reloading. */
@@ -109,11 +115,25 @@ function ytEffects(settings: Settings): YtEffects {
   };
 }
 
+/** Bars the mini player's visualizer wants from the YT view (0: none). */
+let miniSpectrumBars = 0;
+
+export function setMiniSpectrumBars(bars: number): void {
+  miniSpectrumBars = bars;
+  sendToYt('yt:spectrum-feed', bars);
+}
+
+/** Bar levels from the YT view, for the mini player only. */
+export function forwardSpectrum(levels: number[]): void {
+  getMiniWindow()?.webContents.send('mini:spectrum', levels);
+}
+
 /** Sends EQ and effects to the YT preload once it reports ready (after every page load). */
 export function handleYtReady(sender: WebContents): void {
   if (sender !== ytView?.webContents) return;
   sendToYt('yt:eq-apply', getSettings().eq);
   sendToYt('yt:effects', ytEffects(getSettings()));
+  if (miniSpectrumBars) sendToYt('yt:spectrum-feed', miniSpectrumBars);
 }
 
 /** Opens the mini player; the main window hides (setting "hideMainOnOpen"), music continues. */
@@ -387,6 +407,10 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
   const stopIssues = onSelectorIssues((issues) => sendToUi('player:selector-issues', issues));
   const stopPage = onPagePlaylist((page) => sendToUi('player:page-playlist', page));
   const stopUpdates = onUpdateStatus((status) => sendToUi('update:status', status));
+  // The mini player closed: the YT view stops sending bar levels.
+  const stopMini = onMiniChanged(() => {
+    if (!isMiniOpen() && miniSpectrumBars) setMiniSpectrumBars(0);
+  });
   // YT only loads its sidebar per page load. A new playlist appears after a reload:
   // automatically when nothing plays, otherwise the title bar offers it.
   const stopPlaylistCreated = onPlaylistCreated(() => {
@@ -450,6 +474,7 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
     stopIssues();
     stopPage();
     stopUpdates();
+    stopMini();
     stopPlaylistCreated();
     if (!view.webContents.isDestroyed()) view.webContents.close();
     win = null;
