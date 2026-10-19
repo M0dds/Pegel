@@ -1562,19 +1562,23 @@ input[type='checkbox']:checked::after {
 .tb-hint {
   display: flex;
   align-items: center;
-  gap: 8px;
   height: 26px;
-  padding: 0 4px 0 12px;
+  margin-left: 6px;
+  /* Right: 7 px + half of the close button's spare room = 12 px, like the left side. */
+  padding: 0 7px 0 12px;
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--text);
   font-size: 12.5px;
   white-space: nowrap;
+  /* The title bar is a window drag area. Without this, Windows treats a click on
+     the pill as "move window" and the buttons never get it. */
+  -webkit-app-region: no-drag;
   animation: fade-in 0.2s ease-out;
 }
 
-.titlebar .tb-hint button {
-  -webkit-app-region: no-drag;
+.tb-hint > span {
+  margin-right: 10px;
 }
 
 .tb-hint-action {
@@ -1589,9 +1593,15 @@ input[type='checkbox']:checked::after {
   cursor: pointer;
 }
 
+.tb-hint-action:hover {
+  filter: brightness(1.08);
+}
+
+/* 20 px hit area, 10 px glyph: 5 px margin makes the visible gap 10 px, like on the left. */
 .tb-hint-close {
   width: 20px;
   height: 20px;
+  margin-left: 5px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -1608,6 +1618,6 @@ input[type='checkbox']:checked::after {
 }
 
 .tb-hint-close svg {
-  width: 11px;
-  height: 11px;
+  width: 10px;
+  height: 10px;
 }

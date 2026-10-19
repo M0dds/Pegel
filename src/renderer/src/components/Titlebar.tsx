@@ -46,7 +46,6 @@ export function Titlebar({
         <Logo />
         Pegel
       </button>
-      <div className="tb-spacer" />
       {sidebarOutdated && (
         <div className="tb-hint" role="status">
           <span>Neue Playlist angelegt</span>
