@@ -12,16 +12,20 @@ import { encodePng, renderLogoRgba } from '../src/main/tray-icon.ts';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const TILE = [0x14, 0x13, 0x15] as const; // near-black, a touch warmer than #121212
 const ACCENT = [0xff, 0x1f, 0x4b] as const; // Standard theme accent
-/** macOS-style margin around the tile and corner radius, relative to the size. */
-const MARGIN = 0.08;
+/**
+ * Margin around the tile, relative to the size. macOS icons keep Apple's grid
+ * margin; Windows icons fill the square (taskbar and Start menu show them
+ * edge to edge, like other apps do).
+ */
+const MARGIN = { mac: 0.08, win: 0.02 } as const;
 const RADIUS = 0.225;
-/** Logo size on the tile. */
-const LOGO = 0.6;
+/** Logo size relative to the tile. */
+const LOGO = 0.7;
 const SS = 4;
 
-function insideRoundedSquare(x: number, y: number, size: number): boolean {
-  const m = size * MARGIN;
-  const r = size * RADIUS;
+function insideRoundedSquare(x: number, y: number, size: number, margin: number): boolean {
+  const m = size * margin;
+  const r = (size - 2 * m) * RADIUS;
   const lo = m;
   const hi = size - m;
   if (x < lo || x > hi || y < lo || y > hi) return false;
@@ -30,9 +34,9 @@ function insideRoundedSquare(x: number, y: number, size: number): boolean {
   return (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
 }
 
-function renderAppIcon(size: number): Uint8Array {
+function renderAppIcon(size: number, margin: number): Uint8Array {
   const out = new Uint8Array(size * size * 4);
-  const logoSize = Math.round(size * LOGO);
+  const logoSize = Math.round(size * (1 - 2 * margin) * LOGO);
   const logo = renderLogoRgba(logoSize, ACCENT);
   const offset = Math.round((size - logoSize) / 2);
   for (let y = 0; y < size; y++) {
@@ -40,7 +44,7 @@ function renderAppIcon(size: number): Uint8Array {
       let cover = 0;
       for (let sy = 0; sy < SS; sy++) {
         for (let sx = 0; sx < SS; sx++) {
-          if (insideRoundedSquare(x + (sx + 0.5) / SS, y + (sy + 0.5) / SS, size)) cover++;
+          if (insideRoundedSquare(x + (sx + 0.5) / SS, y + (sy + 0.5) / SS, size, margin)) cover++;
         }
       }
       const tileAlpha = cover / SS ** 2;
@@ -64,7 +68,8 @@ function renderAppIcon(size: number): Uint8Array {
   return out;
 }
 
-const png = (size: number) => encodePng(size, size, renderAppIcon(size));
+const png = (size: number, margin: number = MARGIN.win) =>
+  encodePng(size, size, renderAppIcon(size, margin));
 
 /** ICO with PNG-compressed entries (supported since Windows Vista). */
 function ico(sizes: number[]): Buffer {
@@ -103,7 +108,7 @@ function icns(): Buffer {
     ['ic10', 1024], // 512@2x
   ];
   const chunks = entries.map(([type, size]) => {
-    const data = png(size);
+    const data = png(size, MARGIN.mac);
     const head = Buffer.alloc(8);
     head.write(type, 0, 'ascii');
     head.writeUInt32BE(data.length + 8, 4);

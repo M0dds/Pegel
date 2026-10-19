@@ -7,6 +7,7 @@ import { setupMenu } from './menu';
 import { startPlaylistEq } from './playlist-eq';
 import { flushSettings, getSettings, loadSettings } from './settings';
 import { createTray } from './tray';
+import { startUpdates } from './updater';
 import { getYtSession } from './yt-view';
 import {
   createMainWindow,
@@ -51,6 +52,7 @@ if (!app.requestSingleInstanceLock()) {
     });
     // Autostart (--hidden): YT loads in the background, only the tray is visible.
     createMainWindow({ show: !shouldStartHidden() });
+    startUpdates();
 
     app.on('activate', () => {
       // macOS: dock icon clicked.

@@ -9,7 +9,7 @@ Pegel ist ein inoffizieller Desktop-Client für YouTube Music für Windows und m
 - Autostart,
 - einen Discord-Status.
 
-Pegel ist für den privaten Gebrauch gedacht (Johann und Freunde). Es wird nicht verkauft und nicht öffentlich vertrieben.
+Pegel ist ein privates Hobbyprojekt für Johann und Freunde. Der Quellcode und die Installer liegen öffentlich auf GitHub (`M0dds/Pegel`), damit der Download-Link und die Updates funktionieren. Pegel wird nicht verkauft und nicht mit YouTube-Logo oder -Marke beworben.
 
 Design-Referenz: [`design/mockup.html`](../design/mockup.html). Im Browser öffnen, dort lassen sich Ansicht, Theme und Betriebssystem umschalten.
 
@@ -374,11 +374,30 @@ Die Meilensteine werden in dieser Reihenfolge abgearbeitet. Jeder endet mit eine
 - [x] README für Nutzer: Installation, SmartScreen-Hinweis („Weitere Informationen → Trotzdem ausführen“), macOS-Gatekeeper (Rechtsklick → Öffnen bzw. „Trotzdem öffnen“ in den Systemeinstellungen)
 - **Fertig, wenn:** Der Installer auf einem frischen Windows-PC funktioniert und das DMG auf Johanns MacBook.
 
+### M9 – Release 1.0 (auf Wunsch von Johann vorgezogen)
+
+- [x] **Links in Pegel öffnen.** Unsignierte Apps dürfen unter Windows und macOS keine einzelne Website übernehmen. Ein Klick in Discord öffnet also weiterhin den Browser. Stattdessen:
+  - Beim Wechsel ins Fenster erkennt Pegel einen kopierten YT-Link (Titel, Playlist, Album, Künstler, auch `youtu.be` und `youtube.com/watch`). In der Titelleiste erscheint dann „Kopierter Link: … · Öffnen“.
+  - Links lassen sich aufs Fenster ziehen.
+  - Was beim letzten Fokusverlust schon in der Zwischenablage lag (also in Pegel selbst kopiert wurde), wird nicht angeboten.
+  - Abschaltbar über die Einstellung „Kopierte Links erkennen“ (`src/shared/links.ts`, `src/shared/link-drop.ts`).
+- [x] **Updates über GitHub Releases** (`M0dds/Pegel`):
+  - Windows: `electron-updater` lädt im Hintergrund und zeigt „Update auf … bereit · Neu starten“. Das Update installiert sich auch beim Beenden.
+  - macOS: Nur ein Hinweis mit Download-Link, weil Squirrel.Mac eine Apple-Signatur braucht. Pegel fragt dazu die GitHub-API.
+  - Einstellungen → Über → „Nach Updates suchen“.
+  - Release-Workflow `.github/workflows/release.yml`: Tag `v*` → Draft-Release → Builds für Windows und macOS → Veröffentlichung.
+- [x] **Lautstärke angleichen** (Schalter im EQ-Panel, standardmäßig an):
+  - YT liefert pro Titel `playerConfig.audioConfig.loudnessDb` (Abstand zum YT-Referenzpegel) und senkt laute Titel selbst ab.
+  - Pegel hebt leise Titel um bis zu 6 dB an. Dafür hat die Kette eine Gain-Stufe vor dem Preamp und einen Limiter am Ende, der transparent bleibt, solange nichts angehoben wird.
+  - Geprüft: Ein Titel mit −9 dB wird um 6 dB angehoben.
+- [x] Windows-Icon füllt das Quadrat (wie andere Apps in der Taskleiste), macOS behält Apples Rand
+- [ ] Test durch Johann: Installer 1.0.0, Update von 1.0.0 auf 1.0.1 (erst mit dem zweiten Release prüfbar), Link aus Discord
+- **Risiko macOS:** Neuere macOS-Versionen können beim Lesen der Zwischenablage nachfragen. Dann hilft der Schalter, oder Pegel liest nur noch auf Knopfdruck.
+
 ### Später (optional)
 
-- Auto-Update über GitHub Releases (`electron-updater`). Unter Windows geht das auch unsigniert, unter macOS nur signiert.
-- `music.youtube.com`-Links direkt in Pegel öffnen (Protokoll- bzw. Link-Handler)
-- Liedtexte im Seitenpanel, Last.fm-Scrobbling, weitere Themes, Lautstärkeangleichung zwischen Titeln
+- Liedtexte im Seitenpanel, Last.fm-Scrobbling, weitere Themes
+- Echter Link-Handler (Klick im Browser bzw. in Discord öffnet Pegel). Braucht Signierung bzw. eine Browser-Erweiterung.
 
 ---
 

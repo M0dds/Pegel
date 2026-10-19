@@ -5,11 +5,13 @@ import {
   formatDb,
   isDirty,
   isEqAction,
+  levellingBoostDb,
   presetNameError,
   reduceEq,
   validPresetName,
   type EqAction,
 } from '@shared/eq';
+import { normalizeSettings } from '@shared/settings';
 import { DEFAULT_SETTINGS } from '@shared/settings';
 import type { EqSettings } from '@shared/types';
 
@@ -200,5 +202,28 @@ describe('formatDb', () => {
     expect(formatDb(-1.5)).toBe('−1.5');
     expect(formatDb(0)).toBe('0');
     expect(formatDb(-4, true)).toBe('−4.0');
+  });
+});
+
+describe('levellingBoostDb', () => {
+  it('raises quiet tracks up to the reference, at most 6 dB', () => {
+    expect(levellingBoostDb(-3.2)).toBe(3.2);
+    expect(levellingBoostDb(-11)).toBe(6);
+  });
+
+  it('leaves loud tracks (YT lowers them) and unknown loudness alone', () => {
+    expect(levellingBoostDb(4.5)).toBe(0);
+    expect(levellingBoostDb(0)).toBe(0);
+    expect(levellingBoostDb(undefined)).toBe(0);
+    expect(levellingBoostDb(Number.NaN)).toBe(0);
+  });
+});
+
+describe('setLevelling', () => {
+  it('switches levelling and is validated', () => {
+    const eq = normalizeSettings({}).eq;
+    expect(reduceEq(eq, { type: 'setLevelling', enabled: false }).levelling).toBe(false);
+    expect(isEqAction({ type: 'setLevelling', enabled: true })).toBe(true);
+    expect(isEqAction({ type: 'setLevelling', enabled: 'ja' })).toBe(false);
   });
 });

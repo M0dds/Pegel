@@ -18,6 +18,8 @@ export type EqAction =
   | { type: 'setBand'; index: number; gain: number }
   | { type: 'setPreamp'; preamp: number }
   | { type: 'setAutoPreamp'; auto: boolean }
+  /** Volume levelling between tracks (independent of the EQ being on). */
+  | { type: 'setLevelling'; enabled: boolean }
   | { type: 'applyPreset'; name: string }
   /** New custom preset from a template preset, or from the current values (`from: null`). */
   | { type: 'createPreset'; name: string; from: string | null }
@@ -38,6 +40,19 @@ export function autoPreamp(gains: readonly number[]): number {
 }
 
 /** The preamp that is actually applied. */
+/** Most a quiet track is raised; more would mostly make the limiter work. */
+export const LEVELLING_MAX_BOOST_DB = 6;
+
+/**
+ * Volume levelling: YT itself turns loud tracks down (content loudness above
+ * its reference, `loudnessDb` > 0) but leaves quiet ones as they are. Pegel
+ * raises those (negative `loudnessDb`) up to the reference.
+ */
+export function levellingBoostDb(loudnessDb: number | undefined): number {
+  if (loudnessDb === undefined || !Number.isFinite(loudnessDb) || loudnessDb >= 0) return 0;
+  return Math.min(LEVELLING_MAX_BOOST_DB, Math.round(-loudnessDb * 10) / 10);
+}
+
 export function effectivePreamp(eq: Pick<EqSettings, 'gains' | 'preamp' | 'autoPreamp'>): number {
   return eq.autoPreamp ? autoPreamp(eq.gains) : eq.preamp;
 }
@@ -155,6 +170,8 @@ export function reduceEq(eq: EqSettings, action: EqAction): EqSettings {
         preamp: clampDb(action.preamp, EQ_PREAMP_MIN, EQ_PREAMP_MAX),
         autoPreamp: false,
       };
+    case 'setLevelling':
+      return { ...eq, levelling: action.enabled };
     case 'setAutoPreamp':
       // Switching auto off keeps the current value instead of jumping.
       return action.auto
@@ -258,6 +275,8 @@ export function isEqAction(value: unknown): value is EqAction {
       return isNum(a['preamp']);
     case 'setAutoPreamp':
       return isBool(a['auto']);
+    case 'setLevelling':
+      return isBool(a['enabled']);
     case 'applyPreset':
     case 'deletePreset':
       return isStr(a['name']);

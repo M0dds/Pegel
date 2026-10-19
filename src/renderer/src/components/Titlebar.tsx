@@ -11,9 +11,15 @@ interface Props {
   theme: ThemeId;
   /** Falling petals are drawn by PetalLayer; the static ones are the fallback. */
   animatedPetals: boolean;
-  /** A playlist was created while music plays; YT shows it after a reload. */
-  sidebarOutdated: boolean;
-  onDismissSidebarHint(): void;
+  hint: TitlebarHint | null;
+}
+
+/** Pill next to the logo: copied link, new playlist, update. */
+export interface TitlebarHint {
+  text: string;
+  action: string;
+  onAction(): void;
+  onClose(): void;
 }
 
 /** Sakura extra: a few petals scattered over the title bar (from the mockup). */
@@ -31,14 +37,7 @@ function Petals() {
   );
 }
 
-export function Titlebar({
-  view,
-  eqOpen,
-  theme,
-  animatedPetals,
-  sidebarOutdated,
-  onDismissSidebarHint,
-}: Props) {
+export function Titlebar({ view, eqOpen, theme, animatedPetals, hint }: Props) {
   return (
     <header className="titlebar">
       {theme === 'sakura' && !animatedPetals && <Petals />}
@@ -46,17 +45,17 @@ export function Titlebar({
         <Logo />
         Pegel
       </button>
-      {sidebarOutdated && (
-        <div className="tb-hint" role="status">
-          <span>Neue Playlist angelegt</span>
-          <button className="tb-hint-action" onClick={() => window.pegel.reloadYt()}>
-            Jetzt aktualisieren
+      {hint && (
+        <div className="tb-hint" role="status" key={hint.text}>
+          <span>{hint.text}</span>
+          <button className="tb-hint-action" onClick={hint.onAction}>
+            {hint.action}
           </button>
           <button
             className="tb-hint-close"
             aria-label="Hinweis schließen"
             title="Später"
-            onClick={onDismissSidebarHint}
+            onClick={hint.onClose}
           >
             <CloseIcon />
           </button>

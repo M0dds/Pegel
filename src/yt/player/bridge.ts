@@ -40,6 +40,51 @@ function playerApi<T>(method: string, ...args: (string | number | boolean)[]): T
 }
 
 /**
+ * Content loudness of the loaded track from YT's player response
+ * (`playerConfig.audioConfig.loudnessDb`, relative to YT's reference level).
+ * Null if the player is missing; `loudnessDb` undefined if YT gives none.
+ */
+export function readLoudness(): { videoId: string; loudnessDb?: number } | null {
+  try {
+    return contextBridge.executeInMainWorld({
+      func: (selector: string) => {
+        type Response = {
+          videoDetails?: { videoId?: unknown };
+          playerConfig?: { audioConfig?: { loudnessDb?: unknown } };
+        };
+        const player = document.querySelector(selector) as unknown as {
+          getPlayerResponse?: () => Response | undefined;
+        } | null;
+        const response = player?.getPlayerResponse?.();
+        const videoId = response?.videoDetails?.videoId;
+        if (typeof videoId !== 'string') return null;
+        const db = response?.playerConfig?.audioConfig?.loudnessDb;
+        return typeof db === 'number' ? { videoId, loudnessDb: db } : { videoId };
+      },
+      args: [SELECTORS.playerApi],
+    }) as { videoId: string; loudnessDb?: number } | null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Reports the loudness whenever another track is loaded. YT fills the player
+ * response a moment after the track starts, so it is also polled lightly.
+ */
+export function watchLoudness(onTrack: (loudnessDb: number | undefined) => void): void {
+  let lastVideoId = '';
+  const check = () => {
+    const info = readLoudness();
+    if (!info || info.videoId === lastVideoId) return;
+    lastVideoId = info.videoId;
+    onTrack(info.loudnessDb);
+  };
+  for (const type of ['loadedmetadata', 'playing']) document.addEventListener(type, check, true);
+  setInterval(check, POSITION_INTERVAL_MS);
+}
+
+/**
  * The playlist the current track plays from. YT's player knows it no matter
  * which page is shown (with the player collapsed the URL is the playlist
  * page, not /watch); the `list=` of /watch is the fallback. The name comes

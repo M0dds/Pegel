@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { app, BrowserWindow, screen, type WebContents, WebContentsView } from 'electron';
+import { app, BrowserWindow, clipboard, screen, type WebContents, WebContentsView } from 'electron';
 import type { MainToUiChannels, MainToYtChannels, PayloadArgs } from '@shared/ipc';
 import {
   EQ_PANEL_WIDTH,
@@ -7,6 +7,7 @@ import {
   MAIN_WINDOW_MIN,
   TITLEBAR_HEIGHT,
 } from '@shared/layout';
+import { findPegelLink, isSameContent, type PegelLink } from '@shared/links';
 import { THEMES } from '@shared/themes';
 import type { EqSettings, PlayerCommand, Settings, View, YtEffects } from '@shared/types';
 import { isQuitting } from '../app-state';
@@ -20,6 +21,7 @@ import {
 import { getSettings, onSettingsChanged, updateSettings } from '../settings';
 import { matchShortcut } from '../shortcuts';
 import { showBackgroundHint } from '../tray';
+import { onUpdateStatus } from '../updater';
 import { isRectVisible } from '../window-state';
 import {
   applyYtTheme,
@@ -45,6 +47,10 @@ let currentView: View = 'music';
 /** Whether the YT view currently leaves room for the EQ panel. */
 let panelSpace = false;
 let panelCloseTimer: NodeJS.Timeout | null = null;
+/** The clipboard link offered in the title bar. */
+let offeredLink: PegelLink | null = null;
+/** Clipboard link when the window lost focus: copied in Pegel itself, or already offered. */
+let linkAtBlur: string | null = null;
 
 export function getMainWindow(): BrowserWindow | null {
   return win;
@@ -230,6 +236,53 @@ async function maybeShowWelcome(): Promise<void> {
   showView('welcome');
 }
 
+function setOfferedLink(link: PegelLink | null): void {
+  if (link?.url === offeredLink?.url) return;
+  offeredLink = link;
+  sendToUi('link:offer', link);
+}
+
+/**
+ * Window got focus: a YT link copied elsewhere in the meantime (Discord, a
+ * browser, …) is offered in the title bar. Only read locally, never sent anywhere.
+ */
+async function checkClipboardLink(): Promise<void> {
+  if (!getSettings().clipboardLinks) return setOfferedLink(null);
+  const link = findPegelLink(await clipboard.readText());
+  if (link?.url === linkAtBlur) return; // nothing new since Pegel had focus
+  const current = ytView?.webContents.getURL() ?? '';
+  setOfferedLink(link && !isSameContent(link.url, current) ? link : null);
+}
+
+async function rememberClipboardLink(): Promise<void> {
+  linkAtBlur = getSettings().clipboardLinks
+    ? (findPegelLink(await clipboard.readText())?.url ?? null)
+    : null;
+}
+
+/** Clipboard reads are async; queued so a quick blur → focus is handled in order. */
+let clipboardQueue = Promise.resolve();
+function queueClipboard(task: () => Promise<void>): void {
+  clipboardQueue = clipboardQueue.then(task).catch(() => undefined);
+}
+
+/** Loads a YT link in the YT view (clipboard hint, dropped link). */
+export function openLink(link: PegelLink): void {
+  if (!ytView) return;
+  setOfferedLink(null);
+  showView('music');
+  void ytView.webContents.loadURL(link.url);
+  focusMainWindow();
+}
+
+export function openOfferedLink(): void {
+  if (offeredLink) openLink(offeredLink);
+}
+
+export function dismissOfferedLink(): void {
+  setOfferedLink(null);
+}
+
 /** F5 / Ctrl+R: reloads YT Music (the page itself, not Pegel). */
 export function reloadYt(): void {
   if (!ytView) return;
@@ -333,6 +386,7 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
   const stopPlayer = onPlayerState((state) => sendToUi('player:state', state));
   const stopIssues = onSelectorIssues((issues) => sendToUi('player:selector-issues', issues));
   const stopPage = onPagePlaylist((page) => sendToUi('player:page-playlist', page));
+  const stopUpdates = onUpdateStatus((status) => sendToUi('update:status', status));
   // YT only loads its sidebar per page load. A new playlist appears after a reload:
   // automatically when nothing plays, otherwise the title bar offers it.
   const stopPlaylistCreated = onPlaylistCreated(() => {
@@ -356,6 +410,8 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
   window.on('maximize', () => window.webContents.send('window:maximized', true));
   window.on('unmaximize', () => window.webContents.send('window:maximized', false));
   trackBounds(window);
+  window.on('focus', () => queueClipboard(checkClipboardLink));
+  window.on('blur', () => queueClipboard(rememberClipboardLink));
   handleShortcuts(window.webContents);
   handleShortcuts(view.webContents);
 
@@ -393,6 +449,7 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
     stopPlayer();
     stopIssues();
     stopPage();
+    stopUpdates();
     stopPlaylistCreated();
     if (!view.webContents.isDestroyed()) view.webContents.close();
     win = null;

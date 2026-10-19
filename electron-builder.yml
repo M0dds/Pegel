@@ -47,3 +47,11 @@ dmg:
   artifactName: Pegel-${version}-${arch}.${ext}
 
 afterPack: scripts/after-pack.cjs
+
+# Updates: the release workflow uploads installers and latest*.yml to GitHub
+# Releases; electron-updater (Windows) reads them from there.
+publish:
+  provider: github
+  owner: M0dds
+  repo: Pegel
+  releaseType: draft

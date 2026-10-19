@@ -2,10 +2,17 @@
 // the EQ runs here and talks only to the main process.
 import { ipcRenderer, type IpcRendererEvent } from 'electron';
 import type { MainToYtChannels, YtToMainChannels } from '@shared/ipc';
+import { watchLinkDrops } from '@shared/link-drop';
 import { EqEngine } from '../yt/audio/eq';
 import { Visualizer } from '../yt/audio/visualizer';
 import { YtDecor } from '../yt/decor/effects';
-import { NEEDS_REPORT, runCommand, startBridge, startPageWatcher } from '../yt/player/bridge';
+import {
+  NEEDS_REPORT,
+  runCommand,
+  startBridge,
+  startPageWatcher,
+  watchLoudness,
+} from '../yt/player/bridge';
 
 function send<C extends keyof YtToMainChannels>(channel: C, payload: YtToMainChannels[C]): void {
   ipcRenderer.send(channel, payload);
@@ -15,6 +22,7 @@ function send<C extends keyof YtToMainChannels>(channel: C, payload: YtToMainCha
 if (location.hostname === 'music.youtube.com') {
   const eq = new EqEngine();
   eq.start();
+  watchLoudness((loudnessDb) => eq.setLoudness(loudnessDb));
   ipcRenderer.on(
     'yt:eq-apply' satisfies keyof MainToYtChannels,
     (_event: IpcRendererEvent, settings: MainToYtChannels['yt:eq-apply']) => eq.apply(settings),
@@ -38,6 +46,7 @@ if (location.hostname === 'music.youtube.com') {
   );
   ipcRenderer.send('yt:ready' satisfies keyof YtToMainChannels);
   startPageWatcher((page) => send('yt:page-playlist', page));
+  watchLinkDrops(window, (url) => send('yt:drop-link', url));
   // Development only, reachable from DevTools in the preload's isolated world (not the page).
   if (import.meta.env.DEV) Object.assign(globalThis, { pegelEq: eq, pegelDecor: decor });
 }

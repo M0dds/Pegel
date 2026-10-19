@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { THEME_IDS, THEMES } from '@shared/themes';
 import type { AppInfo, Settings } from '@shared/types';
+import type { UpdateStatus } from '@shared/update';
 import { PageHead } from '../components/PageHead';
 import { Switch } from '../components/Switch';
 import { CloseIcon, PlaylistIcon } from '../components/icons';
@@ -27,12 +28,36 @@ interface Props {
   appInfo: AppInfo | null;
   /** Features limited because YT changed its page. */
   selectorIssues: string[];
+  update: UpdateStatus;
+}
+
+function updateHint(update: UpdateStatus, supported: boolean): string {
+  if (!supported) return 'Nur in der installierten Version';
+  switch (update.state) {
+    case 'checking':
+      return 'Suche nach Updates …';
+    case 'current':
+      return 'Pegel ist auf dem neuesten Stand';
+    case 'available':
+      return `Version ${update.version} ist verfügbar`;
+    case 'downloading':
+      return `Version ${update.version} wird geladen … ${update.percent} %`;
+    case 'ready':
+      return `Version ${update.version} ist bereit und wird beim Neustart installiert`;
+    case 'error':
+      return 'Suche fehlgeschlagen. Bist du online?';
+    default:
+      return 'Pegel sucht automatisch nach neuen Versionen';
+  }
 }
 
 /** Settings page (Discord integration is deferred, see M6 in docs/PLAN.md). */
-export function SettingsPage({ settings, appInfo, selectorIssues }: Props) {
+export function SettingsPage({ settings, appInfo, selectorIssues, update }: Props) {
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const mediaKeysPending = appInfo !== null && settings.mediaKeys !== appInfo.mediaKeysAtStart;
+  const updatesSupported = appInfo?.updatesSupported ?? false;
+  const canInstall = update.state === 'ready' || update.state === 'available';
+  const busy = update.state === 'checking' || update.state === 'downloading';
 
   return (
     <div className="page">
@@ -177,6 +202,16 @@ export function SettingsPage({ settings, appInfo, selectorIssues }: Props) {
             />
           </Row>
           <Row
+            title="Kopierte Links erkennen"
+            hint="Kopierst du einen YouTube-Link, bietet Pegel an, ihn zu öffnen"
+          >
+            <Switch
+              checked={settings.clipboardLinks}
+              label="Kopierte Links erkennen"
+              onChange={(clipboardLinks) => window.pegel.patchSettings({ clipboardLinks })}
+            />
+          </Row>
+          <Row
             title="Mini-Player immer im Vordergrund"
             hint={`Bleibt über anderen Fenstern. Öffnen mit ${isMac ? '⌘' : 'Strg'} + M`}
           >
@@ -216,6 +251,21 @@ export function SettingsPage({ settings, appInfo, selectorIssues }: Props) {
               }}
             >
               {confirmSignOut ? 'Wirklich abmelden?' : 'Abmelden'}
+            </button>
+          </Row>
+          <Row title="Updates" hint={updateHint(update, updatesSupported)}>
+            <button
+              className={canInstall ? 'btn btn-inline primary' : 'btn btn-inline'}
+              disabled={!updatesSupported || busy}
+              onClick={() =>
+                canInstall ? window.pegel.installUpdate() : window.pegel.checkForUpdates()
+              }
+            >
+              {update.state === 'ready'
+                ? 'Neu starten'
+                : update.state === 'available'
+                  ? 'Herunterladen'
+                  : 'Nach Updates suchen'}
             </button>
           </Row>
         </section>

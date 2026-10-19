@@ -32,6 +32,8 @@ export interface EqSettings {
   gains: number[];
   preamp: number;
   autoPreamp: boolean;
+  /** Raise quiet tracks to YT's reference loudness (YT lowers loud ones itself). */
+  levelling: boolean;
   panelOpen: boolean;
   customPresets: EqPreset[];
   /** Presets assigned to YT playlists; applied automatically when one plays. */
@@ -65,6 +67,8 @@ export interface Settings {
   startAtLogin: boolean;
   /** Keyboard media keys / system media controls (Chromium); applied on the next start. */
   mediaKeys: boolean;
+  /** Offer YT links from the clipboard when the window gets focus. */
+  clipboardLinks: boolean;
   mini: { alwaysOnTop: boolean; bounds?: Rect; hideMainOnOpen: boolean };
   discord: { enabled: boolean; hideWhenPaused: boolean };
   window: { bounds?: Rect; maximized: boolean };
@@ -77,7 +81,7 @@ export interface Settings {
 
 /** Settings the UI may change directly (validated in the main process). */
 export type SettingsPatch = Partial<
-  Pick<Settings, 'closeToTray' | 'startAtLogin' | 'mediaKeys'>
+  Pick<Settings, 'closeToTray' | 'startAtLogin' | 'mediaKeys' | 'clipboardLinks'>
 > & {
   mini?: Partial<Pick<Settings['mini'], 'alwaysOnTop' | 'hideMainOnOpen'>>;
   effects?: Partial<Settings['effects']>;
@@ -137,4 +141,6 @@ export interface AppInfo {
   mediaKeysAtStart: boolean;
   /** Value of `process.platform` in the main process. */
   platform: string;
+  /** Installed build that can update itself (not in development). */
+  updatesSupported: boolean;
 }

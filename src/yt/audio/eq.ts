@@ -1,4 +1,4 @@
-import { bandFilterType, effectivePreamp } from '@shared/eq';
+import { bandFilterType, effectivePreamp, levellingBoostDb } from '@shared/eq';
 import { EQ_FREQUENCIES, EQ_Q } from '@shared/presets';
 import type { EqSettings } from '@shared/types';
 import { SELECTORS } from '../selectors';
@@ -9,13 +9,20 @@ const RAMP_SEC = 0.03;
 const dbToGain = (db: number) => Math.pow(10, db / 20);
 
 /**
- * 10-band equalizer on YT Music's media element:
- * media → preamp → lowshelf 31 Hz → peaking 62…8k → highshelf 16 kHz → output.
- * The chain is never rewired; "off" ramps all gains to 0 dB.
+ * 10-band equalizer and volume levelling on YT Music's media element:
+ * media → level → preamp → lowshelf 31 Hz → peaking 62…8k → highshelf 16 kHz
+ * → limiter → output.
+ * The chain is never rewired; "off" ramps all gains to 0 dB and makes the
+ * limiter transparent.
  */
 export class EqEngine {
   private ctx: AudioContext | null = null;
+  private level: GainNode | null = null;
   private preamp: GainNode | null = null;
+  /** Catches the peaks of raised quiet tracks; transparent while nothing is raised. */
+  private limiter: DynamicsCompressorNode | null = null;
+  /** Content loudness of the current track (YT player response). */
+  private loudnessDb: number | undefined;
   private filters: BiquadFilterNode[] = [];
   /** createMediaElementSource may only be called once per element. */
   private readonly connected = new WeakSet<HTMLMediaElement>();
@@ -39,10 +46,29 @@ export class EqEngine {
     else scan();
   }
 
+  /** New track: its loudness (undefined if YT gives none, then nothing is raised). */
+  setLoudness(loudnessDb: number | undefined): void {
+    this.loudnessDb = loudnessDb;
+    if (this.settings) this.apply(this.settings);
+    console.info(
+      `[pegel-eq] track loudness ${loudnessDb ?? '–'} dB, raised by ${this.levelBoostDb()} dB`,
+    );
+  }
+
+  /** dB the current track is raised by (0 with levelling off). */
+  levelBoostDb(): number {
+    return this.settings?.levelling ? levellingBoostDb(this.loudnessDb) : 0;
+  }
+
   apply(settings: EqSettings): void {
     this.settings = settings;
-    if (!this.ctx || !this.preamp) return;
+    if (!this.ctx || !this.preamp || !this.level || !this.limiter) return;
     const now = this.ctx.currentTime;
+    const boost = this.levelBoostDb();
+    this.level.gain.setTargetAtTime(dbToGain(boost), now, RAMP_SEC);
+    // A ratio of 1 means no compression at all.
+    this.limiter.threshold.setTargetAtTime(boost > 0 ? -1 : 0, now, RAMP_SEC);
+    this.limiter.ratio.setTargetAtTime(boost > 0 ? 20 : 1, now, RAMP_SEC);
     const on = settings.enabled;
     this.preamp.gain.setTargetAtTime(dbToGain(on ? effectivePreamp(settings) : 0), now, RAMP_SEC);
     this.filters.forEach((filter, i) => {
@@ -54,7 +80,7 @@ export class EqEngine {
     if (this.connected.has(el)) return;
     const ctx = this.ensureGraph();
     try {
-      ctx.createMediaElementSource(el).connect(this.preamp!);
+      ctx.createMediaElementSource(el).connect(this.level!);
       this.connected.add(el);
       el.addEventListener('play', () => this.ensureRunning());
       console.info('[pegel-eq] attached to media element');
@@ -67,7 +93,15 @@ export class EqEngine {
   private ensureGraph(): AudioContext {
     if (this.ctx) return this.ctx;
     const ctx = new AudioContext({ latencyHint: 'playback' });
+    const level = ctx.createGain();
     const preamp = ctx.createGain();
+    level.connect(preamp);
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.knee.value = 0;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.25;
+    limiter.threshold.value = 0;
+    limiter.ratio.value = 1;
     const filters = EQ_FREQUENCIES.map((frequency, i) => {
       const filter = ctx.createBiquadFilter();
       filter.type = bandFilterType(i);
@@ -81,7 +115,8 @@ export class EqEngine {
       node.connect(filter);
       node = filter;
     }
-    node.connect(ctx.destination);
+    node.connect(limiter);
+    limiter.connect(ctx.destination);
 
     ctx.addEventListener('statechange', () => {
       if (ctx.state !== 'running' && this.isAnyMediaPlaying()) {
@@ -91,7 +126,9 @@ export class EqEngine {
     });
 
     this.ctx = ctx;
+    this.level = level;
     this.preamp = preamp;
+    this.limiter = limiter;
     this.filters = filters;
     if (this.settings) this.apply(this.settings);
     return ctx;
@@ -129,6 +166,9 @@ export class EqEngine {
    */
   diagnostics(): {
     state: string;
+    loudnessDb: number | undefined;
+    levelDbBoost: number;
+    limiterReductionDb: number;
     preampDb: number;
     gainsDb: number[];
     levelDb: number;
@@ -141,6 +181,9 @@ export class EqEngine {
     const round = (v: number) => Math.round(v * 10) / 10;
     return {
       state: this.ctx.state,
+      loudnessDb: this.loudnessDb,
+      levelDbBoost: this.levelBoostDb(),
+      limiterReductionDb: round(this.limiter?.reduction ?? 0),
       preampDb: round(20 * Math.log10(this.preamp.gain.value)),
       gainsDb: this.filters.map((f) => round(f.gain.value)),
       levelDb: round(20 * Math.log10(rms || 1e-9)),

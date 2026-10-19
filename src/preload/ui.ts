@@ -64,6 +64,14 @@ const api: PegelApi = {
   signOut: () => send('account:sign-out'),
   onSidebarOutdated: (listener) => subscribe('yt:sidebar-outdated', listener),
   onViewChanged: (listener) => subscribe('view:changed', listener),
+  onLinkOffer: (listener) => subscribe('link:offer', listener),
+  openOfferedLink: () => send('link:open'),
+  dismissLink: () => send('link:dismiss'),
+  dropLink: (text) => send('link:drop', text),
+  getUpdateStatus: () => invoke('update:get'),
+  onUpdateStatus: (listener) => subscribe('update:status', listener),
+  checkForUpdates: () => send('update:check'),
+  installUpdate: () => send('update:install'),
 };
 
 contextBridge.exposeInMainWorld('pegel', api);

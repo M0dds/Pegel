@@ -1,4 +1,6 @@
 import type { EqAction } from './eq';
+import type { PegelLink } from './links';
+import type { UpdateStatus } from './update';
 import type {
   AppInfo,
   EqSettings,
@@ -26,6 +28,7 @@ export interface InvokeChannels {
   'player:get': { args: []; result: PlayerState | null };
   'player:get-issues': { args: []; result: string[] };
   'player:get-page-playlist': { args: []; result: PagePlaylist | null };
+  'update:get': { args: []; result: UpdateStatus };
 }
 
 /** Fire-and-forget: Pegel UI → main via `ipcRenderer.send`. */
@@ -48,6 +51,14 @@ export interface UiToMainChannels {
   'mini:open': void;
   /** "Enlarge": close the mini player and show the main window. */
   'mini:close': void;
+  /** Opens the link offered in the title bar (copied to the clipboard). */
+  'link:open': void;
+  'link:dismiss': void;
+  /** Text dropped onto a Pegel page; opened if it is a YT link. */
+  'link:drop': string;
+  'update:check': void;
+  /** Restart into a downloaded update (Windows) or open the download page (macOS). */
+  'update:install': void;
 }
 
 /** Main → Pegel UI (main and mini window) via `webContents.send`. */
@@ -61,6 +72,9 @@ export interface MainToUiChannels {
   'window:maximized': boolean;
   /** A playlist was created while music plays; YT's sidebar shows it only after a reload. */
   'yt:sidebar-outdated': boolean;
+  /** A YT link in the clipboard that Pegel can open (null: none / hint gone). */
+  'link:offer': PegelLink | null;
+  'update:status': UpdateStatus;
 }
 
 /** YT view preload → main. */
@@ -72,6 +86,8 @@ export interface YtToMainChannels {
   'yt:selector-issues': string[];
   /** The playlist page shown in the YT view changed (null: no playlist page). */
   'yt:page-playlist': PagePlaylist | null;
+  /** Text dropped onto YT where YT itself does not take it. */
+  'yt:drop-link': string;
 }
 
 /** Main → YT view preload. */
@@ -119,6 +135,14 @@ export interface PegelApi {
   finishWelcome(signIn: boolean): void;
   signOut(): void;
   onSidebarOutdated(listener: (outdated: boolean) => void): () => void;
+  onLinkOffer(listener: (link: PegelLink | null) => void): () => void;
+  openOfferedLink(): void;
+  dismissLink(): void;
+  dropLink(text: string): void;
+  getUpdateStatus(): Promise<UpdateStatus>;
+  onUpdateStatus(listener: (status: UpdateStatus) => void): () => void;
+  checkForUpdates(): void;
+  installUpdate(): void;
   /** Returns a function that removes the listener. */
   onViewChanged(listener: (view: View) => void): () => void;
 }

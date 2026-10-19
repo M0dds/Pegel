@@ -143,6 +143,18 @@ export function EqPanel({ eq, open, playing, pagePlaylist }: Props) {
           </div>
         </div>
 
+        <div className="eq-levelling">
+          <div>
+            <b>Lautstärke angleichen</b>
+            <small>Leise Titel werden so laut wie die anderen</small>
+          </div>
+          <Switch
+            checked={eq.levelling}
+            label="Lautstärke angleichen"
+            onChange={(enabled) => dispatch({ type: 'setLevelling', enabled })}
+          />
+        </div>
+
         {dirty && (
           <div className="eq-changes" role="status">
             <span className="changes-label">

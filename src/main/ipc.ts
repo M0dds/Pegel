@@ -1,6 +1,7 @@
 import { app, ipcMain, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron';
 import type { InvokeArgs, InvokeChannel, InvokeResult, UiToMainChannels } from '@shared/ipc';
 import { isEqAction, reduceEq } from '@shared/eq';
+import { findPegelLink } from '@shared/links';
 import { isPlayerCommand } from '@shared/player';
 import { isThemeId } from '@shared/themes';
 import { isView } from '@shared/types';
@@ -16,6 +17,7 @@ import {
 } from './player';
 import { reapplyPlaylistContext } from './playlist-eq';
 import { getSettings, updateSettings } from './settings';
+import { checkForUpdates, getUpdateStatus, installUpdate, updatesSupported } from './updater';
 import {
   getView,
   handleYtReady,
@@ -29,6 +31,9 @@ import {
   getMainWindow,
   isMainMaximized,
   windowControl,
+  openLink,
+  openOfferedLink,
+  dismissOfferedLink,
   openMiniPlayer,
   sendPlayerCommand,
   showView,
@@ -62,6 +67,7 @@ export function registerIpc(): void {
     version: app.getVersion(),
     platform: process.platform,
     mediaKeysAtStart: getMediaKeysAtStart(),
+    updatesSupported: updatesSupported(),
   }));
   handle('settings:get', () => getSettings());
   handle('view:get', () => getView());
@@ -69,6 +75,7 @@ export function registerIpc(): void {
   handle('player:get', () => getPlayerState());
   handle('player:get-issues', () => getSelectorIssues());
   handle('player:get-page-playlist', () => getPagePlaylist());
+  handle('update:get', () => getUpdateStatus());
 
   on('view:show', (_event, view) => {
     if (isView(view)) showView(view);
@@ -107,6 +114,14 @@ export function registerIpc(): void {
       windowControl(action);
     }
   });
+  on('link:open', () => openOfferedLink());
+  on('link:dismiss', () => dismissOfferedLink());
+  on('link:drop', (_event, text) => {
+    const link = typeof text === 'string' ? findPegelLink(text) : null;
+    if (link) openLink(link);
+  });
+  on('update:check', () => checkForUpdates(true));
+  on('update:install', () => installUpdate());
   on('mini:open', () => openMiniPlayer());
   on('mini:close', () => closeMiniPlayer());
   on('player:command', (_event, command) => {
@@ -120,6 +135,7 @@ export function registerIpc(): void {
       if (typeof p['closeToTray'] === 'boolean') s.closeToTray = p['closeToTray'];
       if (typeof p['startAtLogin'] === 'boolean') s.startAtLogin = p['startAtLogin'];
       if (typeof p['mediaKeys'] === 'boolean') s.mediaKeys = p['mediaKeys'];
+      if (typeof p['clipboardLinks'] === 'boolean') s.clipboardLinks = p['clipboardLinks'];
       const mini = p['mini'];
       if (typeof mini === 'object' && mini !== null) {
         const m = mini as Record<string, unknown>;
@@ -147,5 +163,9 @@ export function registerIpc(): void {
   });
   ipcMain.on('yt:page-playlist', (event, page: unknown) => {
     if (isYtSender(event.sender)) setPagePlaylist(page);
+  });
+  ipcMain.on('yt:drop-link', (event, text: unknown) => {
+    const link = isYtSender(event.sender) && typeof text === 'string' ? findPegelLink(text) : null;
+    if (link) openLink(link);
   });
 }
