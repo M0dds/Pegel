@@ -46,7 +46,7 @@ function run(command, commandArgs, options = {}) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-run('npm', ['run', 'build'], { shell: true });
+run('npm run build', [], { shell: true });
 
 // Next to the app (extraResources), read by src/main/profile.ts. Empty without a profile.
 writeFileSync(join(root, 'out', 'profile.json'), JSON.stringify(profile, null, 2));

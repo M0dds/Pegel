@@ -1,0 +1,40 @@
+# Builds the Windows installer and the macOS DMGs (manually: Actions → Build → Run workflow).
+# The installers are attached to the run as artifacts; nothing is published.
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Build profile (build-profiles/<name>.json), empty for the normal build'
+        required: false
+        default: ''
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run dist -- --publish=never
+        env:
+          PEGEL_PROFILE: ${{ inputs.profile }}
+          # No code signing in v1 (ad-hoc on macOS via scripts/after-pack.cjs).
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pegel-${{ matrix.os }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+          if-no-files-found: error

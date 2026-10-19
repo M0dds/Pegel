@@ -367,11 +367,11 @@ Die Meilensteine werden in dieser Reihenfolge abgearbeitet. Jeder endet mit eine
 
 ### M8 – Paketierung und Weitergabe
 
-- [ ] App-Icon (Pegel-Balken) als `.ico`, `.icns` und Tray-Varianten
-- [ ] Windows-NSIS-Installer (x64), Startmenü-Eintrag, Deinstallation
-- [ ] macOS-DMG (arm64 und x64), ad-hoc signiert (auf Apple Silicon Pflicht)
-- [ ] Optional: GitHub-Actions-Workflow, der beide Plattformen baut
-- [ ] README für Nutzer: Installation, SmartScreen-Hinweis („Weitere Informationen → Trotzdem ausführen“), macOS-Gatekeeper (Rechtsklick → Öffnen bzw. „Trotzdem öffnen“ in den Systemeinstellungen)
+- [x] App-Icon (Pegel-Balken) als `.ico`, `.icns` und Tray-Varianten. Erzeugt mit `scripts/make-icons.mts`. Die Tray-Icons rendert `src/main/tray-icon.ts` zur Laufzeit.
+- [x] Windows-NSIS-Installer (x64), Startmenü-Eintrag, Deinstallation. Normaler Build und Kumpel-Build sind gebaut. Die entpackte App startet mit dem Profil-Theme. Offen: Installieren, Deinstallieren und Autostart am echten Installer testet Johann.
+- [ ] macOS-DMG (arm64 und x64), ad-hoc signiert (auf Apple Silicon Pflicht). Die Konfiguration und `scripts/after-pack.cjs` stehen, aber unter Windows lässt sich das nicht bauen. Build über den Workflow oder auf dem MacBook, Test auf dem MacBook ist offen.
+- [x] Optional: GitHub-Actions-Workflow, der beide Plattformen baut (`.github/workflows/build.yml`, manuell startbar, optional mit Profil)
+- [x] README für Nutzer: Installation, SmartScreen-Hinweis („Weitere Informationen → Trotzdem ausführen“), macOS-Gatekeeper (Rechtsklick → Öffnen bzw. „Trotzdem öffnen“ in den Systemeinstellungen)
 - **Fertig, wenn:** Der Installer auf einem frischen Windows-PC funktioniert und das DMG auf Johanns MacBook.
 
 ### Später (optional)

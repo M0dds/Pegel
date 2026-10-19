@@ -15,7 +15,7 @@ export default tseslint.config(
       'src/preload/**/*.ts',
       '*.config.{mts,mjs}',
       'tests/**/*.ts',
-      'scripts/**/*.{mjs,mts}',
+      'scripts/**/*.{mjs,mts,cjs}',
     ],
     languageOptions: { globals: globals.node },
   },
@@ -38,6 +38,12 @@ export default tseslint.config(
         { argsIgnorePattern: '^_', ignoreRestSiblings: true },
       ],
     },
+  },
+  {
+    // electron-builder hooks are plain CommonJS.
+    files: ['**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs' },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
   prettier,
 );

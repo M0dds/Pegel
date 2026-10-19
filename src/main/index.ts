@@ -17,10 +17,10 @@ import {
 } from './windows/main-window';
 import { isMiniOpen, onMiniChanged } from './windows/mini-window';
 
-// Development only: a separate profile (own login, settings and instance lock),
-// e.g. to run a test instance next to the normal one.
-const devUserData = process.env['PEGEL_USER_DATA'];
-if (devUserData && !app.isPackaged) app.setPath('userData', devUserData);
+// A separate profile (own login, settings and instance lock), e.g. to test a
+// build next to the Pegel in daily use. Set by hand only, never by Pegel.
+const customUserData = process.env['PEGEL_USER_DATA'];
+if (customUserData) app.setPath('userData', customUserData);
 
 // Settings are read before Chromium starts: the media keys switch is a command-line feature.
 const startupSettings = loadSettings(getProfile()?.defaultTheme);
