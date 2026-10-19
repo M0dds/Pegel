@@ -297,6 +297,7 @@ pegel/  (= D:\Projects\ytmusic)
 │  ├─ yt/    (selectors.ts, audio/eq.ts, player/bridge.ts, themes/*.css)
 │  ├─ renderer/ (React: routes/, components/, styles/)
 │  └─ shared/ (types.ts, ipc.ts, themes.ts, presets.ts, layout.ts)
+├─ server/  ← Cloudflare Worker für Freunde und Party (M10), eigenes package.json
 ├─ tests/   (unit/, e2e/)
 ├─ electron.vite.config.ts
 ├─ electron-builder.yml
@@ -395,9 +396,342 @@ Die Meilensteine werden in dieser Reihenfolge abgearbeitet. Jeder endet mit eine
   - Die YT-Ansicht schickt rund 30-mal pro Sekunde Balkenwerte (Bytes) über den Main-Prozess an den Mini-Player. Das läuft per Timer, weil das Hauptfenster dabei meist versteckt ist.
   - Fallen und Kappen rechnet der Mini-Player selbst (`src/shared/spectrum.ts`, gemeinsam mit dem YT-Visualizer).
   - Die Balken reichen von unten bis 10 px unter das Cover.
-- [x] **Lücke rechts neben der Player-Leiste geschlossen.** YT hält die Leiste `--ytmusic-scrollbar-width` (12 px) vom Rand fern, auch ohne Scrollleiste. Pegel setzt die Variable auf die eigene Scrollleiste (10 px) und auf 0, solange keine da ist (`src/yt/decor/scrollbar.ts`).
+- [x] **Lücke rechts neben der Player-Leiste geschlossen.**
+  - YT hält die Leiste `--ytmusic-scrollbar-width` (12 px) vom Rand fern, auch ohne Scrollleiste. Pegel setzt die Variable auf die eigene Scrollleiste (10 px) und auf 0, solange keine da ist.
+  - Die Seiten-Scrollleiste lief bis ganz unten neben der Leiste vorbei. Jetzt endet die Spur über der Leiste (`margin-bottom` = gemessene Leistenhöhe), daneben trägt die Scrollleiste die Leistenfarbe (`src/yt/decor/scrollbar.ts`).
+  - Stolperfalle: Selektoren mit `html` oder `body` vor `::-webkit-scrollbar` treffen die Seiten-Scrollleiste nie. Nur die globalen Pseudo-Elemente wirken, und die erben ihre Variablen von `<body>`. Daran ist der erste Versuch gescheitert.
 - [ ] Test durch Johann: Installer 1.0.0, Update von 1.0.0 auf 1.0.1 (erst mit dem zweiten Release prüfbar), Link aus Discord
 - **Risiko macOS:** Neuere macOS-Versionen können beim Lesen der Zwischenablage nachfragen. Dann hilft der Schalter, oder Pegel liest nur noch auf Knopfdruck.
+
+### M10 – Freunde und Hör-Party (Release 1.1)
+
+> Konzept vom 19.10.2026. Johanns Entscheidungen: Server auf **Cloudflare Workers + Durable Objects**, Daten auf dem Server **nur flüchtig**, Oberfläche als **Seitenpanel** wie der EQ, bei Werbung **kurz warten** (höchstens 30 s). Feste Anforderungen: **so wenig Verzögerung wie möglich** und **mehrere Gäste** pro Party.
+>
+> Release zusammen mit dem noch nicht gepushten Commit aus M9 (Visualizer im Mini-Player, Lücke an der Player-Leiste) als Version 1.1.0. Mit dem Code geht es erst los, wenn Johann das Konzept freigegeben hat.
+
+**Grundsatz.** Jeder hört über sein eigenes YT-Konto in seinem eigenen Pegel, also über die offizielle Seite. Pegel überträgt kein Audio. Synchronisiert werden nur:
+
+- welcher Titel läuft (`videoId`, optional `playlistId`),
+- die Position,
+- Play/Pause und Titelwechsel.
+
+Pegel überspringt keine Werbung, die Party wartet höchstens darauf.
+
+#### 10.1 Architektur
+
+```
+ Pegel (Host)                       Cloudflare (jurisdiction "eu")                 Pegel (Gast ×N)
+┌───────────────────────┐   WSS   ┌────────────────────────────────┐   WSS   ┌───────────────────────┐
+│ YT-Preload            │         │ Worker (Router, /hub, /party)  │         │ YT-Preload            │
+│  bridge + party/sync  │         │  ├─ Hub-DO (eins)              │         │  bridge + party/sync  │
+│        ▲ IPC          │◄───────►│  │   Presence, Freundescodes,  │◄───────►│        ▲ IPC          │
+│ main/social/*         │         │  │   Einladungen               │         │ main/social/*         │
+│  connection, friends, │◄───────►│  └─ Party-DO (je Party eins)   │◄───────►│  connection, friends, │
+│  party, identity      │         │      Zustand, Uhr, Verteiler   │         │  party, identity      │
+└───────────────────────┘         └────────────────────────────────┘         └───────────────────────┘
+```
+
+- **Zwei WebSocket-Verbindungen pro App:**
+  - Zum **Hub** (dauerhaft, solange „Freunde“ an ist): Online-Status, „Hört gerade“, Freundescodes, Einladungen. Ein einziges Hub-DO reicht für einen Freundeskreis, es schläft per WebSocket-Hibernation.
+  - Zur **Party** (nur während einer Party): Pro Party gibt es ein eigenes Durable Object. Es verteilt den Host-Zustand an alle Gäste und liefert die Server-Uhr.
+- **Verzögerung:**
+  - Beide DOs entstehen mit `jurisdiction: 'eu'`, also in einem EU-Rechenzentrum nahe den Nutzern.
+  - Eine Nachricht braucht typisch 15–60 ms von Pegel zu Pegel.
+  - Gäste warten nicht auf Befehle, sondern rechnen die Host-Position über die gemeinsame Uhr hoch (siehe 10.3). Deshalb fällt die Netzlaufzeit beim Abspielen kaum ins Gewicht.
+- **Mehrere Gäste:** Bis zu 20 Teilnehmer pro Party (Konstante `PARTY_MAX_MEMBERS`). Das DO schickt jede Host-Nachricht einmal an alle Sockets. Der Aufwand wächst linear und bleibt bei 20 Leuten winzig.
+- **Server-Code** liegt im Repo unter `server/`, als eigenes Paket mit `wrangler.toml`. Er verwendet die Protokoll-Typen aus `src/shared/social-protocol.ts` mit, damit Client und Server nie auseinanderlaufen. Deploy per `npm run deploy` in `server/`. Den Cloudflare-Account legt Johann an. Ein Deploy passiert nur nach Rückfrage.
+- **Kosten:** Der Free-Plan reicht. Eingehende WebSocket-Nachrichten zählen bei DOs im Verhältnis 20:1 als Anfrage. Eine 3-stündige Party mit 5 Leuten macht etwa 3 000 von 100 000 Anfragen pro Tag. Pings beantwortet `setWebSocketAutoResponse`, ohne das DO zu wecken.
+
+**Neue Module**
+
+| Modul | Aufgabe |
+| --- | --- |
+| `shared/social-protocol.ts` | Nachrichtentypen Client ↔ Server (10.2), Versionsnummer `PROTOCOL_VERSION`, Grenzen (Namenslänge, `PARTY_MAX_MEMBERS`) |
+| `shared/social.ts` | `SocialState` für die UI (Verbindung, ich, Freunde mit Presence, Einladungen, Party-Ansicht), Freundescode-Format und -Prüfung |
+| `shared/party-sync.ts` | Reine, getestete Sync-Mathematik: Uhr-Offset aus Ping-Proben, Soll-Position hochrechnen, Korrekturentscheidung (nichts / Tempo / Sprung) |
+| `main/social/identity.ts` | Ed25519-Schlüsselpaar (`crypto.generateKeyPairSync('ed25519')`). Der private Schlüssel liegt per `safeStorage` verschlüsselt in `userData/identity.json`. Dazu Signieren der Server-Challenge |
+| `main/social/connection.ts` | WebSocket-Client mit Anmeldung, Wiederverbinden (0,5 s → 15 s Backoff, Zufallsstreuung) und Uhrabgleich. Wird für Hub und Party je einmal verwendet |
+| `main/social/friends.ts` | Freundesliste (lokal, `userData/friends.json`), Codes erzeugen und einlösen, Presence, „Hört gerade“ aus dem `PlayerState` (nur bei Titelwechsel bzw. Pause) |
+| `main/social/party.ts` | Party-Zustandsautomat (keine / Host / Gast): Einladungen, Werbe-Wartezeit, Host-Wechsel, Vorschläge. Leitet Soll-Zustände an die YT-Ansicht weiter |
+| `yt/party/sync.ts` | Läuft im YT-Preload, direkt am Media-Element: misst die Position auf die Millisekunde genau, korrigiert die Abweichung alle 250 ms, lädt Titel und meldet Werbung bzw. Sperren |
+| `yt/selectors.ts` | Neu: `adShowing` (`#movie_player.ad-showing`), `ytmusicApp` (für die Navigation innerhalb der Seite) |
+| `renderer/components/social/` | `SocialPanel`, `PartyCard`, `FriendRow`, `AddFriendDialog`, `SuggestionList` sowie Party-Pille und Einladungshinweis in der Titelleiste |
+| `server/src/` | `index.ts` (Router, Upgrade, Signaturprüfung per WebCrypto Ed25519), `hub.ts` (Hub-DO), `party.ts` (Party-DO) |
+
+**Erweiterungen der Player-Bridge**
+
+- `PlayerState` bekommt `videoId` (aus `getPlayerResponse().videoDetails`, das liest `readLoudness` heute schon) und `adPlaying`. Während einer Werbung meldet die Bridge keinen Titelwechsel, auch wenn sich die MediaSession-Metadaten ändern.
+- **Titel laden ohne Neuladen der Seite:** Pegel löst YTs eigene Navigation mit einem `watchEndpoint` (`videoId`, `playlistId`) am `ytmusic-app`-Element aus, per `executeInMainWorld` wie bei `playerApi`. Die EQ-Kette bleibt dabei hängen, und es entsteht kein Neuladen mit 2–3 s Pause. Rückfallebene ist `loadURL(/watch?v=…&list=…)`.
+- **Sperren erkennen:** Liefert `getPlayerResponse().playabilityStatus.status` etwas anderes als `OK` (z. B. `UNPLAYABLE` oder `LOGIN_REQUIRED`), gilt der Titel als „für dich nicht verfügbar“.
+- **Neue Befehle** nur für `yt/party/sync.ts`: Tempo setzen (`media.playbackRate`, `preservesPitch` bleibt an) und Sprung auf eine genaue Position.
+
+**IPC (`shared/ipc.ts`)**
+
+```ts
+// InvokeChannels
+'social:get': { args: []; result: SocialState };
+
+// UiToMainChannels
+'social:enable': { displayName: string };        // legt beim ersten Mal die Identität an
+'social:disable': void;
+'social:set-name': string;
+'social:create-code': void;                      // Ergebnis kommt mit 'social:state'
+'social:redeem-code': string;
+'social:remove-friend': string;                  // friendId
+'party:start': void;
+'party:invite': string;                          // friendId
+'party:respond': { inviteId: string; accept: boolean };
+'party:join': string;                            // offene Party eines Freundes, friendId
+'party:leave': void;
+'party:end': void;                               // nur Host
+'party:kick': string;                            // nur Host
+'party:transfer': string;                        // Host abgeben
+'party:suggestion': { id: string; accept: boolean }; // nur Host
+'party:set-options': { open: boolean; allowSuggestions: boolean };
+
+// MainToUiChannels
+'social:state': SocialState;
+
+// MainToYtChannels
+'yt:party-target': PartyTarget | null;           // null: keine Party oder Host
+// YtToMainChannels
+'yt:party-report': PartyReport;
+```
+
+```ts
+interface PartyTarget {
+  videoId: string;
+  playlistId?: string;
+  playing: boolean;
+  positionMs: number;   // Host-Position …
+  atMs: number;         // … zu diesem lokalen Zeitpunkt (Date.now()-Basis, schon mit Uhr-Offset umgerechnet)
+  waitingFor?: string[]; // Namen, auf deren Werbung gerade gewartet wird
+}
+interface PartyReport {
+  videoId: string | null;
+  positionMs: number;   // inkl. Ausgabelatenz-Ausgleich
+  atMs: number;
+  playing: boolean;
+  buffering: boolean;
+  ad: boolean;
+  unplayable?: string;  // YTs playabilityStatus.status
+  localAction?: 'pause' | 'play' | 'seek' | 'track'; // Gast hat selbst bedient (10.4)
+}
+```
+
+Main ist wie bisher die einzige Quelle für den Zustand. Die UI bekommt nur `SocialState`. Die YT-Ansicht bekommt nur `PartyTarget` und hat keinen Zugriff aufs Netz.
+
+#### 10.2 Protokoll
+
+Alle Nachrichten sind JSON mit dem Feld `t` (Typ). Zeiten sind Server-Millisekunden (`Date.now()` im Worker), außer bei Uhr-Pings. Kennungen:
+
+- `userId` = öffentlicher Ed25519-Schlüssel, base64url, 43 Zeichen.
+- `partyId` = 128 Bit zufällig.
+
+**Anmeldung** (Hub und Party gleich):
+
+| Richtung | Nachricht | Inhalt |
+| --- | --- | --- |
+| S→C | `challenge` | `nonce`, `serverTime`, `v` (Protokollversion) |
+| C→S | `auth` | `userId`, `sig` (Signatur über `nonce` + Ziel `hub`/`partyId`), `name`, `v` |
+| S→C | `ready` / `error` | `error.code`: `bad-sig`, `old-client` (UI: „Bitte Pegel aktualisieren“), `full`, `not-invited`, `ended` |
+
+**Hub**
+
+| Richtung | Nachricht | Inhalt |
+| --- | --- | --- |
+| C→S | `hello` | `friends: userId[]` (lokale Liste), `share: { nowPlaying: boolean }` |
+| C→S | `presence` | `nowPlaying: { title, artist, videoId } \| null`, `party: { partyId, open } \| null` |
+| S→C | `presence` | `userId`, `name`, `online`, `nowPlaying`, `party`. Geht nur an **gegenseitige** Freunde: Y sieht X nur, wenn X in Ys Liste steht und Y in X' Liste |
+| C→S | `code.create` | – → S→C `code` mit `code` (z. B. `K7Q2-M9XD`, 8 Zeichen Crockford-Base32) und `expiresAt` (+24 h). Einmal gültig |
+| C→S | `code.redeem` | `code` → S→C `friend.added` mit `userId` und `name` des Code-Erstellers |
+| S→C | `friend.added` | An den Code-Ersteller: Wer den Code eingelöst hat. Ist der Ersteller offline, wartet die Nachricht höchstens 30 Tage |
+| C→S | `invite` | `to`, `partyId`, `ticket` (vom Host signiert: `partyId`, Gast-`userId`, `exp` +10 min) |
+| S→C | `invite` | `inviteId`, `from`, `name`, `partyId`, `ticket`, `nowPlaying`. Nur an Online-Freunde, wird nicht gespeichert |
+| C→S | `invite.decline` | `inviteId` |
+
+**Party**
+
+| Richtung | Nachricht | Inhalt |
+| --- | --- | --- |
+| C→S | `auth` + `ticket` | Gäste brauchen ein gültiges Ticket. Den Host-Schlüssel kennt das DO aus `create`, prüfen kann es also selbst, ohne beim Hub nachzufragen. Freunde treten offenen Partys über ein Ticket bei, das der Hub vom Host anfordert |
+| C→S | `create` | nur Host, legt `hostId` und Optionen fest |
+| C→S | `ping` | `c0` (Client-Zeit) → S→C `pong` mit `c0` und `s` (Server-Zeit). Beim Beitritt 8 Proben in 100-ms-Abstand, danach alle 5 s |
+| S→C | `welcome` | `hostId`, `members[]`, `state`, `options`, `suggestions[]` |
+| C→S | `state` | nur Host: `seq`, `videoId`, `playlistId?`, `playing`, `positionMs`, `at` (Server-Zeit der Messung), `title`, `artist`. Wird bei jeder Änderung sofort geschickt, beim Abspielen zusätzlich jede Sekunde |
+| S→C | `state` | an alle weitergereicht. Das DO verwirft Nachrichten mit veralteter `seq` |
+| C→S | `status` | Gäste: `videoId`, `driftMs`, `ad`, `buffering`, `unplayable?`. Jede Sekunde, solange sich etwas ändert, sonst alle 5 s |
+| S→C | `member` | `userId`, `name`, `role`, `conn` (`ok`/`reconnecting`), `ad`, `unplayable`, `driftMs`. Die Abweichung zeigt die UI als „sync“-Punkt |
+| C→S / S→C | `suggest` | Gast: `videoId`, `title`, `artist` → an den Host. Höchstens 5 offene Vorschläge pro Gast |
+| C→S | `suggest.answer` | Host: `id`, `accept`. Angenommen heißt: Der Host spielt den Titel als Nächstes ab |
+| C→S | `kick`, `transfer`, `end`, `options` | nur Host |
+| S→C | `host` | `hostId` (nach Abgabe oder Ausfall) |
+| S→C | `ended` | `reason`: `host-ended`, `empty`, `host-lost` |
+
+Unbekannte Typen werden ignoriert, damit ältere Clients beim Erweitern nicht abstürzen. Ändert sich das Protokoll inkompatibel, steigt `PROTOCOL_VERSION`.
+
+#### 10.3 Synchronisation (möglichst wenig Verzögerung)
+
+1. **Gemeinsame Uhr:** Aus jeder Ping-Probe folgt `offset = s − (c0 + rtt/2)`. Pegel nimmt den Offset der Probe mit der kürzesten RTT aus den letzten 8 Proben, das filtert ausreißende Netzspitzen. Erreichbar sind so ±5–10 ms.
+2. **Host misst, statt zu befehlen:**
+   - Bedient der Host YT direkt (Play, Pause, Spulen, Titel), passiert das bei ihm sofort und ohne künstliche Verzögerung.
+   - `yt/party/sync.ts` beim Host meldet die neue Lage (`positionMs` zum Zeitpunkt `at`) per IPC an Main, Main schickt sie als `state` weiter.
+3. **Gäste rechnen hoch:**
+   - Die Soll-Position ist `positionMs + (jetzt − at)`, solange `playing`. Ein Play beim Host startet bei den Gästen also gleich an der richtigen Stelle, die Netzlaufzeit ist herausgerechnet.
+   - Nur Pause und Sprung kommen um eine Laufzeit (ca. 20–50 ms) später an. Bei Pause springt der Gast danach auf die genaue Pausenstelle zurück.
+4. **Ausgabelatenz:**
+   - Beide Seiten rechnen `AudioContext.baseLatency + outputLatency` der EQ-Kette heraus (bei `latencyHint: 'playback'` und Bluetooth leicht 100–250 ms). Gemeldet und verglichen wird damit, was tatsächlich aus dem Lautsprecher kommt.
+   - Für Restfehler gibt es in den Einstellungen „Audio-Versatz“ (±300 ms, Standard 0).
+5. **Korrektur** alle 250 ms beim Gast, Abweichung `d = Ist − Soll`:
+   - `|d| < 30 ms`: nichts tun, Tempo 1.
+   - `30 ms ≤ |d| < 800 ms`: Tempo anpassen, `rate = 1 − clamp(d / 2000 ms, ±0,04)`. Die Abweichung schließt sich so in rund 2 s, ohne Sprung und ohne Tonhöhenänderung (`preservesPitch`).
+   - `|d| ≥ 800 ms` (Beitritt, Titelwechsel, nach Werbung oder Puffern): Sprung auf `Soll + seekLead`. `seekLead` lernt Pegel als gleitenden Mittelwert, wie lange ein Sprung bis zum nächsten `playing` braucht (Start 150 ms). Danach übernimmt die Tempo-Korrektur.
+   - Ziel: Alle Teilnehmer liegen innerhalb von **±40 ms** zueinander, sobald die Wiedergabe läuft.
+6. **Titelwechsel:**
+   - Neue `videoId` vom Host → Gäste laden per `watchEndpoint` (mit `playlistId`, damit bei Playlists auch die Warteschlange gleich ist) → bei `canplay` Sprung auf die hochgerechnete Position.
+   - Spielt YT beim Gast am Titelende von selbst etwas anderes ab (eigene Radio-Warteschlange), ersetzt Pegel es sofort durch den Titel des Hosts.
+   - Der Host schickt den Wechsel, sobald sein YT den neuen Titel lädt. Gäste laden also fast gleichzeitig.
+7. **Beitritt mitten im Lied:** `welcome.state` hochrechnen, Titel laden, Sprung, fertig. Dafür muss nichts beim Host passieren.
+
+#### 10.4 Sonderfälle
+
+- **Werbung (Gäste ohne Premium):**
+  - Meldet ein Gast `ad: true`, pausiert der Host-Pegel die Party für alle. Hinweis: „Warte auf Lea (Werbung) …“ mit einem Countdown.
+  - Die Party wartet höchstens **30 s pro Titel**, für alle werbenden Gäste zusammen. Danach geht es ohne sie weiter.
+  - Ist die Werbung vorbei, holt die Korrektur den Gast per Sprung an die richtige Stelle.
+  - Hat der **Host** Werbung, steht die Party, bis sie vorbei ist. Der Host ist die Uhr, die Gäste sehen „Host hört kurz Werbung“.
+- **Gesperrter Titel** (Region, Altersgrenze, nicht verfügbar):
+  - Der Gast meldet `unplayable`. Er sieht „Dieser Titel ist für dich nicht verfügbar – beim nächsten bist du wieder dabei“, der Host sieht ein Hinweis-Symbol am Gast.
+  - Die Party läuft weiter. Beim nächsten Titel synchronisiert sich der Gast wieder.
+- **Gast bedient selbst:**
+  - *Pause* ist erlaubt und gilt nur für ihn („Du hast pausiert · Weiterhören“). Beim Fortsetzen springt er an die Party-Stelle.
+  - *Spulen* wird zurückgesetzt.
+  - *Anderer Titel bzw. Weiter*: Pegel setzt auf den Party-Titel zurück. Sind Vorschläge erlaubt, schickt Pegel den gewählten Titel als Vorschlag an den Host („Als Vorschlag gesendet“).
+  - Wer wirklich etwas anderes hören will, verlässt die Party.
+- **Verbindung weg:**
+  - Gast: Er spielt lokal weiter und verbindet sich mit Backoff neu (das Ticket bleibt bis zum Ende der Party gültig). Danach synchronisiert er sich wieder. Für die anderen steht er 60 s auf „verbindet neu“, dann wird er entfernt.
+  - Host: Die Gäste spielen den laufenden Titel weiter und halten an dessen Ende an. Kommt der Host nicht innerhalb von 60 s zurück, wird der am längsten verbundene Gast Host. Ist niemand mehr da, endet die Party.
+- **Verlassen:**
+  - Gast: „Party verlassen“, die Musik läuft bei ihm einfach weiter.
+  - Host: Er gibt den Host an jemanden ab oder beendet die Party für alle.
+  - Beim Beenden von Pegel verlässt er die Party sauber (`before-quit`).
+- **Pegel in einer älteren Version:** `old-client` mit dem Hinweis „Für Partys bitte Pegel aktualisieren“, zusammen mit dem vorhandenen Updater.
+- **Nicht angemeldet bei YT:**
+  - Ohne Google-Login spielt YT Music nur eingeschränkt ab. Pegel weist beim Beitritt darauf hin.
+  - Titel, die ein Konto brauchen, behandelt Pegel wie gesperrte Titel.
+
+#### 10.5 Datenschutz
+
+| Was | Wo | Wie lange |
+| --- | --- | --- |
+| Schlüsselpaar, Anzeigename | lokal (`identity.json`, privater Schlüssel per `safeStorage`) | bis „Freunde zurücksetzen“ |
+| Freundesliste | nur lokal (`friends.json`) | bis zum Entfernen |
+| Öffentlicher Schlüssel, Name, Freundesliste, „Hört gerade“ | Hub-DO, **nur im Arbeitsspeicher** | solange die Verbindung steht |
+| Freundescode → öffentlicher Schlüssel und Name | Hub-DO-Speicher (SQLite) | bis zum Einlösen, höchstens 24 h |
+| Noch nicht zugestellte Benachrichtigung „X hat deinen Code eingelöst“ | Hub-DO-Speicher | bis zur Zustellung, höchstens 30 Tage |
+| Party-Zustand, Mitglieder, Vorschläge | Party-DO, **nur im Arbeitsspeicher** | bis die Party endet |
+
+- **Keine Logs** mit Inhalten (`console.log` im Worker nur für Fehlercodes). Cloudflare selbst sieht IP-Adressen, wie bei jedem Server. Das steht so in der README und in den Einstellungen.
+- **Freunde sehen:** Name, online/offline, „Hört gerade: Titel – Interpret“ und ob man in einer offenen Party ist. „Hört gerade teilen“ ist abschaltbar (Standard an), dann sehen Freunde nur „online“.
+- **Party-Mitglieder sehen:** Namen, wer Host ist, Sync-Status, „Werbung“ bzw. „nicht verfügbar“ und Vorschläge.
+- **Keine Google-Daten:** Pegel liest weder das YT-Konto noch Profilbild oder E-Mail aus.
+- **Der Schlüssel ist kein Passwort:** Er dient nur der Pegel-Freunde-Identität. Die Regel „Keine Zugangsdaten speichern“ betrifft den Google-Login und bleibt unberührt. Geht der Schlüssel verloren (neuer Rechner), legt Pegel eine neue Identität an, und man fügt sich neu hinzu. Export und Import gibt es in v1 bewusst nicht.
+- **Ganz aus:** Standardmäßig ist „Freunde“ aus. Erst ein Klick auf „Freunde einrichten“ im Social-Panel baut eine Verbindung auf. „Freunde ausschalten“ trennt sie, „Freunde zurücksetzen“ löscht Identität und Liste.
+
+#### 10.6 Oberfläche
+
+Alles im Stil von `design/mockup.html`: Tokens, `tb-btn`, Panel-Maße und Chips wie beim EQ, keine nativen Controls.
+
+```
+┌ Titelleiste ────────── [● Party · 3] [EQ] [Social] │ [↻] [Mini] [⚙] │ ─ □ × ┐
+│                                            │ Social                     [⋯] │
+│   YT Music                                 │ ┌ PARTY ─────────────────────┐ │
+│                                            │ │ ▶ Titel – Interpret        │ │
+│                                            │ │ ● Johann (Host)            │ │
+│                                            │ │ ● Lea    ● Tom ⏸ Werbung   │ │
+│                                            │ │ [Freunde einladen] [Verl.] │ │
+│                                            │ │ Vorschläge (2)          ›  │ │
+│                                            │ └────────────────────────────┘ │
+│                                            │ ONLINE                         │
+│                                            │ ● Lea   hört Titel – Interpret │
+│                                            │         [Einladen]             │
+│                                            │ OFFLINE                        │
+│                                            │ ○ Tom                          │
+│                                            │ [+ Freund hinzufügen]          │
+└────────────────────────────────────────────┴────────────────────────────────┘
+```
+
+- **Titelleiste neu gruppiert** (Wunsch von Johann): rechts drei Gruppen, getrennt durch dieselbe 1-px-Linie (`border` in `var(--border)`), die heute vor den Fenster-Buttons steht (`.win-controls`):
+  - **Equalizer, Social** – die beiden Buttons, die ein Seitenpanel öffnen,
+  - **Neu laden, Mini-Player, Einstellungen**,
+  - **Fenster-Buttons** (Windows/Linux; unter macOS entfällt die letzte Gruppe samt Trenner).
+  - Die Party-Pille steht links vor der ersten Gruppe, der Link- bzw. Einladungshinweis wie bisher davor.
+- **Titelleisten-Button „Social“** (Personen-Symbol, Tooltip „Freunde & Party (Strg/⌘+U)“) ist der Einstieg für Freunde und Party:
+  - Er öffnet das Seitenpanel (372 px, gleiche Animation wie beim EQ).
+  - EQ und Social teilen sich den Platz: Öffnet man das eine, schließt sich das andere, es ist immer nur ein Button aktiv. Von einer Pegel-Seite aus führt der Button zurück zur Musik und öffnet das Panel, wie beim EQ.
+  - Kurzbefehl Strg/⌘+F ist schon von YTs Suche belegt, deshalb **Strg/⌘+U**.
+  - Ein kleiner Akzent-Punkt am Button zeigt eine offene Einladung.
+- **Panel ohne Einrichtung:** kurzer Text, was Freunde und Partys sind, was auf dem Server landet (eine Zeile mit Link zu „Mehr erfahren“), Feld „Dein Name“ und der Button „Freunde einrichten“.
+- **Party-Karte** (nur in einer Party), Fläche `surface-2`:
+  - aktueller Titel,
+  - Mitglieder als Zeilen mit Status-Punkt: `accent` = synchron, `text-dim` = verbindet neu, plus Hinweise „Werbung“ und „nicht verfügbar“,
+  - Host-Menü pro Mitglied über „⋯“: Host übergeben, entfernen,
+  - Schalter „Offen für Freunde“ und „Vorschläge erlauben“,
+  - Vorschlagsliste mit „Als Nächstes“ und „Ablehnen“.
+- **Ohne Party:** Button „Party starten“ oben im Panel.
+- **Freundesliste:**
+  - Online oben, Offline darunter, jeweils alphabetisch.
+  - „Hört gerade“ zweizeilig und gekürzt.
+  - Je nach Lage „Einladen“ (ich bin Host), „Beitreten“ (Freund in offener Party) oder nichts.
+  - Rechtsklick bzw. „⋯“ → „Entfernen“, mit Rückfrage.
+- **Freund hinzufügen** (Overlay wie der Preset-Dialog), zwei Wege:
+  - „Mein Code“: großer Code mit Kopieren-Button und „gültig bis …“.
+  - „Code eingeben“: Feld im Format `XXXX-XXXX`, Groß- und Kleinschreibung egal, Bindestrich optional.
+- **Party-Pille in der Titelleiste:** „● Party · 3“ in `accent-soft`. Ein Klick öffnet das Panel. Bei Werbe-Wartezeit steht dort „Warte auf Lea …“.
+- **Einladung:**
+  - Hinweis in der Titelleiste wie beim kopierten Link: „Lea lädt dich zur Party ein · Beitreten · Ablehnen“.
+  - Ist das Fenster versteckt bzw. im Tray, kommt eine System-Benachrichtigung (`Notification`), ein Klick darauf zeigt Pegel.
+  - Einladungen verfallen nach 10 min.
+- **Mini-Player:**
+  - Party-Badge „Party · 3“ neben dem EQ-Badge.
+  - Gäste haben kein Zurück und Weiter (ausgegraut, Tooltip „Steuert Johann“). Play/Pause bleibt (lokale Pause, siehe 10.4).
+- **Tray-Menü:** Eintrag „Party verlassen“ bzw. „Party beenden“, solange eine läuft.
+- **Einstellungen**, neuer Abschnitt „Freunde & Party“:
+  - Anzeigename,
+  - „Hört gerade teilen“,
+  - „Audio-Versatz“,
+  - „Freunde ausschalten“ und „Freunde zurücksetzen“,
+  - der Satz zum Datenschutz.
+
+**Einstellungs-Schema** (Migration auf v2):
+
+```ts
+social: {
+  enabled: boolean;        // Standard false
+  displayName: string;     // 1–24 Zeichen
+  shareNowPlaying: boolean; // Standard true
+  audioOffsetMs: number;   // -300…300
+  partyOpen: boolean;      // Standard true (Freunde dürfen beitreten)
+  allowSuggestions: boolean; // Standard true
+  panelOpen: boolean;
+}
+```
+
+#### 10.7 Schritte
+
+- [ ] Konzept mit Johann abgestimmt (Server, Datenschutz, UI, Werbung: erledigt), Freigabe zum Umsetzen
+- [ ] `server/` anlegen: Worker, Hub-DO, Party-DO, `jurisdiction: 'eu'`, Signaturprüfung, Tests mit `@cloudflare/vitest-pool-workers`. Johann legt den Cloudflare-Account an, erster Deploy nach Rückfrage
+- [ ] `shared/social-protocol.ts`, `shared/social.ts`, `shared/party-sync.ts` mit Unit-Tests (Uhr-Offset, Hochrechnen, Korrekturstufen, Freundescode-Format)
+- [ ] Bridge: `videoId`, `adPlaying`, Sperr-Erkennung, Laden per `watchEndpoint` mit `loadURL`-Rückfallebene. Neue Selektoren und Selbsttest
+- [ ] `main/social/identity.ts` und `connection.ts` (Anmeldung, Backoff, Uhrabgleich), Einstellungen v2 mit Migration
+- [ ] Freunde: Codes erzeugen und einlösen, gegenseitige Presence, „Hört gerade“, Panel ohne Party, Overlay „Freund hinzufügen“
+- [ ] Party Host/Gast: `yt/party/sync.ts` mit Tempo- und Sprungkorrektur, Ausgabelatenz, Beitritt mitten im Lied, Titelwechsel
+- [ ] Sonderfälle: Werbe-Wartezeit, gesperrte Titel, lokale Bedienung von Gästen, Vorschläge, Verbindungsabbruch, Host-Wechsel
+- [ ] UI fertig: Titelleiste neu gruppiert mit Social-Button, Party-Karte, Titelleisten-Pille, Einladungshinweis und System-Benachrichtigung, Mini-Player-Badge, Tray-Eintrag, Einstellungsabschnitt
+- [ ] Messen: Zwei Pegel-Instanzen auf einem Rechner (zweites `userData`), dann zwei Rechner. Abweichung per Log von `driftMs` nach Play, Spulen, Titelwechsel und Beitritt. Ziel ±40 ms nach spätestens 3 s
+- [ ] Test mit 3+ Leuten, davon einer ohne Premium (Werbung) und einer mit Bluetooth-Kopfhörer
+- [ ] README: Abschnitt „Freunde & Party“ mit Datenschutz. Version 1.1.0 mit dem Commit aus M9 veröffentlichen (nach Rückfrage)
+- **Fertig, wenn:** Johann und mindestens zwei Freunde sich per Code hinzufügen, einander online mit „Hört gerade“ sehen und eine Party über mehrere Titel synchron hören, auch wenn einer mitten im Lied beitritt, Werbung bekommt oder kurz die Verbindung verliert.
 
 ### Später (optional)
 
@@ -417,6 +751,9 @@ Die Meilensteine werden in dieser Reihenfolge abgearbeitet. Jeder endet mit eine
 | AudioContext stumm (Autoplay-Policy)                | niedrig            | `resume()` bei `play`, Überwachung und Log                                                                                                                          |
 | Nutzungsbedingungen von YouTube                     | niedrig            | Kein Blocken von Werbung, kein Download, Wiedergabe nur über die offizielle Seite mit eigenem Konto. Pegel nicht öffentlich mit YouTube-Logo bzw. -Marke verbreiten |
 | Unsignierte App: Warnungen unter Windows und macOS  | sicher             | Kurzanleitung in der README. Signierung bewusst nicht in v1                                                                                                         |
+| YT ändert die interne Navigation (`watchEndpoint`) | mittel | Rückfallebene `loadURL` (langsamer, Party bleibt nutzbar), Selbsttest meldet es |
+| Party driftet trotz Korrektur (Bluetooth, langsames Laden) | mittel | Ausgabelatenz der EQ-Kette herausrechnen, „Audio-Versatz“ von Hand, Sprungvorlauf lernen |
+| Cloudflare-Free-Plan reicht nicht oder ändert sich | niedrig | Nachrichtenraten drosseln (Status nur bei Änderung), DO-Code läuft auch im Paid-Plan (5 $/Monat) unverändert |
 
 ---
 

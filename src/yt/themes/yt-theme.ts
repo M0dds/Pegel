@@ -1,6 +1,6 @@
 import type { Theme, ThemeToken } from '@shared/themes';
 import { SELECTORS } from '../selectors';
-import { NO_SCROLLBAR_ATTR } from '../decor/scrollbar';
+import { NO_SCROLLBAR_ATTR, PLAYER_BAR_HEIGHT_VAR } from '../decor/scrollbar';
 
 /**
  * YT Music's own colour variables (defined on `html`), grouped by the Pegel
@@ -137,10 +137,19 @@ ${SELECTORS.menuPopup}::-webkit-scrollbar-thumb {
 }
 ${SELECTORS.menuPopup}::-webkit-scrollbar-thumb:hover { background-color: ${t['text-dim']} !important; }
 
-/* The page scrollbar runs the full height, so next to the player bar its transparent
-   track showed the page background as a gap. Fill that part in the bar's colour. */
-html:has(${SELECTORS.playerVisibleLayout})::-webkit-scrollbar-track {
-  --pegel-bar-top: calc(100% - var(--ytmusic-player-bar-height, 72px));
+/* The page scrollbar runs the full height, also beside the player bar (a fixed
+   overlay), which looked like a gap. While the bar is shown, its height is set on
+   <body> (measured in src/yt/decor/scrollbar.ts): track and thumb stop above it,
+   and the scrollbar's own background beside it takes the bar's colour.
+   Prefixed selectors (html or body before the pseudo-element) never match the page (viewport)
+   scrollbar; only the global pseudo-elements do, and it takes its variables
+   from <body>. Every scrollbar inside the page gets the height reset to 0. */
+body * { ${PLAYER_BAR_HEIGHT_VAR}: 0px; }
+::-webkit-scrollbar-track {
+  margin-bottom: var(${PLAYER_BAR_HEIGHT_VAR}, 0px) !important;
+}
+::-webkit-scrollbar {
+  --pegel-bar-top: calc(100% - var(${PLAYER_BAR_HEIGHT_VAR}, 0px));
   background:
     /* the 2 px progress track line along the bar's top edge */
     linear-gradient(

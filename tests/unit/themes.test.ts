@@ -94,14 +94,21 @@ describe('buildYtThemeCss', () => {
       // YT's own scrollbar room next to the player bar, matched to Pegel's scrollbar.
       '--ytmusic-scrollbar-width',
     ]);
-    const props = [...buildYtPolishCss(THEMES.sakura).matchAll(/([a-z-]+)\s*:\s*[^;{}]+;/g)].map(
-      (m) => m[1]!,
+    const css = buildYtPolishCss(THEMES.sakura);
+    // The one margin allowed: the page scrollbar's track stops above the player bar.
+    // It belongs to the scrollbar, not to YT's layout.
+    const trackRules = [...css.matchAll(/::-webkit-scrollbar-track\s*\{[^}]*\}/g)].map((m) => m[0]);
+    const withoutTrack = trackRules.reduce(
+      (rest, rule) => rest.replace(rule, rule.replace(/margin-bottom\s*:[^;]+;/, '')),
+      css,
     );
+    expect(trackRules.some((rule) => /margin-bottom\s*:/.test(rule))).toBe(true);
+    const props = [...withoutTrack.matchAll(/([a-z-]+)\s*:\s*[^;{}]+;/g)].map((m) => m[1]!);
     expect(props.length).toBeGreaterThan(0);
     // No margins or paddings: YT's spacing stays untouched.
     // Own helper variables (--pegel-*) are fine, they only feed the allowed properties.
     expect(props.filter((p) => !allowed.has(p) && !p.startsWith('--pegel-'))).toEqual([]);
     // overflow changes on menus break YT's wheel scrolling (iron-dropdown scroll lock).
-    expect(buildYtPolishCss(THEMES.sakura)).not.toMatch(/overflow[a-z-]*\s*:/);
+    expect(css).not.toMatch(/overflow[a-z-]*\s*:/);
   });
 });

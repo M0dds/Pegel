@@ -17,7 +17,6 @@ export const SELECTORS = {
   /** Heading of a playlist page (/playlist?list=…). */
   playlistPageTitle: 'ytmusic-responsive-header-renderer h1',
   /** YT's layout while the player bar is shown at the bottom. */
-  playerVisibleLayout: 'ytmusic-app-layout[player-visible]',
   /** Progress bar in the player bar; YT colours it with its own gradient. */
   progressBar: '#progress-bar',
   /** Scroll container of YT's context menus (⋮ on tracks etc.). */
