@@ -33,17 +33,6 @@ export const SELECTORS = {
   adShowing: '#movie_player.ad-showing',
   /** Root element of YT Music; takes YT's own in-page navigation (listening party). */
   app: 'ytmusic-app',
-  /** A track row in lists (playlist, album, search, library); gets the party "+". */
-  listItem: 'ytmusic-responsive-list-item-renderer',
-  /** The row's ⋮ menu; the "+" goes right before it. */
-  listItemMenu: 'ytmusic-menu-renderer',
-  listItemTitle: '.title',
-  /** Artist (or plays on album pages) in a row. */
-  listItemByline: '.secondary-flex-columns yt-formatted-string',
-  watchLink: 'a[href*="watch?v="]',
-  /** The track playing now in YT's queue; the one after it is where the playlist resumes. */
-  queueItemSelected: 'ytmusic-player-queue-item[selected]',
-  queueItem: 'ytmusic-player-queue-item',
 } as const satisfies Record<string, string>;
 
 export type SelectorName = keyof typeof SELECTORS;

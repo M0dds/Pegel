@@ -6,8 +6,6 @@ import {
   PARTY_MAX_MEMBERS,
   PARTY_MIN_PROTOCOL,
   PROTOCOL_VERSION,
-  MAX_QUEUE,
-  MAX_QUEUE_PER_MEMBER,
   RECONNECT_GRACE_MS,
   parsePartyClientMessage,
   ticketPayload,
@@ -19,8 +17,6 @@ import {
   type PartyOptions,
   type PartyPlayback,
   type PartyServerMessage,
-  type QueueItem,
-  type SuggestedTrack,
   type Suggestion,
   type UserId,
 } from '../../src/shared/social-protocol';
@@ -71,7 +67,6 @@ export class PartyCore {
   private playbackFrom: UserId | null = null;
   private options: PartyOptions = { open: true, allowSuggestions: true, everyoneControls: true };
   private suggestions: Suggestion[] = [];
-  private queue: QueueItem[] = [];
   private ended: PartyEndReason | null = null;
 
   constructor(
@@ -263,7 +258,6 @@ export class PartyCore {
       state: this.playback,
       options: this.options,
       suggestions: this.suggestions,
-      queue: this.queue,
       serverTime: this.deps.now(),
     });
     this.broadcast({ t: 'member', member: this.view(member) }, conn);
@@ -315,48 +309,23 @@ export class PartyCore {
         break;
       }
       case 'suggest.answer': {
+        // The host plays an accepted suggestion itself; here it only leaves the list.
         if (!isHost) return;
-        const suggestion = this.suggestions.find((s) => s.id === msg.id);
-        if (!suggestion) return;
+        const before = this.suggestions.length;
         this.suggestions = this.suggestions.filter((s) => s.id !== msg.id);
-        this.broadcast({ t: 'suggestions', suggestions: this.suggestions });
-        // Accepted suggestions join the queue in the name of who suggested them.
-        if (msg.accept) this.enqueue(suggestion.from, suggestion.fromName, suggestion);
-        break;
-      }
-      case 'queue.add': {
-        if (!isHost && !this.options.everyoneControls) return;
-        const own = this.queue.filter((q) => q.by === userId).length;
-        if (own >= MAX_QUEUE_PER_MEMBER || this.queue.length >= MAX_QUEUE) {
-          return this.send(conn, { t: 'error', code: 'rate-limit', op: 'queue.add' });
-        }
-        if (this.enqueue(userId, member.name, msg.track)) {
-          this.activity(userId, member.name, 'add', msg.track.title);
+        if (this.suggestions.length !== before) {
+          this.broadcast({ t: 'suggestions', suggestions: this.suggestions });
         }
         break;
       }
-      case 'queue.remove': {
-        const item = this.queue.find((q) => q.id === msg.id);
-        if (!item || (!isHost && item.by !== userId)) return;
-        this.queue = this.queue.filter((q) => q.id !== msg.id);
-        this.broadcast({ t: 'queue', queue: this.queue });
-        break;
-      }
-      case 'queue.move': {
-        if (!isHost) return;
-        const from = this.queue.findIndex((q) => q.id === msg.id);
-        if (from < 0) return;
-        const [item] = this.queue.splice(from, 1);
-        this.queue.splice(Math.min(msg.index, this.queue.length), 0, item!);
-        this.broadcast({ t: 'queue', queue: this.queue });
-        break;
-      }
-      case 'queue.played': {
-        // The host started the first queued track: it leaves the queue.
-        if (!isHost) return;
-        const before = this.queue.length;
-        this.queue = this.queue.filter((q) => q.id !== msg.id);
-        if (this.queue.length !== before) this.broadcast({ t: 'queue', queue: this.queue });
+      case 'host.claim': {
+        // Whoever starts own music plays for everybody (only with "Alle dürfen steuern").
+        if (isHost || !this.options.everyoneControls || !this.hostId) return;
+        const previous = this.members.get(this.hostId);
+        this.setHost(userId);
+        this.persistMember(member);
+        if (previous) this.persistMember(previous);
+        this.activity(userId, member.name, 'takeover');
         break;
       }
       case 'control': {
@@ -415,26 +384,10 @@ export class PartyCore {
     }
   }
 
-  /** Appends a track unless the same one is already waiting; true if added. */
-  private enqueue(by: UserId, byName: string, track: SuggestedTrack): boolean {
-    if (this.queue.some((q) => q.videoId === track.videoId)) return false;
-    if (this.queue.length >= MAX_QUEUE) return false;
-    this.queue.push({
-      id: base64url(this.deps.randomBytes(9)),
-      videoId: track.videoId,
-      title: track.title,
-      artist: track.artist,
-      by,
-      byName,
-    });
-    this.broadcast({ t: 'queue', queue: this.queue });
-    return true;
-  }
-
   private activity(
     userId: UserId,
     name: string,
-    action: 'play' | 'pause' | 'skip' | 'seek' | 'add',
+    action: 'play' | 'pause' | 'skip' | 'seek' | 'takeover',
     title?: string,
   ): void {
     this.broadcast({ t: 'activity', userId, name, action, ...(title && { title }) });
@@ -476,7 +429,6 @@ export class PartyCore {
     this.conns.clear();
     this.members.clear();
     this.suggestions = [];
-    this.queue = [];
     this.playback = null;
     this.hostId = null;
   }

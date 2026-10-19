@@ -1,7 +1,6 @@
 import type { EqAction } from './eq';
 import type { PegelLink } from './links';
 import type { PartyControl, PartyReport, SocialState } from './social';
-import type { SuggestedTrack } from './social-protocol';
 import type { UpdateStatus } from './update';
 import type {
   AppInfo,
@@ -84,10 +83,6 @@ export interface UiToMainChannels {
   'party:suggestion': { id: string; accept: boolean };
   /** Guest: back to the party after a local pause. */
   'party:resume': void;
-  /** Party queue: remove a track (own, or any as host). */
-  'party:queue-remove': string;
-  /** Host: move a queued track to the front. */
-  'party:queue-top': string;
   'player:command': PlayerCommand;
   'mini:open': void;
   /** "Enlarge": close the mini player and show the main window. */
@@ -138,8 +133,6 @@ export interface YtToMainChannels {
   'yt:spectrum': number[];
   /** Precise playback facts while in a listening party. */
   'yt:party-report': PartyReport;
-  /** The "+" next to a track in YT was clicked during a party. */
-  'yt:party-add': SuggestedTrack;
 }
 
 /** Main → YT view preload. */
@@ -155,8 +148,6 @@ export interface MainToYtChannels {
   'yt:play-track': { videoId: string; playlistId?: string };
   /** Guest: leave the local pause and play in sync again. */
   'yt:party-resume': void;
-  /** Host: skip (anyone's "Weiter"); plays the next queued track first. */
-  'yt:party-skip': void;
 }
 
 export type InvokeChannel = keyof InvokeChannels;
@@ -226,8 +217,6 @@ export interface PegelApi {
   partyTransfer(userId: string): void;
   partySuggestion(id: string, accept: boolean): void;
   partyResume(): void;
-  partyQueueRemove(id: string): void;
-  partyQueueTop(id: string): void;
   onSpectrum(listener: (levels: number[]) => void): () => void;
   /** Returns a function that removes the listener. */
   onViewChanged(listener: (view: View) => void): () => void;

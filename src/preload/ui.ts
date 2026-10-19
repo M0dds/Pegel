@@ -94,8 +94,6 @@ const api: PegelApi = {
   partyTransfer: (userId) => send('party:transfer', userId),
   partySuggestion: (id, accept) => send('party:suggestion', { id, accept }),
   partyResume: () => send('party:resume'),
-  partyQueueRemove: (id) => send('party:queue-remove', id),
-  partyQueueTop: (id) => send('party:queue-top', id),
 };
 
 contextBridge.exposeInMainWorld('pegel', api);

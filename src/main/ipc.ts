@@ -7,7 +7,6 @@ import { isPlayerCommand } from '@shared/player';
 import { isThemeId } from '@shared/themes';
 import { isView } from '@shared/types';
 import { toPartyReport } from '@shared/social';
-import { isVideoId } from '@shared/social-protocol';
 import {
   answerSuggestion,
   createFriendCode,
@@ -26,9 +25,6 @@ import {
   resetSocial,
   respondToInvite,
   resumeParty,
-  addPartyTrack,
-  moveQueuedToTop,
-  removeQueued,
   routePlayerCommand,
   startParty,
   transferParty,
@@ -128,8 +124,6 @@ export function registerIpc(): void {
   on('party:transfer', (_event, id) => transferParty(id));
   on('party:suggestion', (_event, payload) => answerSuggestion(payload));
   on('party:resume', () => resumeParty());
-  on('party:queue-remove', (_event, id) => removeQueued(id));
-  on('party:queue-top', (_event, id) => moveQueuedToTop(id));
 
   on('view:show', (_event, view) => {
     if (isView(view)) showView(view);
@@ -230,17 +224,6 @@ export function registerIpc(): void {
     if (levels.length > MAX_FEED_BARS) return;
     if (!levels.every((v) => Number.isInteger(v) && v >= 0 && v <= 255)) return;
     forwardSpectrum(levels as number[]);
-  });
-  ipcMain.on('yt:party-add', (event, raw: unknown) => {
-    if (!isYtSender(event.sender) || typeof raw !== 'object' || raw === null) return;
-    const t = raw as Record<string, unknown>;
-    if (!isVideoId(t['videoId']) || typeof t['title'] !== 'string') return;
-    const artist = typeof t['artist'] === 'string' ? t['artist'] : '';
-    addPartyTrack({
-      videoId: t['videoId'],
-      title: t['title'].slice(0, 300),
-      artist: artist.slice(0, 300),
-    });
   });
   ipcMain.on('yt:party-report', (event, raw: unknown) => {
     if (!isYtSender(event.sender)) return;

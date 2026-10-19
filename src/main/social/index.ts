@@ -8,7 +8,6 @@ import {
   isVideoId,
   type NowPlaying,
   type PartyOptions,
-  type SuggestedTrack,
   type UserId,
 } from '@shared/social-protocol';
 import type { PlayerCommand } from '@shared/types';
@@ -95,7 +94,8 @@ const party = new PartyService(SOCIAL_SERVER_URL, {
   notice: setNotice,
   setYt: (control) => sendToYt('yt:party', control),
   command: sendPlayerCommand,
-  skip: () => sendToYt('yt:party-skip'),
+  playTrack: (videoId, playlistId) =>
+    sendToYt('yt:play-track', playlistId ? { videoId, playlistId } : { videoId }),
   audioOffsetMs: () => getSettings().social.audioOffsetMs,
   nameOf: (id) => friends.nameOf(id),
 });
@@ -327,19 +327,6 @@ export function handlePartyReport(report: PartyReport): void {
 function partyOptions(): PartyOptions {
   const { partyOpen, allowSuggestions, everyoneControls } = getSettings().social;
   return { open: partyOpen, allowSuggestions, everyoneControls };
-}
-
-/** The "+" next to a track in YT. */
-export function addPartyTrack(track: SuggestedTrack): void {
-  party.addTrack(track);
-}
-
-export function removeQueued(id: unknown): void {
-  if (typeof id === 'string' && id.length <= 40) party.removeQueued(id);
-}
-
-export function moveQueuedToTop(id: unknown): void {
-  if (typeof id === 'string' && id.length <= 40) party.moveQueuedToTop(id);
 }
 
 /**

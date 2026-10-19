@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { adHoldUsers, AD_WAIT_MS, ClockSync, expectedPositionMs } from '@shared/party-sync';
-import type { PartyControl, PartyReport, PartyTarget, PartyView, PlusMode } from '@shared/social';
+import type { PartyControl, PartyReport, PartyTarget, PartyView } from '@shared/social';
 import {
   cleanName,
   isUserId,
@@ -10,7 +10,6 @@ import {
   toMemberStatus,
   toPartyOptions,
   toPartyPlayback,
-  toQueue,
   type ActivityAction,
   type ControlAction,
   type Member,
@@ -18,7 +17,6 @@ import {
   type PartyOptions,
   type PartyPlayback,
   type PartyServerMessage,
-  type QueueItem,
   type SuggestedTrack,
   type Suggestion,
   type Ticket,
@@ -44,8 +42,8 @@ const ACTIVITY_MS = 4000;
 
 function activityText(name: string, action: ActivityAction, title?: string): string {
   switch (action) {
-    case 'add':
-      return title ? `${name} hat „${title}“ hinzugefügt` : `${name} hat einen Titel hinzugefügt`;
+    case 'takeover':
+      return title ? `${name} legt jetzt auf: ${title}` : `${name} legt jetzt auf`;
     case 'skip':
       return `${name} hat übersprungen`;
     case 'pause':
@@ -62,8 +60,8 @@ export interface PartyHooks {
   /** What the YT view should do (null: party over). */
   setYt(control: PartyControl | null): void;
   command(command: PlayerCommand): void;
-  /** Host: next queued track (or YT's next) in the YT view. */
-  skip(): void;
+  /** Host: plays an accepted suggestion. */
+  playTrack(videoId: string, playlistId?: string): void;
   notice(text: string, kind: 'info' | 'error'): void;
   audioOffsetMs(): number;
   nameOf(userId: UserId): string | null;
@@ -94,9 +92,6 @@ export class PartyService {
   private playback: PartyPlayback | null = null;
   private options: PartyOptions = { open: true, allowSuggestions: true, everyoneControls: true };
   private suggestions: Suggestion[] = [];
-  private queue: QueueItem[] = [];
-  /** Host: queue ids already reported as playing. */
-  private played = new Set<string>();
   private activity: string | null = null;
   private activityTimer: NodeJS.Timeout | null = null;
   private pingTimer: NodeJS.Timeout | null = null;
@@ -165,35 +160,24 @@ export class PartyService {
     this.hooks.onChange();
   }
 
-  /** Accepted suggestions join the queue (the server moves them there). */
+  /** Accepted suggestions play right away on the host. */
   answerSuggestion(id: string, accept: boolean): void {
-    if (this.isHost) this.socket?.send({ t: 'suggest.answer', id, accept });
+    if (!this.isHost) return;
+    const suggestion = this.suggestions.find((s) => s.id === id);
+    this.socket?.send({ t: 'suggest.answer', id, accept });
+    if (accept && suggestion) this.hooks.playTrack(suggestion.videoId);
   }
 
-  /** The "+" in YT, or a track a guest clicked: queue it, or suggest it to the host. */
-  addTrack(track: SuggestedTrack): void {
+  /** A guest without shared control picked a track: it is suggested to the host. */
+  private suggest(track: SuggestedTrack): void {
     if (!this.socket || !isVideoId(track.videoId)) return;
     const label = track.title ? `„${track.title}“` : 'Der Titel';
-    if (this.isHost || this.options.everyoneControls) {
-      if (this.queue.some((q) => q.videoId === track.videoId)) {
-        return this.hooks.notice(`${label} ist schon in der Warteschlange.`, 'info');
-      }
-      this.socket.send({ t: 'queue.add', track });
-      this.hooks.notice(`${label} kommt in die Warteschlange.`, 'info');
-    } else if (this.options.allowSuggestions) {
+    if (this.options.allowSuggestions) {
       this.socket.send({ t: 'suggest', track });
       this.hooks.notice(`${label} als Vorschlag gesendet.`, 'info');
     } else {
       this.hooks.notice('In dieser Party steuert nur der Host die Musik.', 'info');
     }
-  }
-
-  removeQueued(id: string): void {
-    this.socket?.send({ t: 'queue.remove', id });
-  }
-
-  moveQueuedToTop(id: string): void {
-    if (this.isHost) this.socket?.send({ t: 'queue.move', id, index: 0 });
   }
 
   /**
@@ -202,12 +186,7 @@ export class PartyService {
    */
   routeCommand(command: PlayerCommand): boolean {
     if (!this.socket) return false;
-    if (this.isHost) {
-      if (command.type !== 'next') return false;
-      this.hooks.skip();
-      return true;
-    }
-    if (!this.options.everyoneControls) return false;
+    if (this.isHost || !this.options.everyoneControls) return false;
     switch (command.type) {
       case 'playPause':
         this.sendControl(this.playback?.playing ? 'pause' : 'play');
@@ -236,11 +215,6 @@ export class PartyService {
     );
   }
 
-  private plusMode(): PlusMode {
-    if (this.isHost || this.options.everyoneControls) return 'queue';
-    return this.options.allowSuggestions ? 'suggest' : null;
-  }
-
   /** Ticket for a friend, signed by this host; valid for 10 minutes. */
   makeTicket(guest: UserId): Ticket | null {
     if (!this.identity || !this.partyId || !this.isHost) return null;
@@ -258,15 +232,10 @@ export class PartyService {
   control(): PartyControl | null {
     if (!this.socket) return null;
     const audioOffsetMs = this.hooks.audioOffsetMs();
-    const plus = this.plusMode();
-    if (this.isHost) {
-      const next = this.queue[0];
-      return { role: 'host', audioOffsetMs, plus, next: next ? { videoId: next.videoId } : null };
-    }
+    if (this.isHost) return { role: 'host', audioOffsetMs };
     return {
       role: 'guest',
       audioOffsetMs,
-      plus,
       target: this.target(),
       canControl: this.options.everyoneControls,
     };
@@ -281,12 +250,6 @@ export class PartyService {
     if (!this.socket) return;
     this.report = report;
     if (this.isHost) {
-      // The first queued track is playing now: it leaves the queue.
-      const head = this.queue[0];
-      if (head && report.videoId === head.videoId && !this.played.has(head.id)) {
-        this.played.add(head.id);
-        this.socket.send({ t: 'queue.played', id: head.id });
-      }
       this.hostUpdate(false);
       return;
     }
@@ -301,9 +264,12 @@ export class PartyService {
     this.socket.send({ t: 'status', status });
     const me = this.identity && this.members.get(this.identity.id);
     if (me) me.status = status;
-    if (report.picked) this.addTrack(report.picked);
-    if (report.request && this.options.everyoneControls) {
-      this.sendControl(report.request.action, report.request.positionMs);
+    if (report.picked) this.suggest(report.picked);
+    const request = report.request;
+    if (request && this.options.everyoneControls) {
+      // Own music started: take over as host, the others follow what plays here.
+      if (request.action === 'takeover') this.socket.send({ t: 'host.claim' });
+      else this.sendControl(request.action, request.positionMs);
     }
     this.hooks.onChange();
   }
@@ -351,14 +317,6 @@ export class PartyService {
         localPause: !this.isHost && !!myStatus?.localPause,
         unplayable: !this.isHost && !!myStatus?.unplayable,
       },
-      queue: this.queue.map((q) => ({
-        id: q.id,
-        videoId: q.videoId,
-        title: q.title,
-        artist: q.artist,
-        byName: q.byName,
-        canRemove: this.isHost || q.by === me,
-      })),
       canControl: this.isHost || this.options.everyoneControls,
       activity: this.activity,
     };
@@ -417,8 +375,6 @@ export class PartyService {
     this.members.clear();
     this.playback = null;
     this.suggestions = [];
-    this.queue = [];
-    this.played.clear();
     this.activity = null;
     if (this.activityTimer) clearTimeout(this.activityTimer);
     this.activityTimer = null;
@@ -442,7 +398,6 @@ export class PartyService {
         this.playback = toPartyPlayback(msg.state);
         this.options = toPartyOptions(msg.options) ?? this.options;
         this.suggestions = Array.isArray(msg.suggestions) ? msg.suggestions : [];
-        this.queue = toQueue(msg.queue);
         if (this.playback) this.seq = Math.max(this.seq, this.playback.seq);
         this.startPings();
         this.onRoleMaybeChanged();
@@ -487,16 +442,12 @@ export class PartyService {
         // "+" and the guest's own buttons follow the new rules.
         if (!this.isHost) this.pushTarget();
         break;
-      case 'queue':
-        this.queue = toQueue(msg.queue);
-        if (this.isHost) this.hooks.setYt(this.control());
-        break;
       case 'control':
         // A guest's pause, play, skip or seek: the host's YT does it, everybody follows.
         if (!this.isHost) return;
         if (msg.action === 'play' || msg.action === 'pause')
           this.hooks.command({ type: msg.action });
-        else if (msg.action === 'skip') this.hooks.skip();
+        else if (msg.action === 'skip') this.hooks.command({ type: 'next' });
         else if (msg.action === 'seek' && typeof msg.positionMs === 'number') {
           this.hooks.command({ type: 'seek', sec: Math.max(0, msg.positionMs / 1000) });
         }

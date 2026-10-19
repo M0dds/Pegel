@@ -160,65 +160,6 @@ export function navigateToTrack(videoId: string, playlistId?: string): boolean {
   }
 }
 
-/** A YT watch endpoint (videoId, playlistId, index, params) as plain values. */
-export type WatchEndpoint = Record<string, string | number>;
-
-/**
- * Where YT's own queue would continue: the watch endpoint of the item after
- * the one playing. Read from the queue element's data (main world) right
- * before the party queue takes over, so the host's playlist resumes there.
- */
-export function readResumeEndpoint(): WatchEndpoint | null {
-  try {
-    return contextBridge.executeInMainWorld({
-      func: (selectedSel: string, itemSel: string) => {
-        const selected = document.querySelector(selectedSel);
-        if (!selected) return null;
-        const items = [...document.querySelectorAll(itemSel)];
-        const next = items[items.indexOf(selected) + 1] as unknown as
-          | {
-              data?: { navigationEndpoint?: { watchEndpoint?: Record<string, unknown> } };
-            }
-          | undefined;
-        const endpoint = next?.data?.navigationEndpoint?.watchEndpoint;
-        if (!endpoint || typeof endpoint['videoId'] !== 'string') return null;
-        const plain: Record<string, string | number> = {};
-        for (const key of ['videoId', 'playlistId', 'index', 'params', 'playerParams']) {
-          const value = endpoint[key];
-          if (typeof value === 'string' || typeof value === 'number') plain[key] = value;
-        }
-        return plain;
-      },
-      args: [SELECTORS.queueItemSelected, SELECTORS.queueItem],
-    }) as WatchEndpoint | null;
-  } catch {
-    return null;
-  }
-}
-
-/** Like navigateToTrack, with a full endpoint (back into the host's playlist). */
-export function navigateToEndpoint(endpoint: WatchEndpoint): boolean {
-  try {
-    return contextBridge.executeInMainWorld({
-      func: (selector: string, watchEndpoint: Record<string, string | number>) => {
-        const app = document.querySelector(selector);
-        if (!app) return false;
-        app.dispatchEvent(
-          new CustomEvent('yt-navigate', {
-            bubbles: true,
-            composed: true,
-            detail: { endpoint: { watchEndpoint } },
-          }),
-        );
-        return true;
-      },
-      args: [SELECTORS.app, endpoint],
-    }) as boolean;
-  } catch {
-    return false;
-  }
-}
-
 /** URL of a track, for the fallback when in-page navigation does not work. */
 export function trackUrl(videoId: string, playlistId?: string): string {
   const url = new URL('https://music.youtube.com/watch');

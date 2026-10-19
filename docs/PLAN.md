@@ -845,6 +845,26 @@ social: {
 - [x] Server deployt und Release 1.2.0 (mit den Theme-Effekten und dem Taskleisten-Icon-Fix). Pegel 1.1.0 sieht weiter Freunde, für Partys braucht es 1.2.0
 - **Fertig, wenn:** Zwei Leute abwechselnd Titel per „+“ hinzufügen, beide pausieren und überspringen können und nach der Warteschlange die Playlist des Hosts an der richtigen Stelle weiterläuft.
 
+### M12 – Wer Musik startet, legt auf (Release 1.3, ersetzt die Warteschlange aus M11)
+
+> Johanns Entscheidung nach den Tests von 1.2.x: Die Warteschlange fliegt wieder raus. Wichtiger ist, dass die Playlist zuverlässig synchron läuft. Wer etwas anderes hören will, startet es einfach. Unter Freunden spricht man sich ab, oder man nutzt eine gemeinsame Playlist.
+
+- **Übernehmen:** Startet ein Gast in YT selbst eine Playlist oder einen Titel (echter Klick, ≤ 4 s vorher), wird er automatisch Host (`host.claim`). Alle anderen, auch der bisherige Host, folgen ihm.
+  - Das klappt auch mit privaten Playlists, weil die anderen Titel für Titel laden.
+  - Bis die neue Rolle ankommt, lässt Pegel den Player des Gasts in Ruhe. Kommt nichts, springt er nach 4 s zurück.
+- **Entfernt:** Warteschlange, „+“-Knopf, Rückkehr zur Playlist (`readResumeEndpoint`), die Nachrichten `queue.*` und die zugehörigen Selektoren.
+- **Bleibt:**
+  - „Alle dürfen steuern“: Pause, Play, Weiter und Spulen für alle, auch über YTs Knöpfe, Mini-Player und Tray.
+  - Ohne den Schalter steuert der Host allein wie in M10. Wählt ein Gast dann einen Titel, wird er dem Host vorgeschlagen, „Abspielen“ spielt ihn sofort.
+- **Robustheit aus 1.2.2 bleibt:** Pegel nutzt das spielende Media-Element, die Zeiten kommen aus YTs Player-API, und die Prüfungen laufen zusätzlich bei `timeupdate`.
+- **Kompatibilität:** 1.2.x-Clients verbinden sich weiter. Ihre Warteschlangen-Nachrichten lehnt der Server ab, ohne dass etwas kaputtgeht.
+
+- [x] Protokoll und Server: `host.claim` statt Warteschlange, Tests
+- [x] YT-Engine: eigener Klick → Übernehmen, Warteschlangen-Logik entfernt
+- [x] Main, IPC und UI: Warteschlange und „+“ entfernt, Hinweistext für Gäste
+- [x] Test mit zwei Instanzen: Gast startet einen Titel per echtem Klick → wird Host, der bisherige Host folgt (25–50 ms)
+- [ ] Server-Deploy und Release 1.3.0 (nach Rückfrage)
+
 ### Später (optional)
 
 - Liedtexte im Seitenpanel, Last.fm-Scrobbling, weitere Themes

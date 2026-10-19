@@ -1,18 +1,15 @@
 import { correctionFor, expectedPositionMs, SEEK_THRESHOLD_MS, SeekLead } from '@shared/party-sync';
 import type { PartyControl, PartyReport, PartyTarget } from '@shared/social';
-import type { ControlAction, SuggestedTrack } from '@shared/social-protocol';
+import type { PartyRequest } from '@shared/social';
+import type { SuggestedTrack } from '@shared/social-protocol';
 import {
   isAdShowing,
   media,
-  navigateToEndpoint,
   navigateToTrack,
   playerApi,
   readPlayerTime,
-  readResumeEndpoint,
   readTrackInfo,
-  runCommand,
   trackUrl,
-  type WatchEndpoint,
 } from '../player/bridge';
 import { SELECTORS } from '../selectors';
 
@@ -38,8 +35,6 @@ const SEEK_SETTLE_MS = 700;
 const INFO_GAP_MS = 3000;
 /** A host position this far off the extrapolation counts as a jump and is reported at once. */
 const HOST_JUMP_MS = 250;
-/** Host: the next queued track is loaded this close to the end of the current one. */
-const ADVANCE_BEFORE_END_MS = 300;
 /** Guest with control: after asking the host, do not fight the own player for this long. */
 const REQUEST_GRACE_MS = 1500;
 /** A click on YT's "next" button counts as "skip" for this long. */
@@ -52,6 +47,12 @@ const SKIP_INTENT_MS = 3000;
 const PICK_CLICK_MS = 4000;
 /** Checks driven by media `timeupdate` events run at most this often. */
 const MEDIA_TICK_MS = 200;
+/**
+ * A guest who started own music asks to take over; until the new role
+ * arrives, Pegel leaves the guest's player alone. If nothing comes (no
+ * "Alle dürfen steuern"), it goes back to the party's track afterwards.
+ */
+const CLAIM_GRACE_MS = 4000;
 
 /**
  * Listening party in the YT view, right at the media element.
@@ -81,16 +82,12 @@ export class PartyEngine {
   private unplayable: string | undefined;
   private picked: SuggestedTrack | undefined;
   private infoMissingSince: number | null = null;
-  /** Guest: a pause/play/seek/skip to send to the host (once). */
-  private request: { action: ControlAction; positionMs?: number } | undefined;
+  /** Guest: a pause/play/seek/skip/takeover to send (once). */
+  private request: PartyRequest | undefined;
   private requestUntil = 0;
   private skipIntentUntil = 0;
   private lastUserClick = 0;
-  /** Host: playing from the party queue; where the own playlist resumes afterwards. */
-  private queueMode = false;
-  private resumeAt: WatchEndpoint | null = null;
-  /** Host: the track we already moved on from (no double advance). */
-  private advancedFrom: string | null = null;
+  private claimUntil = 0;
   private unloading = false;
   private lastTickAt = 0;
 
@@ -126,38 +123,6 @@ export class PartyEngine {
     );
   }
 
-  /** Host: skip (anyone's "Weiter"): next queued track, back to the playlist, or YT's next. */
-  skip(): void {
-    const control = this.control;
-    if (control?.role !== 'host') return;
-    const current = readTrackInfo()?.videoId ?? null;
-    if (control.next) this.playQueued(control.next.videoId, current);
-    else if (this.queueMode && this.resumeAt) this.resumePlaylist(current);
-    else runCommand({ type: 'next' });
-  }
-
-  private playQueued(videoId: string, from: string | null): void {
-    // Remember where the own playlist would have continued, once per queue run.
-    if (!this.queueMode) {
-      this.resumeAt = readResumeEndpoint();
-      this.queueMode = true;
-    }
-    this.advancedFrom = from;
-    if (!navigateToTrack(videoId)) location.assign(trackUrl(videoId));
-  }
-
-  private resumePlaylist(from: string | null): void {
-    const endpoint = this.resumeAt;
-    this.queueMode = false;
-    this.resumeAt = null;
-    this.advancedFrom = from;
-    if (endpoint) navigateToEndpoint(endpoint);
-  }
-
-  /**
-   * Host: shortly before a track ends, the party queue comes first. If YT
-   * already moved on by itself (timer late), the queued track still wins.
-   */
   /** From media events: at most every 200 ms, always for `ended`. */
   private tickFromMedia(force = false): void {
     if (!this.control) return;
@@ -180,39 +145,12 @@ export class PartyEngine {
     };
   }
 
-  private hostTick(
-    control: Extract<PartyControl, { role: 'host' }>,
-    el: HTMLMediaElement | null,
-  ): void {
-    if (isAdShowing()) return;
-    const info = readTrackInfo();
-    const time = this.trackTime(el);
-    if (!info || !time) return;
-    const remaining = time.durationMs - time.currentMs;
-    const nearEnd = time.playing && remaining <= ADVANCE_BEFORE_END_MS;
-    const movedOnAlone =
-      this.lastVideoId !== null &&
-      info.videoId !== this.lastVideoId &&
-      this.lastVideoId !== this.advancedFrom &&
-      this.lastDurationMs > 0 &&
-      this.lastPositionMs >= this.lastDurationMs - NEAR_END_MS;
-    if (control.next && info.videoId === control.next.videoId) return;
-    if (nearEnd && this.advancedFrom !== info.videoId) {
-      if (control.next) this.playQueued(control.next.videoId, info.videoId);
-      else if (this.queueMode && this.resumeAt) this.resumePlaylist(info.videoId);
-    } else if (movedOnAlone && control.next) {
-      this.playQueued(control.next.videoId, this.lastVideoId);
-    } else if (movedOnAlone && this.queueMode && this.resumeAt) {
-      this.resumePlaylist(this.lastVideoId);
-    }
-  }
-
   private canControl(): boolean {
     return this.control?.role === 'guest' && this.control.canControl;
   }
 
   /** Guest with control: ask the host, and let the own player be for a moment. */
-  private ask(action: ControlAction, positionMs?: number): void {
+  private ask(action: PartyRequest['action'], positionMs?: number): void {
     this.request = positionMs === undefined ? { action } : { action, positionMs };
     this.requestUntil = Date.now() + REQUEST_GRACE_MS;
     setTimeout(() => this.tick(), 0);
@@ -257,9 +195,7 @@ export class PartyEngine {
     this.localPause = false;
     this.request = undefined;
     this.requestUntil = 0;
-    this.queueMode = false;
-    this.resumeAt = null;
-    this.advancedFrom = null;
+    this.claimUntil = 0;
     this.loading = null;
     this.awaitingNext = null;
     this.driftMs = null;
@@ -336,8 +272,6 @@ export class PartyEngine {
 
     if (control.role === 'guest') {
       this.guestTick(control.target, el, now, ad, info, positionMs, latency);
-    } else {
-      this.hostTick(control, el);
     }
 
     if (!ad && info) {
@@ -376,6 +310,8 @@ export class PartyEngine {
 
     if (info?.videoId !== target.videoId) {
       this.setRate(1);
+      // Started own music and asked to take over: keep playing it until the host role arrives.
+      if (now < this.claimUntil) return;
       this.unplayable = undefined;
       const loading = this.loading;
       if (loading?.videoId === target.videoId) {
@@ -403,8 +339,13 @@ export class PartyEngine {
           // YT's "next" button: skip for everybody.
           this.skipIntentUntil = 0;
           this.ask('skip');
+        } else if (now - this.lastUserClick < PICK_CLICK_MS && this.canControl()) {
+          // The guest started own music: it becomes the party's, the guest takes over as host.
+          this.claimUntil = now + CLAIM_GRACE_MS;
+          this.ask('takeover');
+          return;
         } else if (now - this.lastUserClick < PICK_CLICK_MS) {
-          // The guest picked a track: it goes to the queue (or is suggested), the party continues.
+          // Without shared control a picked track is suggested; the party continues.
           const metadata = navigator.mediaSession.metadata;
           this.picked = {
             videoId: info.videoId,
@@ -533,10 +474,7 @@ export class PartyEngine {
     this.lastReport = now;
 
     const metadata = navigator.mediaSession.metadata;
-    // Queued tracks play on their own: right after loading one, YT may still name the
-    // previous playlist, and guests loading the track with it would land in that list.
-    const playlistId =
-      control.role === 'host' && this.queueMode ? undefined : playerApi<string>('getPlaylistId');
+    const playlistId = playerApi<string>('getPlaylistId');
     const report: PartyReport = {
       videoId,
       positionMs,
