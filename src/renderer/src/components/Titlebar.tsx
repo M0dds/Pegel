@@ -1,7 +1,7 @@
 import type { ThemeId, View } from '@shared/types';
 import { Logo } from './Logo';
 import { WindowControls } from './WindowControls';
-import { EqIcon, MiniPlayerIcon, SettingsIcon } from './icons';
+import { CloseIcon, EqIcon, MiniPlayerIcon, SettingsIcon } from './icons';
 
 const MOD = window.pegel.platform === 'darwin' ? '⌘' : 'Strg';
 
@@ -11,6 +11,9 @@ interface Props {
   theme: ThemeId;
   /** Falling petals are drawn by PetalLayer; the static ones are the fallback. */
   animatedPetals: boolean;
+  /** A playlist was created while music plays; YT shows it after a reload. */
+  sidebarOutdated: boolean;
+  onDismissSidebarHint(): void;
 }
 
 /** Sakura extra: a few petals scattered over the title bar (from the mockup). */
@@ -28,7 +31,14 @@ function Petals() {
   );
 }
 
-export function Titlebar({ view, eqOpen, theme, animatedPetals }: Props) {
+export function Titlebar({
+  view,
+  eqOpen,
+  theme,
+  animatedPetals,
+  sidebarOutdated,
+  onDismissSidebarHint,
+}: Props) {
   return (
     <header className="titlebar">
       {theme === 'sakura' && !animatedPetals && <Petals />}
@@ -36,6 +46,23 @@ export function Titlebar({ view, eqOpen, theme, animatedPetals }: Props) {
         <Logo />
         Pegel
       </button>
+      <div className="tb-spacer" />
+      {sidebarOutdated && (
+        <div className="tb-hint" role="status">
+          <span>Neue Playlist angelegt</span>
+          <button className="tb-hint-action" onClick={() => window.pegel.reloadYt()}>
+            Jetzt aktualisieren
+          </button>
+          <button
+            className="tb-hint-close"
+            aria-label="Hinweis schließen"
+            title="Später"
+            onClick={onDismissSidebarHint}
+          >
+            <CloseIcon />
+          </button>
+        </div>
+      )}
       <div className="tb-spacer" />
       <button
         className="tb-btn"

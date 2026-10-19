@@ -2,7 +2,13 @@ import { join } from 'node:path';
 import { app, session, shell, WebContentsView, type Session, type WebContents } from 'electron';
 import { THEMES } from '@shared/themes';
 import { buildYtThemeCss } from '../yt/themes/yt-theme';
-import { isAllowedInApp, isExternalWebUrl, YT_MUSIC_URL } from './navigation';
+import {
+  isAllowedInApp,
+  isExternalWebUrl,
+  isPlaylistCreated,
+  PLAYLIST_CREATE_PATTERN,
+  YT_MUSIC_URL,
+} from './navigation';
 import { getSettings } from './settings';
 import { toChromeUserAgent } from './user-agent';
 
@@ -12,6 +18,13 @@ export const YT_PARTITION = 'persist:pegel';
 const ALLOWED_PERMISSIONS = new Set(['fullscreen', 'clipboard-sanitized-write']);
 
 let sessionReady = false;
+const playlistCreatedListeners = new Set<() => void>();
+
+/** Called after YT created a playlist (its sidebar only updates on reload). */
+export function onPlaylistCreated(listener: () => void): () => void {
+  playlistCreatedListeners.add(listener);
+  return () => playlistCreatedListeners.delete(listener);
+}
 
 export function getYtSession(): Session {
   const ses = session.fromPartition(YT_PARTITION);
@@ -29,6 +42,10 @@ export function getYtSession(): Session {
         callback({ requestHeaders: details.requestHeaders });
       },
     );
+    ses.webRequest.onCompleted({ urls: [PLAYLIST_CREATE_PATTERN] }, (details) => {
+      if (!isPlaylistCreated(details.url, details.method, details.statusCode)) return;
+      for (const listener of playlistCreatedListeners) listener();
+    });
     ses.setPermissionRequestHandler((_wc, permission, callback) =>
       callback(ALLOWED_PERMISSIONS.has(permission)),
     );

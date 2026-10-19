@@ -39,6 +39,7 @@ export interface UiToMainChannels {
   'window:control': 'minimize' | 'toggleMaximize' | 'close';
   'theme:set': ThemeId;
   'yt:retry': void;
+  'yt:reload': void;
   /** The panel's open/close transition ended, so the YT view may take the space back. */
   'eq-panel:animation-done': { open: boolean };
   'player:command': PlayerCommand;
@@ -56,6 +57,8 @@ export interface MainToUiChannels {
   'player:page-playlist': PagePlaylist | null;
   'view:changed': View;
   'window:maximized': boolean;
+  /** A playlist was created while music plays; YT's sidebar shows it only after a reload. */
+  'yt:sidebar-outdated': boolean;
 }
 
 /** YT view preload → main. */
@@ -110,6 +113,8 @@ export interface PegelApi {
   eqPanelAnimationDone(open: boolean): void;
   showView(view: View): void;
   retryLoad(): void;
+  reloadYt(): void;
+  onSidebarOutdated(listener: (outdated: boolean) => void): () => void;
   /** Returns a function that removes the listener. */
   onViewChanged(listener: (view: View) => void): () => void;
 }

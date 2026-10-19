@@ -20,6 +20,7 @@ import {
   handleYtReady,
   isYtSender,
   onPanelAnimationDone,
+  reloadYt,
   retryYt,
   closeMiniPlayer,
   getMainWindow,
@@ -69,6 +70,7 @@ export function registerIpc(): void {
     if (isView(view)) showView(view);
   });
   on('yt:retry', () => retryYt());
+  on('yt:reload', () => reloadYt());
 
   on('eq:action', (_event, action) => {
     if (!isEqAction(action)) return;

@@ -9,16 +9,24 @@ import {
 import { THEMES } from '@shared/themes';
 import type { EqSettings, PlayerCommand, Settings, View, YtEffects } from '@shared/types';
 import { isQuitting } from '../app-state';
-import { clearPlayerState, onPagePlaylist, onPlayerState, onSelectorIssues } from '../player';
+import {
+  clearPlayerState,
+  getPlayerState,
+  onPagePlaylist,
+  onPlayerState,
+  onSelectorIssues,
+} from '../player';
 import { getSettings, onSettingsChanged, updateSettings } from '../settings';
 import { matchShortcut } from '../shortcuts';
 import { showBackgroundHint } from '../tray';
 import { isRectVisible } from '../window-state';
-import { applyYtTheme, createYtView, reloadYtView } from '../yt-view';
+import { applyYtTheme, createYtView, onPlaylistCreated, reloadYtView } from '../yt-view';
 import { loadUi, UI_WEB_PREFERENCES } from './load-ui';
 import { closeMiniWindow, isMiniOpen, openMiniWindow } from './mini-window';
 
 const SAVE_BOUNDS_DELAY_MS = 400;
+/** Lets YT finish its follow-up requests after creating a playlist before reloading. */
+const PLAYLIST_RELOAD_DELAY_MS = 1500;
 /** Fallback if the UI never reports the end of the panel's close animation. */
 const PANEL_CLOSE_FALLBACK_MS = 450;
 
@@ -279,6 +287,12 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
   const stopPlayer = onPlayerState((state) => sendToUi('player:state', state));
   const stopIssues = onSelectorIssues((issues) => sendToUi('player:selector-issues', issues));
   const stopPage = onPagePlaylist((page) => sendToUi('player:page-playlist', page));
+  // YT only loads its sidebar per page load. A new playlist appears after a reload:
+  // automatically when nothing plays, otherwise the title bar offers it.
+  const stopPlaylistCreated = onPlaylistCreated(() => {
+    if (getPlayerState()?.isPlaying) sendToUi('yt:sidebar-outdated', true);
+    else setTimeout(() => reloadYt(), PLAYLIST_RELOAD_DELAY_MS);
+  });
 
   const view = createYtView({
     onLoadFailed: () => showView('offline'),
@@ -301,7 +315,9 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
 
   // A full page load in the YT view starts without a track.
   view.webContents.on('did-start-navigation', (event) => {
-    if (event.isMainFrame && !event.isSameDocument) clearPlayerState();
+    if (!event.isMainFrame || event.isSameDocument) return;
+    clearPlayerState();
+    sendToUi('yt:sidebar-outdated', false); // a full load fetches the sidebar again
   });
 
   window.once('ready-to-show', () => {
@@ -329,6 +345,7 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
     stopPlayer();
     stopIssues();
     stopPage();
+    stopPlaylistCreated();
     if (!view.webContents.isDestroyed()) view.webContents.close();
     win = null;
     ytView = null;

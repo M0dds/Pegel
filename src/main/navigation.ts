@@ -47,3 +47,25 @@ export function isExternalWebUrl(rawUrl: string): boolean {
     return false;
   }
 }
+
+/** URL filter for YT's "create playlist" API call (webRequest pattern). */
+export const PLAYLIST_CREATE_PATTERN = 'https://music.youtube.com/youtubei/v1/playlist/create*';
+
+/**
+ * True for a successful "create playlist" call. YT Music only loads its
+ * sidebar once per page load, so a new playlist is missing until a reload.
+ */
+export function isPlaylistCreated(url: string, method: string, statusCode: number): boolean {
+  try {
+    const { hostname, pathname } = new URL(url);
+    return (
+      hostname === 'music.youtube.com' &&
+      pathname === '/youtubei/v1/playlist/create' &&
+      method === 'POST' &&
+      statusCode >= 200 &&
+      statusCode < 300
+    );
+  } catch {
+    return false;
+  }
+}

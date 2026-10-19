@@ -14,6 +14,7 @@ export function App() {
   const [selectorIssues, setSelectorIssues] = useState<string[]>([]);
   const [playing, setPlaying] = useState<PlayerState | null>(null);
   const [pagePlaylist, setPagePlaylist] = useState<PagePlaylist | null>(null);
+  const [sidebarOutdated, setSidebarOutdated] = useState(false);
 
   useEffect(() => {
     void window.pegel.getView().then(setView);
@@ -26,12 +27,14 @@ export function App() {
     const offPlayer = window.pegel.onPlayerState(setPlaying);
     void window.pegel.getPagePlaylist().then(setPagePlaylist);
     const offPage = window.pegel.onPagePlaylist(setPagePlaylist);
+    const offSidebar = window.pegel.onSidebarOutdated(setSidebarOutdated);
     return () => {
       offView();
       offSettings();
       offIssues();
       offPlayer();
       offPage();
+      offSidebar();
     };
   }, []);
 
@@ -50,6 +53,8 @@ export function App() {
         eqOpen={panelOpen}
         theme={theme ?? 'standard'}
         animatedPetals={animatedPetals}
+        sidebarOutdated={sidebarOutdated}
+        onDismissSidebarHint={() => setSidebarOutdated(false)}
       />
       {animatedPetals && <PetalLayer color={THEMES.sakura.tokens.accent} />}
       <div className="content">

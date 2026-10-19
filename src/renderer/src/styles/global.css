@@ -1557,3 +1557,57 @@ input[type='checkbox']:checked::after {
   width: 12px;
   height: 12px;
 }
+
+/* ---------- Title bar hint (e.g. new playlist, sidebar needs a reload) ---------- */
+.tb-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 4px 0 12px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 12.5px;
+  white-space: nowrap;
+  animation: fade-in 0.2s ease-out;
+}
+
+.titlebar .tb-hint button {
+  -webkit-app-region: no-drag;
+}
+
+.tb-hint-action {
+  height: 20px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tb-hint-close {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.tb-hint-close:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.tb-hint-close svg {
+  width: 11px;
+  height: 11px;
+}
