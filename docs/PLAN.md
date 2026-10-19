@@ -863,7 +863,7 @@ social: {
 - [x] YT-Engine: eigener Klick → Übernehmen, Warteschlangen-Logik entfernt
 - [x] Main, IPC und UI: Warteschlange und „+“ entfernt, Hinweistext für Gäste
 - [x] Test mit zwei Instanzen: Gast startet einen Titel per echtem Klick → wird Host, der bisherige Host folgt (25–50 ms)
-- [ ] Server-Deploy und Release 1.3.0 (nach Rückfrage)
+- [x] Server deployt und Release 1.3.0
 
 ### Später (optional)
 
