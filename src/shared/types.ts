@@ -63,6 +63,8 @@ export interface Settings {
   eq: EqSettings;
   closeToTray: boolean;
   startAtLogin: boolean;
+  /** Keyboard media keys / system media controls (Chromium); applied on the next start. */
+  mediaKeys: boolean;
   mini: { alwaysOnTop: boolean; bounds?: Rect; hideMainOnOpen: boolean };
   discord: { enabled: boolean; hideWhenPaused: boolean };
   window: { bounds?: Rect; maximized: boolean };
@@ -74,7 +76,9 @@ export interface Settings {
 }
 
 /** Settings the UI may change directly (validated in the main process). */
-export type SettingsPatch = Partial<Pick<Settings, 'closeToTray' | 'startAtLogin'>> & {
+export type SettingsPatch = Partial<
+  Pick<Settings, 'closeToTray' | 'startAtLogin' | 'mediaKeys'>
+> & {
   mini?: Partial<Pick<Settings['mini'], 'alwaysOnTop' | 'hideMainOnOpen'>>;
   effects?: Partial<Settings['effects']>;
 };
@@ -129,6 +133,8 @@ export function isView(value: unknown): value is View {
 
 export interface AppInfo {
   version: string;
+  /** Media keys setting that was active when Pegel started (changes need a restart). */
+  mediaKeysAtStart: boolean;
   /** Value of `process.platform` in the main process. */
   platform: string;
 }

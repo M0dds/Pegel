@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { THEME_IDS, THEMES } from '@shared/themes';
-import type { Settings } from '@shared/types';
+import type { AppInfo, Settings } from '@shared/types';
 import { PageHead } from '../components/PageHead';
 import { Switch } from '../components/Switch';
 import { CloseIcon, PlaylistIcon } from '../components/icons';
@@ -24,12 +24,16 @@ const PREVIEW_BARS = [7, 14, 10, 17];
 
 interface Props {
   settings: Settings;
+  appInfo: AppInfo | null;
   /** Features limited because YT changed its page. */
   selectorIssues: string[];
 }
 
-/** Settings page; Discord and "about" follow in M6/M7. */
-export function SettingsPage({ settings, selectorIssues }: Props) {
+/** Settings page (Discord integration is deferred, see M6 in docs/PLAN.md). */
+export function SettingsPage({ settings, appInfo, selectorIssues }: Props) {
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const mediaKeysPending = appInfo !== null && settings.mediaKeys !== appInfo.mediaKeysAtStart;
+
   return (
     <div className="page">
       <div className="page-inner">
@@ -159,6 +163,20 @@ export function SettingsPage({ settings, selectorIssues }: Props) {
             />
           </Row>
           <Row
+            title="Medientasten"
+            hint={
+              mediaKeysPending
+                ? 'Wird nach einem Neustart von Pegel wirksam'
+                : `Play/Pause, Weiter und Zurück über die Tastatur und ${isMac ? '„Jetzt läuft“' : 'die Medienanzeige von Windows'}`
+            }
+          >
+            <Switch
+              checked={settings.mediaKeys}
+              label="Medientasten"
+              onChange={(mediaKeys) => window.pegel.patchSettings({ mediaKeys })}
+            />
+          </Row>
+          <Row
             title="Mini-Player immer im Vordergrund"
             hint={`Bleibt über anderen Fenstern. Öffnen mit ${isMac ? '⌘' : 'Strg'} + M`}
           >
@@ -179,6 +197,26 @@ export function SettingsPage({ settings, selectorIssues }: Props) {
                 window.pegel.patchSettings({ mini: { hideMainOnOpen } })
               }
             />
+          </Row>
+        </section>
+
+        <section className="section">
+          <h4>Über</h4>
+          <Row
+            title={`Pegel ${appInfo?.version ?? ''}`.trim()}
+            hint="Inoffizieller Desktop-Client für YouTube Music. Nicht mit Google verbunden."
+          >
+            <button
+              className={confirmSignOut ? 'btn btn-inline danger-solid' : 'btn btn-inline'}
+              onBlur={() => setConfirmSignOut(false)}
+              onClick={() => {
+                if (!confirmSignOut) return setConfirmSignOut(true);
+                setConfirmSignOut(false);
+                window.pegel.signOut();
+              }}
+            >
+              {confirmSignOut ? 'Wirklich abmelden?' : 'Abmelden'}
+            </button>
           </Row>
         </section>
       </div>

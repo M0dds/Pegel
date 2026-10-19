@@ -129,6 +129,26 @@ ${SELECTORS.menuPopup}::-webkit-scrollbar-thumb {
 }
 ${SELECTORS.menuPopup}::-webkit-scrollbar-thumb:hover { background-color: ${t['text-dim']} !important; }
 
+/* The page scrollbar runs the full height, so next to the player bar its transparent
+   track showed the page background as a gap. Fill that part in the bar's colour. */
+html:has(${SELECTORS.playerVisibleLayout})::-webkit-scrollbar-track {
+  --pegel-bar-top: calc(100% - var(--ytmusic-player-bar-height, 72px));
+  background:
+    /* the 2 px progress track line along the bar's top edge */
+    linear-gradient(
+      to bottom,
+      transparent var(--pegel-bar-top),
+      #ffffff1a var(--pegel-bar-top),
+      #ffffff1a calc(var(--pegel-bar-top) + 2px),
+      transparent calc(var(--pegel-bar-top) + 2px)
+    ),
+    linear-gradient(
+      to bottom,
+      transparent var(--pegel-bar-top),
+      var(--ytmusic-player-bar-background) var(--pegel-bar-top)
+    ) !important;
+}
+
 /* YT bug: the gradient is one 287 px tile repeated down the whole page (stripes). */
 ${SELECTORS.browseGradient} { background-repeat: no-repeat !important; }
 `;

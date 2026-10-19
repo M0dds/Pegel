@@ -12,3 +12,14 @@ export function trackQuitting(): void {
     quitting = true;
   });
 }
+
+let mediaKeysAtStart = true;
+
+/** Media keys are a Chromium feature switch, so the setting only applies at startup. */
+export function setMediaKeysAtStart(enabled: boolean): void {
+  mediaKeysAtStart = enabled;
+}
+
+export function getMediaKeysAtStart(): boolean {
+  return mediaKeysAtStart;
+}

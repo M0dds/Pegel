@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { app } from 'electron';
 import { normalizeSettings } from '@shared/settings';
-import type { Settings } from '@shared/types';
+import type { Settings, ThemeId } from '@shared/types';
 
 const SAVE_DELAY_MS = 500;
 
@@ -14,12 +14,13 @@ function filePath(): string {
   return join(app.getPath('userData'), 'settings.json');
 }
 
-export function loadSettings(): Settings {
+/** `firstStartTheme`: theme for a brand-new install (gift build profile). */
+export function loadSettings(firstStartTheme?: ThemeId): Settings {
   let raw: unknown;
   try {
     raw = JSON.parse(readFileSync(filePath(), 'utf8'));
   } catch {
-    raw = undefined; // first start or unreadable file: use defaults
+    raw = firstStartTheme ? { theme: firstStartTheme } : undefined; // first start
   }
   current = normalizeSettings(raw);
   return current;

@@ -20,7 +20,15 @@ import { getSettings, onSettingsChanged, updateSettings } from '../settings';
 import { matchShortcut } from '../shortcuts';
 import { showBackgroundHint } from '../tray';
 import { isRectVisible } from '../window-state';
-import { applyYtTheme, createYtView, onPlaylistCreated, reloadYtView } from '../yt-view';
+import {
+  applyYtTheme,
+  createYtView,
+  isSignedIn,
+  onPlaylistCreated,
+  reloadYtView,
+  signOut,
+  startSignIn,
+} from '../yt-view';
 import { loadUi, UI_WEB_PREFERENCES } from './load-ui';
 import { closeMiniWindow, isMiniOpen, openMiniWindow } from './mini-window';
 
@@ -55,6 +63,12 @@ function sendToUi<C extends keyof MainToUiChannels>(
 
 export function showView(view: View): void {
   if (!win || !ytView) return;
+  // Leaving the welcome page in any way (button, Esc, logo) counts as seen.
+  if (currentView === 'welcome' && view !== 'welcome' && !getSettings().welcomeShown) {
+    updateSettings((s) => {
+      s.welcomeShown = true;
+    });
+  }
   currentView = view;
   const showYt = view === 'music';
   ytView.setVisible(showYt);
@@ -184,6 +198,35 @@ function watchSettings(): () => void {
     }
     previous = settings;
   });
+}
+
+/** Welcome page buttons: sign in with Google, or continue without. */
+export function finishWelcome(signIn: boolean): void {
+  showView('music');
+  if (signIn && ytView) startSignIn(ytView);
+}
+
+/** "Abmelden" in the settings. */
+export async function signOutYt(): Promise<void> {
+  if (!ytView) return;
+  clearPlayerState();
+  await signOut(ytView);
+  showView('music');
+}
+
+/**
+ * First start: the welcome page, unless someone is already signed in (e.g.
+ * settings from before the welcome page existed).
+ */
+async function maybeShowWelcome(): Promise<void> {
+  if (getSettings().welcomeShown) return;
+  if (await isSignedIn()) {
+    updateSettings((s) => {
+      s.welcomeShown = true;
+    });
+    return;
+  }
+  showView('welcome');
 }
 
 /** F5 / Ctrl+R: reloads YT Music (the page itself, not Pegel). */
@@ -319,6 +362,8 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
     clearPlayerState();
     sendToUi('yt:sidebar-outdated', false); // a full load fetches the sidebar again
   });
+
+  void maybeShowWelcome();
 
   window.once('ready-to-show', () => {
     if (!show) return; // autostart: tray only

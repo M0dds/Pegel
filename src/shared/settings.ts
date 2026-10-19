@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   closeToTray: true,
   startAtLogin: false,
+  mediaKeys: true,
   mini: { alwaysOnTop: true, hideMainOnOpen: true },
   discord: { enabled: true, hideWhenPaused: true },
   window: { maximized: false },
@@ -158,6 +159,7 @@ export function normalizeSettings(input: unknown): Settings {
     },
     closeToTray: bool(raw['closeToTray'], d.closeToTray),
     startAtLogin: bool(raw['startAtLogin'], d.startAtLogin),
+    mediaKeys: bool(raw['mediaKeys'], d.mediaKeys),
     mini: {
       alwaysOnTop: bool(mini['alwaysOnTop'], d.mini.alwaysOnTop),
       hideMainOnOpen: bool(mini['hideMainOnOpen'], d.mini.hideMainOnOpen),

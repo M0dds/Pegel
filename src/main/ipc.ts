@@ -4,6 +4,7 @@ import { isEqAction, reduceEq } from '@shared/eq';
 import { isPlayerCommand } from '@shared/player';
 import { isThemeId } from '@shared/themes';
 import { isView } from '@shared/types';
+import { getMediaKeysAtStart } from './app-state';
 import { applyStartAtLogin } from './autostart';
 import {
   getPagePlaylist,
@@ -23,6 +24,8 @@ import {
   reloadYt,
   retryYt,
   closeMiniPlayer,
+  finishWelcome,
+  signOutYt,
   getMainWindow,
   isMainMaximized,
   windowControl,
@@ -58,6 +61,7 @@ export function registerIpc(): void {
   handle('app:get-info', () => ({
     version: app.getVersion(),
     platform: process.platform,
+    mediaKeysAtStart: getMediaKeysAtStart(),
   }));
   handle('settings:get', () => getSettings());
   handle('view:get', () => getView());
@@ -71,6 +75,11 @@ export function registerIpc(): void {
   });
   on('yt:retry', () => retryYt());
   on('yt:reload', () => reloadYt());
+  on('welcome:finish', (_event, payload) => {
+    const signIn = (payload as { signIn?: unknown } | null)?.signIn;
+    finishWelcome(signIn === true);
+  });
+  on('account:sign-out', () => void signOutYt());
 
   on('eq:action', (_event, action) => {
     if (!isEqAction(action)) return;
@@ -110,6 +119,7 @@ export function registerIpc(): void {
     updateSettings((s) => {
       if (typeof p['closeToTray'] === 'boolean') s.closeToTray = p['closeToTray'];
       if (typeof p['startAtLogin'] === 'boolean') s.startAtLogin = p['startAtLogin'];
+      if (typeof p['mediaKeys'] === 'boolean') s.mediaKeys = p['mediaKeys'];
       const mini = p['mini'];
       if (typeof mini === 'object' && mini !== null) {
         const m = mini as Record<string, unknown>;

@@ -40,6 +40,8 @@ export interface UiToMainChannels {
   'theme:set': ThemeId;
   'yt:retry': void;
   'yt:reload': void;
+  'welcome:finish': { signIn: boolean };
+  'account:sign-out': void;
   /** The panel's open/close transition ended, so the YT view may take the space back. */
   'eq-panel:animation-done': { open: boolean };
   'player:command': PlayerCommand;
@@ -114,6 +116,8 @@ export interface PegelApi {
   showView(view: View): void;
   retryLoad(): void;
   reloadYt(): void;
+  finishWelcome(signIn: boolean): void;
+  signOut(): void;
   onSidebarOutdated(listener: (outdated: boolean) => void): () => void;
   /** Returns a function that removes the listener. */
   onViewChanged(listener: (view: View) => void): () => void;

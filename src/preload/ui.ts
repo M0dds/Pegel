@@ -60,6 +60,8 @@ const api: PegelApi = {
   showView: (view) => send('view:show', view),
   retryLoad: () => send('yt:retry'),
   reloadYt: () => send('yt:reload'),
+  finishWelcome: (signIn) => send('welcome:finish', { signIn }),
+  signOut: () => send('account:sign-out'),
   onSidebarOutdated: (listener) => subscribe('yt:sidebar-outdated', listener),
   onViewChanged: (listener) => subscribe('view:changed', listener),
 };

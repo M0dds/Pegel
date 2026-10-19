@@ -8,6 +8,7 @@ import {
   isPlaylistCreated,
   PLAYLIST_CREATE_PATTERN,
   YT_MUSIC_URL,
+  YT_SIGN_IN_URL,
 } from './navigation';
 import { getSettings } from './settings';
 import { toChromeUserAgent } from './user-agent';
@@ -167,4 +168,26 @@ export function reloadYtView(view: WebContentsView): void {
   void view.webContents.loadURL(
     current.startsWith('https://music.youtube.com/') ? current : YT_MUSIC_URL,
   );
+}
+
+/** Logged in to YT/Google in Pegel's partition (Google's session cookie on youtube.com). */
+export async function isSignedIn(): Promise<boolean> {
+  const cookies = await getYtSession().cookies.get({ domain: '.youtube.com' });
+  return cookies.some((c) => c.name === 'SAPISID' || c.name === '__Secure-3PAPISID');
+}
+
+/**
+ * "Abmelden": deletes everything Pegel's YT partition stores (cookies, local
+ * storage, cache) and loads YT Music again, now signed out.
+ */
+export async function signOut(view: WebContentsView): Promise<void> {
+  const ses = getYtSession();
+  await ses.clearStorageData();
+  await ses.clearCache();
+  await ses.cookies.flushStore();
+  if (!view.webContents.isDestroyed()) void view.webContents.loadURL(YT_MUSIC_URL);
+}
+
+export function startSignIn(view: WebContentsView): void {
+  void view.webContents.loadURL(YT_SIGN_IN_URL);
 }

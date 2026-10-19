@@ -97,7 +97,8 @@ describe('buildYtThemeCss', () => {
     );
     expect(props.length).toBeGreaterThan(0);
     // No margins or paddings: YT's spacing stays untouched.
-    expect(props.filter((p) => !allowed.has(p))).toEqual([]);
+    // Own helper variables (--pegel-*) are fine, they only feed the allowed properties.
+    expect(props.filter((p) => !allowed.has(p) && !p.startsWith('--pegel-'))).toEqual([]);
     // overflow changes on menus break YT's wheel scrolling (iron-dropdown scroll lock).
     expect(buildYtPolishCss(THEMES.sakura)).not.toMatch(/overflow[a-z-]*\s*:/);
   });

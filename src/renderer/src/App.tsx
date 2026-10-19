@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { PagePlaylist, PlayerState, Settings, View } from '@shared/types';
+import type { AppInfo, PagePlaylist, PlayerState, Settings, View } from '@shared/types';
 import { EqPanel } from './components/eq/EqPanel';
 import { Titlebar } from './components/Titlebar';
 import { PetalLayer } from './components/PetalLayer';
@@ -7,6 +7,7 @@ import { applyTheme } from './styles/theme';
 import { THEMES } from '@shared/themes';
 import { OfflinePage } from './routes/OfflinePage';
 import { SettingsPage } from './routes/SettingsPage';
+import { WelcomePage } from './routes/WelcomePage';
 
 export function App() {
   const [view, setView] = useState<View>('music');
@@ -15,9 +16,11 @@ export function App() {
   const [playing, setPlaying] = useState<PlayerState | null>(null);
   const [pagePlaylist, setPagePlaylist] = useState<PagePlaylist | null>(null);
   const [sidebarOutdated, setSidebarOutdated] = useState(false);
+  const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
 
   useEffect(() => {
     void window.pegel.getView().then(setView);
+    void window.pegel.getAppInfo().then(setAppInfo);
     void window.pegel.getSettings().then(setSettings);
     const offView = window.pegel.onViewChanged(setView);
     const offSettings = window.pegel.onSettingsChanged(setSettings);
@@ -71,9 +74,10 @@ export function App() {
           )}
         </div>
         {view === 'settings' && settings && (
-          <SettingsPage settings={settings} selectorIssues={selectorIssues} />
+          <SettingsPage settings={settings} appInfo={appInfo} selectorIssues={selectorIssues} />
         )}
         {view === 'offline' && <OfflinePage />}
+        {view === 'welcome' && <WelcomePage />}
       </div>
     </div>
   );

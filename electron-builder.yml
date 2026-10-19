@@ -6,7 +6,12 @@ directories:
   buildResources: resources
 files:
   - out/**/*
+  - '!out/profile.json'
   - package.json
+# Gift build profile (written by scripts/dist.mjs), read via process.resourcesPath.
+extraResources:
+  - from: out/profile.json
+    to: profile.json
 win:
   target:
     - target: nsis

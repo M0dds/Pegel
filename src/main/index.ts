@@ -1,5 +1,6 @@
 import { app } from 'electron';
-import { trackQuitting } from './app-state';
+import { setMediaKeysAtStart, trackQuitting } from './app-state';
+import { getProfile } from './profile';
 import { shouldStartHidden, syncStartAtLogin } from './autostart';
 import { registerIpc } from './ipc';
 import { setupMenu } from './menu';
@@ -21,6 +22,14 @@ import { isMiniOpen, onMiniChanged } from './windows/mini-window';
 const devUserData = process.env['PEGEL_USER_DATA'];
 if (devUserData && !app.isPackaged) app.setPath('userData', devUserData);
 
+// Settings are read before Chromium starts: the media keys switch is a command-line feature.
+const startupSettings = loadSettings(getProfile()?.defaultTheme);
+setMediaKeysAtStart(startupSettings.mediaKeys);
+if (!startupSettings.mediaKeys) {
+  // Keyboard media keys and the system media overlay (Windows SMTC, macOS Now Playing).
+  app.commandLine.appendSwitch('disable-features', 'HardwareMediaKeyHandling');
+}
+
 if (!app.requestSingleInstanceLock()) {
   // Another Pegel is already running; it gets focused via 'second-instance'.
   app.quit();
@@ -29,7 +38,6 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', () => focusMainWindow());
 
   app.whenReady().then(() => {
-    loadSettings();
     setupMenu({ toggleMini: toggleMiniPlayer });
     registerIpc();
     startPlaylistEq();

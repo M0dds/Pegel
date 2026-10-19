@@ -1621,3 +1621,55 @@ input[type='checkbox']:checked::after {
   width: 10px;
   height: 10px;
 }
+
+/* Button inside a settings row (e.g. "Abmelden"). */
+.btn.btn-inline {
+  flex: none;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.btn.danger-solid {
+  background: #c42b1c;
+  border-color: transparent;
+  color: #ffffff;
+}
+
+/* ---------- Welcome page (from the mockup) ---------- */
+.welcome {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  text-align: center;
+  padding: 40px 24px;
+}
+
+.welcome .logo-big {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 18px;
+}
+
+.welcome h2 {
+  font-size: 32px;
+  margin: 0 0 4px;
+}
+
+.welcome .lead {
+  margin: 0;
+}
+
+.welcome .cta {
+  margin-top: 22px;
+}
+
+.welcome .fine {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 14px 0 0;
+}
+
+.welcome .skip {
+  margin-top: 18px;
+  font-size: 12.5px;
+}

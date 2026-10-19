@@ -21,6 +21,14 @@ const GOOGLE_ACCOUNTS_CC = /^accounts\.google\.[a-z]{2,3}(\.[a-z]{2})?$/;
 
 export const YT_MUSIC_URL = 'https://music.youtube.com/';
 
+/** Google's sign-in for YT Music, back to music.youtube.com afterwards. */
+export const YT_SIGN_IN_URL =
+  'https://accounts.google.com/ServiceLogin?service=youtube&continue=' +
+  encodeURIComponent(
+    'https://www.youtube.com/signin?action_handle_signin=true&next=' +
+      encodeURIComponent(YT_MUSIC_URL),
+  );
+
 export function isAllowedInApp(rawUrl: string): boolean {
   let url: URL;
   try {

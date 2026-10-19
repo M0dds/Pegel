@@ -241,13 +241,15 @@ interface PlayerState {
   - Über: Version, Hinweis „Inoffiziell, nicht mit Google verbunden“, Abmelden
 - **Abmelden:** Session-Daten der Partition `persist:pegel` löschen und die YT-Ansicht neu laden.
 - **Willkommensseite** beim allerersten Start. Ein Klick auf „Mit Google-Konto anmelden“ öffnet den Login von YT Music.
-- **Geschenk-Build für den Kumpel:** Eine Datei `build-profiles/<name>.json` legt Standard-Theme und persönliche Nachricht fest:
+- **Geschenk-Build** (z. B. für den Kumpel oder die Freundin): Eine Datei `build-profiles/<name>.json` legt nur das Theme für den allerersten Start fest. Eine persönliche Nachricht gibt es bewusst nicht, die Willkommensseite ist für alle gleich.
 
   ```json
-  { "defaultTheme": "sakura", "welcomeMessage": "Hey! …", "welcomeFrom": "Johann" }
+  { "defaultTheme": "sakura" }
   ```
 
-  Gebaut wird per `npm run dist -- --profile=<name>` (oder eine Umgebungsvariable). Ohne Profil zeigt die Seite keine Nachricht.
+  Gebaut wird per `npm run dist -- --profile=<name>` (oder `PEGEL_PROFILE=<name>`). `scripts/dist.mjs` prüft das Profil, legt es als `resources/profile.json` neben die App und hängt den Namen an den Installer an. In der Entwicklung reicht `PEGEL_PROFILE=<name> npm run dev`.
+- **Willkommensseite:** erscheint nur beim ersten Start und nur, wenn niemand angemeldet ist („Mit Google-Konto anmelden“ öffnet Googles Anmeldung, „Ohne Anmeldung weiter“ geht direkt zur Musik).
+- **Medientasten** sind ein Chromium-Schalter (`HardwareMediaKeyHandling`) und wirken deshalb erst nach einem Neustart; die Einstellungen sagen das an.
 
 ### 4.11 Einstellungs-Schema (v1)
 
@@ -268,6 +270,7 @@ interface Settings {
   };
   closeToTray: boolean;
   startAtLogin: boolean;
+  mediaKeys: boolean;              // Medientasten / System-Medienanzeige, wirkt nach Neustart
   mini: { alwaysOnTop: boolean; bounds?: Rect; hideMainOnOpen: boolean };
   discord: { enabled: boolean; hideWhenPaused: boolean };
   window: { bounds?: Rect; maximized: boolean };
@@ -349,16 +352,18 @@ Die Meilensteine werden in dieser Reihenfolge abgearbeitet. Jeder endet mit eine
 - [x] Fenster, Layout wie im Mockup, Pin, Position merken
 - **Fertig, wenn:** Der Mini-Player den Titel live anzeigt und alle Buttons funktionieren.
 
-### M6 – Discord-Status
+### M6 – Discord-Status (zurückgestellt)
+
+> Auf Wunsch von Johann vorerst nicht umgesetzt, bleibt als offenes Thema. Braucht eine Discord-Application-ID (siehe 4.9).
 
 - [ ] RPC mit Reconnect, Einstellungen
 - **Fertig, wenn:** Discord „Hört Pegel“ mit Titel, Interpret und Cover anzeigt.
 
 ### M7 – Einstellungen und Willkommensseite
 
-- [ ] Einstellungsseite komplett, Abmelden
-- [ ] Willkommensseite und Build-Profile
-- **Fertig, wenn:** Der erste Start mit dem Kumpel-Profil Sakura und die Nachricht zeigt.
+- [x] Einstellungsseite komplett, Abmelden
+- [x] Willkommensseite und Build-Profile
+- **Fertig, wenn:** Der erste Start mit dem Kumpel-Profil Sakura zeigt (geprüft; die persönliche Nachricht wurde auf Wunsch gestrichen).
 
 ### M8 – Paketierung und Weitergabe
 
