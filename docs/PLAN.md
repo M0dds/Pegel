@@ -139,7 +139,7 @@ Die EQ-Panel-Breite und die Titelleistenhöhe sind Konstanten in `shared/layout.
   - Die Regler stehen ohne Skala gleichmäßig über die Panelbreite, mit durchgehender 0-dB-Linie. Werte ungleich 0 sind hervorgehoben.
 - **Playlist-Presets** (Wunsch nach M5): Einer YT-Playlist lässt sich ein Preset zuordnen.
   - Erkennung: Playlist-ID über YTs Player-API (`getPlaylistId()`), weil die URL bei eingeklapptem Player die Playlist-Seite statt `/watch` zeigt; `list=` der `/watch`-URL ist die Rückfallebene. Name aus dem Warteschlangen-Kopf (`queueTitle`), sonst aus der Überschrift der Playlist-Seite. Beides kommt mit dem `PlayerState` (`playlistId`, `playlistTitle`).
-  - Zuordnen im EQ-Panel, solange die Playlist läuft (Zeile „Preset für diese Playlist“). Verwalten und Entfernen in den Einstellungen unter „Playlist-Presets“.
+  - Zuordnen im EQ-Panel (Zeile „Preset für diese Playlist“): für die angezeigte Playlist-Seite, sonst für die laufende Playlist. Sofort angewendet wird nur, wenn diese Playlist gerade läuft. Verwalten und Entfernen in den Einstellungen unter „Playlist-Presets“.
   - Automatik: Beim Wechsel in die Playlist schaltet der EQ auf ihr Preset und merkt sich das vorherige (`eq.autoPreset.from`). Beim Verlassen kommt es zurück. Wählt man in der Zwischenzeit selbst ein Preset, bleibt diese Wahl. Umbenennen zieht die Zuordnungen mit, Löschen entfernt sie.
 - **Frequenzkurve im Panel:** Die echte Kurve aus `BiquadFilterNode.getFrequencyResponse` berechnen (128 Punkte). Umgesetzt in der Pegel-UI mit denselben Filtern auf einem `OfflineAudioContext`, nicht in der YT-Ansicht: gleiche Kurve, funktioniert aber auch ohne geladene YT-Seite und braucht keinen IPC-Rückweg. Fallback: die Näherung aus dem Mockup.
 - **Tastatur:** Strg/⌘+E klappt das Panel ein und aus. In den Reglern gilt: Pfeil hoch/runter = ±0,5 dB, Bild hoch/runter = ±3 dB, Doppelklick = 0 dB.
@@ -195,6 +195,7 @@ interface PlayerState {
   | Strg/⌘ + M | Mini-Player               |
   | Strg/⌘ + , | Einstellungen             |
   | Esc        | zurück zur Musik          |
+  | F5, Strg/⌘ + R | YT Music neu laden (z. B. wenn die Seitenleiste eine neue Playlist nicht zeigt) |
 
 ### 4.6 Tray, Medientasten, Hintergrund
 
