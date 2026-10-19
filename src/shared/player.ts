@@ -21,6 +21,8 @@ export function toPlayerState(value: unknown): PlayerState | null {
     state.artworkUrl = v['artworkUrl'];
   }
   if (typeof v['liked'] === 'boolean') state.liked = v['liked'];
+  if (isNum(v['volume'])) state.volume = Math.min(1, Math.max(0, v['volume']));
+  if (typeof v['muted'] === 'boolean') state.muted = v['muted'];
   return state;
 }
 
@@ -33,6 +35,7 @@ export function isPlayerCommand(value: unknown): value is PlayerCommand {
     case 'next':
     case 'previous':
     case 'toggleLike':
+    case 'toggleMute':
       return true;
     case 'seek':
       return isNum(v['sec']);

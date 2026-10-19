@@ -67,6 +67,14 @@ describe('matchShortcut', () => {
     ).toBeNull();
   });
 
+  it('toggles the mini player with Ctrl+M, on macOS via the menu instead', () => {
+    expect(matchShortcut(key('m', { control: true }), 'win32', 'music', false)).toEqual({
+      type: 'toggleMini',
+    });
+    // ⌘M is a menu accelerator on macOS, handled before input reaches the page.
+    expect(matchShortcut(key('m', { meta: true }), 'darwin', 'music', false)).toBeNull();
+  });
+
   it('leaves Escape to YT on the music view', () => {
     expect(matchShortcut(key('Escape'), 'win32', 'music', false)).toBeNull();
     expect(matchShortcut(key('Escape'), 'win32', 'offline', false)).toBeNull();

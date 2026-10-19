@@ -41,7 +41,9 @@ export interface Settings {
 }
 
 /** Settings the UI may change directly (validated in the main process). */
-export type SettingsPatch = Partial<Pick<Settings, 'closeToTray' | 'startAtLogin'>>;
+export type SettingsPatch = Partial<Pick<Settings, 'closeToTray' | 'startAtLogin'>> & {
+  mini?: Partial<Pick<Settings['mini'], 'alwaysOnTop' | 'hideMainOnOpen'>>;
+};
 
 export interface PlayerState {
   title: string;
@@ -53,6 +55,9 @@ export interface PlayerState {
   positionSec: number;
   durationSec: number;
   liked?: boolean;
+  /** YT's own volume, 0…1. */
+  volume?: number;
+  muted?: boolean;
 }
 
 export type PlayerCommand =
@@ -61,6 +66,7 @@ export type PlayerCommand =
   | { type: 'previous' }
   | { type: 'seek'; sec: number }
   | { type: 'setVolume'; volume: number }
+  | { type: 'toggleMute' }
   | { type: 'toggleLike' };
 
 /**

@@ -1,5 +1,4 @@
-import { join } from 'node:path';
-import { app, BrowserWindow, screen, shell, type WebContents, WebContentsView } from 'electron';
+import { app, BrowserWindow, screen, type WebContents, WebContentsView } from 'electron';
 import type { MainToUiChannels, MainToYtChannels, PayloadArgs } from '@shared/ipc';
 import {
   EQ_PANEL_WIDTH,
@@ -10,13 +9,14 @@ import {
 import { THEMES } from '@shared/themes';
 import type { EqSettings, PlayerCommand, Settings, View } from '@shared/types';
 import { isQuitting } from '../app-state';
-import { isExternalWebUrl } from '../navigation';
 import { clearPlayerState, onPlayerState, onSelectorIssues } from '../player';
 import { getSettings, onSettingsChanged, updateSettings } from '../settings';
 import { matchShortcut } from '../shortcuts';
 import { showBackgroundHint } from '../tray';
 import { isRectVisible } from '../window-state';
 import { applyYtTheme, createYtView, reloadYtView } from '../yt-view';
+import { loadUi, UI_WEB_PREFERENCES } from './load-ui';
+import { closeMiniWindow, isMiniOpen, openMiniWindow } from './mini-window';
 
 const SAVE_BOUNDS_DELAY_MS = 400;
 /** Fallback if the UI never reports the end of the panel's close animation. */
@@ -37,11 +37,12 @@ export function getView(): View {
   return currentView;
 }
 
+/** Sends to every Pegel UI window (main window and mini player; the YT view is not one). */
 function sendToUi<C extends keyof MainToUiChannels>(
   channel: C,
   ...args: PayloadArgs<MainToUiChannels[C]>
 ): void {
-  win?.webContents.send(channel, ...args);
+  for (const window of BrowserWindow.getAllWindows()) window.webContents.send(channel, ...args);
 }
 
 export function showView(view: View): void {
@@ -73,6 +74,23 @@ export function sendPlayerCommand(command: PlayerCommand): void {
 /** Sends the EQ to the YT preload once it reports ready (after every page load). */
 export function handleYtReady(sender: WebContents): void {
   if (sender === ytView?.webContents) sendToYt('yt:eq-apply', getSettings().eq);
+}
+
+/** Opens the mini player; the main window hides (setting "hideMainOnOpen"), music continues. */
+export function openMiniPlayer(): void {
+  openMiniWindow(handleShortcuts);
+  if (getSettings().mini.hideMainOnOpen && win?.isVisible()) win.hide();
+}
+
+/** "Enlarge" in the mini player: back to the main window. */
+export function closeMiniPlayer(): void {
+  closeMiniWindow();
+  focusMainWindow();
+}
+
+export function toggleMiniPlayer(): void {
+  if (isMiniOpen()) closeMiniPlayer();
+  else openMiniPlayer();
 }
 
 /** Equalizer button and Ctrl/⌘+E: toggle on the music view, otherwise go there and open. */
@@ -177,9 +195,12 @@ function handleShortcuts(wc: WebContents): void {
     const action = matchShortcut(input, process.platform, currentView, !app.isPackaged);
     if (!action) return;
     event.preventDefault();
+    if (action.type === 'devtools') return wc.toggleDevTools();
+    if (action.type === 'toggleMini') return toggleMiniPlayer();
+    // From the mini player, Pegel pages and the EQ open in the main window.
+    if (wc !== win?.webContents && wc !== ytView?.webContents) closeMiniPlayer();
     if (action.type === 'show') showView(action.view);
-    else if (action.type === 'toggleEq') toggleEqPanel();
-    else wc.toggleDevTools();
+    else toggleEqPanel();
   });
 }
 
@@ -216,12 +237,7 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
     show: false,
     backgroundColor: THEMES[getSettings().theme].tokens.bg,
     ...platformChrome(),
-    webPreferences: {
-      preload: join(__dirname, '../preload/ui.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
+    webPreferences: UI_WEB_PREFERENCES,
   });
   win = window;
   panelSpace = getSettings().eq.panelOpen;
@@ -270,6 +286,8 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
   });
 
   window.on('closed', () => {
+    // The main window really closed (close-to-tray off): Pegel ends, so does the mini player.
+    closeMiniWindow();
     stopWatching();
     stopPlayer();
     stopIssues();
@@ -279,21 +297,8 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
     currentView = 'music';
   });
 
-  // Never open new Electron windows from the UI; external links go to the default browser.
-  window.webContents.setWindowOpenHandler(({ url }) => {
-    if (isExternalWebUrl(url)) void shell.openExternal(url);
-    return { action: 'deny' };
-  });
-  window.webContents.on('will-navigate', (event) => event.preventDefault());
-
   // The theme comes along in the URL so the UI paints in the right colours from the start.
-  const query = { theme: getSettings().theme };
-  const devUrl = process.env['ELECTRON_RENDERER_URL'];
-  if (devUrl) {
-    void window.loadURL(`${devUrl}?${new URLSearchParams(query)}`);
-  } else {
-    void window.loadFile(join(__dirname, '../renderer/index.html'), { query });
-  }
+  loadUi(window, { theme: getSettings().theme });
 
   return window;
 }

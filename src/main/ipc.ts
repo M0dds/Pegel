@@ -13,6 +13,8 @@ import {
   isYtSender,
   onPanelAnimationDone,
   retryYt,
+  closeMiniPlayer,
+  openMiniPlayer,
   sendPlayerCommand,
   showView,
   toggleEqPanel,
@@ -73,6 +75,8 @@ export function registerIpc(): void {
     if (typeof open === 'boolean') onPanelAnimationDone(open);
   });
 
+  on('mini:open', () => openMiniPlayer());
+  on('mini:close', () => closeMiniPlayer());
   on('player:command', (_event, command) => {
     if (isPlayerCommand(command)) sendPlayerCommand(command);
   });
@@ -83,6 +87,12 @@ export function registerIpc(): void {
     updateSettings((s) => {
       if (typeof p['closeToTray'] === 'boolean') s.closeToTray = p['closeToTray'];
       if (typeof p['startAtLogin'] === 'boolean') s.startAtLogin = p['startAtLogin'];
+      const mini = p['mini'];
+      if (typeof mini === 'object' && mini !== null) {
+        const m = mini as Record<string, unknown>;
+        if (typeof m['alwaysOnTop'] === 'boolean') s.mini.alwaysOnTop = m['alwaysOnTop'];
+        if (typeof m['hideMainOnOpen'] === 'boolean') s.mini.hideMainOnOpen = m['hideMainOnOpen'];
+      }
     });
     const { startAtLogin } = getSettings();
     if (startAtLogin !== before.startAtLogin) applyStartAtLogin(startAtLogin);

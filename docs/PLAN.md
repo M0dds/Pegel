@@ -206,6 +206,8 @@ interface PlayerState {
 - **Inhalt:** Cover, Titel, Interpret, EQ-Badge (aktives Preset), Fortschritt, Like, Zurück, Play/Pause, Weiter, Lautstärke, Pin (immer im Vordergrund) und Vergrößern (zurück zum Hauptfenster).
 - Position merken. Beim Öffnen wird das Hauptfenster minimiert bzw. versteckt (einstellbar).
 - Daten kommen ausschließlich über den `PlayerState` vom Main-Prozess. Der Mini-Player hat keinen eigenen Zugriff auf YT.
+- **Umsetzung (M5):** Lautstärke-Button schaltet stumm, beim Überfahren erscheint ein kleiner Regler (Mausrad: ±5 %). Der Fortschritt wird zwischen den Updates flüssig interpoliert, ein Klick spult. Öffnen über Titelleiste, Strg+M (macOS: ⌘M über das Fenster-Menü, „Im Dock ablegen“ liegt dort auf ⌥⌘M) und Tray.
+- `PlayerState` enthält dafür zusätzlich `volume` (0…1) und `muted`.
 
 ### 4.8 Autostart
 
@@ -332,7 +334,7 @@ Die Meilensteine werden in dieser Reihenfolge abgearbeitet. Jeder endet mit eine
 
 ### M5 – Mini-Player
 
-- [ ] Fenster, Layout wie im Mockup, Pin, Position merken
+- [x] Fenster, Layout wie im Mockup, Pin, Position merken
 - **Fertig, wenn:** Der Mini-Player den Titel live anzeigt und alle Buttons funktionieren.
 
 ### M6 – Discord-Status

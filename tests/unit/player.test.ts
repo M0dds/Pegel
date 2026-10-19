@@ -25,6 +25,14 @@ describe('toPlayerState', () => {
     expect(toPlayerState({ ...valid, positionSec: Number.NaN })).toBeNull();
   });
 
+  it('keeps volume within 0…1 and the muted flag', () => {
+    expect(toPlayerState({ ...valid, volume: 1.4, muted: true })).toMatchObject({
+      volume: 1,
+      muted: true,
+    });
+    expect(toPlayerState({ ...valid, volume: 'laut' })).not.toHaveProperty('volume');
+  });
+
   it('drops non-https artwork and unknown fields', () => {
     const state = toPlayerState({ ...valid, artworkUrl: 'file:///etc/passwd', extra: 1 });
     expect(state).not.toHaveProperty('artworkUrl');
@@ -35,6 +43,7 @@ describe('toPlayerState', () => {
 describe('isPlayerCommand', () => {
   it('validates commands', () => {
     expect(isPlayerCommand({ type: 'next' })).toBe(true);
+    expect(isPlayerCommand({ type: 'toggleMute' })).toBe(true);
     expect(isPlayerCommand({ type: 'seek', sec: 30 })).toBe(true);
     expect(isPlayerCommand({ type: 'seek' })).toBe(false);
     expect(isPlayerCommand({ type: 'setVolume', volume: '1' })).toBe(false);

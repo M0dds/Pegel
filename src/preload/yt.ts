@@ -3,7 +3,7 @@
 import { ipcRenderer, type IpcRendererEvent } from 'electron';
 import type { MainToYtChannels, YtToMainChannels } from '@shared/ipc';
 import { EqEngine } from '../yt/audio/eq';
-import { runCommand, startBridge } from '../yt/player/bridge';
+import { NEEDS_REPORT, runCommand, startBridge } from '../yt/player/bridge';
 
 function send<C extends keyof YtToMainChannels>(channel: C, payload: YtToMainChannels[C]): void {
   ipcRenderer.send(channel, payload);
@@ -17,14 +17,17 @@ if (location.hostname === 'music.youtube.com') {
     'yt:eq-apply' satisfies keyof MainToYtChannels,
     (_event: IpcRendererEvent, settings: MainToYtChannels['yt:eq-apply']) => eq.apply(settings),
   );
-  ipcRenderer.on(
-    'yt:player-command' satisfies keyof MainToYtChannels,
-    (_event: IpcRendererEvent, command: MainToYtChannels['yt:player-command']) =>
-      runCommand(command),
-  );
-  startBridge(
+  const bridge = startBridge(
     (state) => send('yt:player-state', state),
     (issues) => send('yt:selector-issues', issues),
+  );
+  ipcRenderer.on(
+    'yt:player-command' satisfies keyof MainToYtChannels,
+    (_event: IpcRendererEvent, command: MainToYtChannels['yt:player-command']) => {
+      runCommand(command);
+      // Volume and like change without a media event; report them right away.
+      if (NEEDS_REPORT.has(command.type)) setTimeout(() => bridge.report(true), 150);
+    },
   );
   ipcRenderer.send('yt:ready' satisfies keyof YtToMainChannels);
   // Development only, reachable from DevTools in the preload's isolated world (not the page).

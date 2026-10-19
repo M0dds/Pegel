@@ -12,6 +12,31 @@ function media(): HTMLMediaElement | null {
   return document.querySelector<HTMLMediaElement>(SELECTORS.mediaElement);
 }
 
+/**
+ * Calls a method of YT's player element (`#movie_player`). Its JS API only
+ * exists in the page's main world, so the call runs there; nothing is
+ * exposed to the page. Returns undefined if the player or method is missing.
+ */
+function playerApi<T>(method: string, ...args: (string | number | boolean)[]): T | undefined {
+  try {
+    return contextBridge.executeInMainWorld({
+      func: (selector: string, name: string, params: unknown[]) => {
+        const player = document.querySelector(selector) as unknown as Record<
+          string,
+          unknown
+        > | null;
+        const fn = player?.[name];
+        return typeof fn === 'function'
+          ? (fn as (...a: unknown[]) => unknown).apply(player, params)
+          : undefined;
+      },
+      args: [SELECTORS.playerApi, method, args],
+    }) as T | undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function readLiked(): boolean | undefined {
   const status = document.querySelector(SELECTORS.likeRenderer)?.getAttribute('like-status');
   return status ? status === 'LIKE' : undefined;
@@ -38,6 +63,10 @@ export function readState(): PlayerState | null {
   if (artworkUrl) state.artworkUrl = artworkUrl;
   const liked = readLiked();
   if (liked !== undefined) state.liked = liked;
+  const volume = playerApi<number>('getVolume');
+  if (typeof volume === 'number') state.volume = volume / 100;
+  const muted = playerApi<boolean>('isMuted');
+  if (typeof muted === 'boolean') state.muted = muted;
   return state;
 }
 
@@ -64,25 +93,26 @@ export function runCommand(command: PlayerCommand): void {
       break;
     case 'setVolume': {
       // YT keeps its own volume state; setting el.volume would desync its slider
-      // and be reset on the next track. Its player API lives in the main world.
-      const volume = Math.round(Math.min(1, Math.max(0, command.volume)) * 100);
-      contextBridge.executeInMainWorld({
-        func: (selector: string, value: number) => {
-          // Runs in the page: YT's player element exposes setVolume(0…100).
-          const player = document.querySelector(selector) as unknown as {
-            setVolume?: (v: number) => void;
-          } | null;
-          player?.setVolume?.(value);
-        },
-        args: [SELECTORS.playerApi, volume],
-      });
+      // and be reset on the next track. Changing the volume also unmutes.
+      playerApi('setVolume', Math.round(Math.min(1, Math.max(0, command.volume)) * 100));
+      if (playerApi<boolean>('isMuted')) playerApi('unMute');
       break;
     }
+    case 'toggleMute':
+      playerApi(playerApi<boolean>('isMuted') ? 'unMute' : 'mute');
+      break;
     case 'toggleLike':
       click(SELECTORS.likeButton);
       break;
   }
 }
+
+/** Commands whose effect shows up without a media event (volume, like). */
+export const NEEDS_REPORT: ReadonlySet<PlayerCommand['type']> = new Set([
+  'setVolume',
+  'toggleMute',
+  'toggleLike',
+]);
 
 /**
  * Watches the player and reports state changes. Position-only changes are
@@ -91,7 +121,7 @@ export function runCommand(command: PlayerCommand): void {
 export function startBridge(
   onState: (state: PlayerState) => void,
   onSelectorIssues: (features: string[]) => void,
-): void {
+): { report(force?: boolean): void } {
   let lastKey = '';
   let lastSent = 0;
 
@@ -131,4 +161,6 @@ export function startBridge(
     },
     true,
   );
+
+  return { report };
 }

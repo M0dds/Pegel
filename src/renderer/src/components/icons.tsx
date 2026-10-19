@@ -73,3 +73,97 @@ export function CheckIcon() {
     </svg>
   );
 }
+
+const stroke = {
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+} as const;
+
+const filled = { viewBox: '0 0 24 24', fill: 'currentColor', 'aria-hidden': true } as const;
+
+export function MiniPlayerIcon() {
+  return (
+    <svg {...stroke} strokeLinecap="butt" strokeLinejoin="miter">
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <rect x="12" y="12" width="7" height="6" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function PinIcon() {
+  return (
+    <svg {...stroke}>
+      <path d="M12 17v5M9 3h6l-1 6 3 3H7l3-3z" />
+    </svg>
+  );
+}
+
+export function ExpandIcon() {
+  return (
+    <svg {...stroke}>
+      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+    </svg>
+  );
+}
+
+export function LikeIcon({ active }: { active: boolean }) {
+  return (
+    <svg {...stroke} fill={active ? 'currentColor' : 'none'}>
+      <path d="M7 10v11M15 5.9 14 10h5.8a2 2 0 0 1 1.9 2.6l-2.3 7A2 2 0 0 1 17.5 21H7V10l4-8a3 3 0 0 1 3 3.9z" />
+    </svg>
+  );
+}
+
+export function PreviousIcon() {
+  return (
+    <svg {...filled}>
+      <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
+    </svg>
+  );
+}
+
+export function NextIcon() {
+  return (
+    <svg {...filled}>
+      <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+    </svg>
+  );
+}
+
+export function PlayIcon() {
+  return (
+    <svg {...filled}>
+      <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.2-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" />
+    </svg>
+  );
+}
+
+export function PauseIcon() {
+  return (
+    <svg {...filled}>
+      <path d="M7 5h4v14H7zm6 0h4v14h-4z" />
+    </svg>
+  );
+}
+
+/** Speaker with 0–2 waves depending on the volume, crossed out when muted. */
+export function VolumeIcon({ volume, muted }: { volume: number; muted: boolean }) {
+  return (
+    <svg {...stroke}>
+      <path d="M11 5 6 9H2v6h4l5 4z" />
+      {muted || volume === 0 ? (
+        <path d="m16 9 5 6M21 9l-5 6" />
+      ) : (
+        <>
+          <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+          {volume > 0.5 && <path d="M19 5a10 10 0 0 1 0 14" />}
+        </>
+      )}
+    </svg>
+  );
+}

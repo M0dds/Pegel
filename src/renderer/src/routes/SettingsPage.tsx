@@ -27,7 +27,7 @@ interface Props {
   selectorIssues: string[];
 }
 
-/** Settings page; the remaining sections (mini player, Discord, about) follow in M5–M7. */
+/** Settings page; Discord and "about" follow in M6/M7. */
 export function SettingsPage({ settings, selectorIssues }: Props) {
   return (
     <div className="page">
@@ -96,6 +96,28 @@ export function SettingsPage({ settings, selectorIssues }: Props) {
               checked={settings.startAtLogin}
               label={`Mit ${OS_NAME} starten`}
               onChange={(startAtLogin) => window.pegel.patchSettings({ startAtLogin })}
+            />
+          </Row>
+          <Row
+            title="Mini-Player immer im Vordergrund"
+            hint={`Bleibt über anderen Fenstern. Öffnen mit ${isMac ? '⌘' : 'Strg'} + M`}
+          >
+            <Switch
+              checked={settings.mini.alwaysOnTop}
+              label="Mini-Player immer im Vordergrund"
+              onChange={(alwaysOnTop) => window.pegel.patchSettings({ mini: { alwaysOnTop } })}
+            />
+          </Row>
+          <Row
+            title="Hauptfenster beim Mini-Player ausblenden"
+            hint="Der Mini-Player ersetzt das Fenster, die Musik läuft weiter"
+          >
+            <Switch
+              checked={settings.mini.hideMainOnOpen}
+              label="Hauptfenster beim Mini-Player ausblenden"
+              onChange={(hideMainOnOpen) =>
+                window.pegel.patchSettings({ mini: { hideMainOnOpen } })
+              }
             />
           </Row>
         </section>

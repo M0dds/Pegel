@@ -10,6 +10,9 @@ import { hexToRgb, logoPng } from './tray-icon';
 export interface TrayActions {
   showWindow(): void;
   command(command: PlayerCommand): void;
+  toggleMini(): void;
+  isMiniOpen(): boolean;
+  onMiniChanged(listener: () => void): void;
 }
 
 let tray: Tray | null = null;
@@ -71,16 +74,23 @@ function buildMenu(actions: TrayActions): Menu {
       ],
     },
     { type: 'separator' },
+    {
+      label: 'Mini-Player',
+      type: 'checkbox',
+      checked: actions.isMiniOpen(),
+      click: () => actions.toggleMini(),
+    },
     { label: 'Fenster anzeigen', click: () => actions.showWindow() },
     { label: 'Beenden', click: () => app.quit() },
   ]);
 }
 
 /** Only rebuild the menu when something visible in it changed. */
-function menuKey(): string {
+function menuKey(miniOpen: boolean): string {
   const state = getPlayerState();
   const { eq } = getSettings();
   return JSON.stringify([
+    miniOpen,
     state?.title,
     state?.artist,
     state?.isPlaying,
@@ -95,7 +105,7 @@ export function createTray(actions: TrayActions): Tray {
   tray = instance;
   let key = '';
   const refresh = () => {
-    const next = menuKey();
+    const next = menuKey(actions.isMiniOpen());
     if (next === key) return;
     key = next;
     instance.setContextMenu(buildMenu(actions));
@@ -108,6 +118,7 @@ export function createTray(actions: TrayActions): Tray {
   if (process.platform !== 'darwin') instance.on('click', () => actions.showWindow());
 
   onPlayerState(refresh);
+  actions.onMiniChanged(refresh);
   let theme = getSettings().theme;
   onSettingsChanged((settings) => {
     refresh();

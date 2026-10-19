@@ -11,7 +11,9 @@ import {
   focusMainWindow,
   getMainWindow,
   sendPlayerCommand,
+  toggleMiniPlayer,
 } from './windows/main-window';
+import { isMiniOpen, onMiniChanged } from './windows/mini-window';
 
 // Development only: a separate profile (own login, settings and instance lock),
 // e.g. to run a test instance next to the normal one.
@@ -27,10 +29,16 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     loadSettings();
-    setupMenu();
+    setupMenu({ toggleMini: toggleMiniPlayer });
     registerIpc();
     syncStartAtLogin(getSettings().startAtLogin);
-    createTray({ showWindow: focusMainWindow, command: sendPlayerCommand });
+    createTray({
+      showWindow: focusMainWindow,
+      command: sendPlayerCommand,
+      toggleMini: toggleMiniPlayer,
+      isMiniOpen,
+      onMiniChanged,
+    });
     // Autostart (--hidden): YT loads in the background, only the tray is visible.
     createMainWindow({ show: !shouldStartHidden() });
 

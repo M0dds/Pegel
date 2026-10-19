@@ -37,6 +37,8 @@ export interface UiToMainChannels {
   'eq-panel:animation-done': { open: boolean };
   'player:command': PlayerCommand;
   'mini:open': void;
+  /** "Enlarge": close the mini player and show the main window. */
+  'mini:close': void;
 }
 
 /** Main → Pegel UI (main and mini window) via `webContents.send`. */
@@ -81,6 +83,8 @@ export interface PegelApi {
   eqAction(action: EqAction): void;
   setTheme(theme: ThemeId): void;
   patchSettings(patch: SettingsPatch): void;
+  openMini(): void;
+  closeMini(): void;
   getPlayerState(): Promise<PlayerState | null>;
   onPlayerState(listener: (state: PlayerState | null) => void): () => void;
   playerCommand(command: PlayerCommand): void;

@@ -1,6 +1,6 @@
 import type { ThemeId, View } from '@shared/types';
 import { Logo } from './Logo';
-import { EqIcon, SettingsIcon } from './icons';
+import { EqIcon, MiniPlayerIcon, SettingsIcon } from './icons';
 
 const MOD = window.pegel.platform === 'darwin' ? '⌘' : 'Strg';
 
@@ -42,6 +42,14 @@ export function Titlebar({ view, eqOpen, theme }: Props) {
       >
         <EqIcon />
         Equalizer
+      </button>
+      <button
+        className="tb-btn"
+        title={`Mini-Player (${MOD}+M)`}
+        aria-label="Mini-Player"
+        onClick={() => window.pegel.openMini()}
+      >
+        <MiniPlayerIcon />
       </button>
       <button
         className="tb-btn"

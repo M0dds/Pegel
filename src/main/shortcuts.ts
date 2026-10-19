@@ -11,7 +11,10 @@ export interface KeyInput {
 }
 
 export type ShortcutAction =
-  { type: 'show'; view: View } | { type: 'toggleEq' } | { type: 'devtools' };
+  | { type: 'show'; view: View }
+  | { type: 'toggleEq' }
+  | { type: 'toggleMini' }
+  | { type: 'devtools' };
 
 /**
  * Maps a key press to a Pegel action. Ctrl on Windows/Linux, ⌘ on macOS.
@@ -29,6 +32,10 @@ export function matchShortcut(
 
   if (plainMod && input.key === ',') return { type: 'show', view: 'settings' };
   if (plainMod && input.key.toLowerCase() === 'e') return { type: 'toggleEq' };
+  // macOS: ⌘M is a menu accelerator there (see menu.ts), so it never reaches this point.
+  if (plainMod && input.key.toLowerCase() === 'm' && platform !== 'darwin') {
+    return { type: 'toggleMini' };
+  }
   if (input.key === 'Escape' && !mod && (currentView === 'settings' || currentView === 'welcome')) {
     return { type: 'show', view: 'music' };
   }
