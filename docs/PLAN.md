@@ -832,7 +832,7 @@ social: {
 - [x] Gast: YT-Knöpfe (Pause, Play, Spulen, Weiter), Mini-Player, Tray und Panel werden zu Party-Befehlen, wenn erlaubt
 - [x] UI: Warteschlange mit „von …“, Entfernen, „Als Nächstes“ (Host), Play/Pause und Überspringen in der Party-Karte, Schalter „Alle dürfen steuern“, Aktivität in der Party-Pille, Mini-Player-Knöpfe
 - [x] Test mit zwei Instanzen (lokaler Server): „+“ in der Suche, Überspringen durch den Gast, Pause über YTs Knopf, Rückkehr ins Album, Neuladen beim Gast ohne Party-Pause
-- [ ] Deploy und Release 1.2.0 (nach Rückfrage, weil 1.1.0 ab dem Deploy keine Partys mehr kann)
+- [x] Server deployt und Release 1.2.0 (mit den Theme-Effekten und dem Taskleisten-Icon-Fix). Pegel 1.1.0 sieht weiter Freunde, für Partys braucht es 1.2.0
 - **Fertig, wenn:** Zwei Leute abwechselnd Titel per „+“ hinzufügen, beide pausieren und überspringen können und nach der Warteschlange die Playlist des Hosts an der richtigen Stelle weiterläuft.
 
 ### Später (optional)
