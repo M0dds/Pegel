@@ -22,7 +22,7 @@ interface Props {
   /** Pill while in a listening party ("Party · 3", "Warte auf Lea …"). */
   party: { label: string; waiting: boolean } | null;
   theme: ThemeId;
-  /** Falling petals are drawn by PetalLayer; the static ones are the fallback. */
+  /** Falling petals are drawn by ThemeEffectLayer; the static ones are the fallback. */
   animatedPetals: boolean;
   hint: TitlebarHint | null;
 }

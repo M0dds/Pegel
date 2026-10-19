@@ -7,10 +7,10 @@ import { EMPTY_SOCIAL_STATE, type SocialState } from '@shared/social';
 import { EqPanel } from './components/eq/EqPanel';
 import { SocialPanel } from './components/social/SocialPanel';
 import { Titlebar, type TitlebarHint } from './components/Titlebar';
-import { PetalLayer } from './components/PetalLayer';
+import { ThemeEffectLayer } from './components/ThemeEffectLayer';
 import { applyTheme } from './styles/theme';
 import { LINK_KIND_LABEL } from '@shared/links';
-import { THEMES } from '@shared/themes';
+import { themeEffect } from '@shared/effects';
 import { OfflinePage } from './routes/OfflinePage';
 import { SettingsPage } from './routes/SettingsPage';
 import { WelcomePage } from './routes/WelcomePage';
@@ -82,7 +82,8 @@ export function App() {
 
   const panelOpen = settings?.eq.panelOpen ?? false;
   const socialOpen = settings?.social.panelOpen ?? false;
-  const animatedPetals = theme === 'sakura' && (settings?.effects.petals ?? false);
+  const effectTheme = theme && settings?.effects.theme && themeEffect(theme) ? theme : null;
+  const backEffect = effectTheme !== null && themeEffect(effectTheme)?.layer === 'back';
   const hint = titlebarHint();
 
   /** One hint at a time: an invite and a copied link are the most immediate, an update can wait. */
@@ -128,7 +129,7 @@ export function App() {
   }
 
   return (
-    <div className="app">
+    <div className={backEffect ? 'app back-effect' : 'app'} data-view={view}>
       <Titlebar
         view={view}
         eqOpen={panelOpen}
@@ -136,10 +137,10 @@ export function App() {
         invites={social.invites.length}
         party={partyPill(social)}
         theme={theme ?? 'standard'}
-        animatedPetals={animatedPetals}
+        animatedPetals={effectTheme === 'sakura'}
         hint={hint}
       />
-      {animatedPetals && <PetalLayer color={THEMES.sakura.tokens.accent} />}
+      {effectTheme && <ThemeEffectLayer theme={effectTheme} />}
       <div className="content">
         <div className="music">
           {/* The main process lays the YT view over this slot. */}

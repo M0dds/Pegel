@@ -177,7 +177,10 @@ interface PlayerState {
   - **Bisher umgesetzt** (`buildYtPolishCss`, in allen Themes): schmale Scrollleisten in Theme-Farben ohne Pfeile (YTs `scrollbar-color` wird dafür auf `auto` gesetzt, sonst ignoriert Chromium `::-webkit-scrollbar`), Kontextmenüs mit 10 px Radius, Rahmen und Schatten per `box-shadow`, ohne horizontale Scrollleiste. Außerdem ein YT-Bugfix: Der Verlauf hinter Seitenköpfen kachelt sonst als Streifen über die Seite. 
   - **Pegel-Themes** ersetzen das Albumcover-Licht oben auf Übersichtsseiten durch einen dunklen Verlauf mit etwas Akzentfarbe (Cover nur per `opacity` ausgeblendet) und färben `body` ein, das YT fest auf `#030303` setzt.
 - **Windows/Linux:** Die Fenster-Buttons zeichnet Pegel selbst (siehe 4.5), sie folgen dem Theme automatisch.
-- **Sakura-Extra:** Blütenblätter fallen taumelnd über die ganze App (8 in der Pegel-UI, 14 über der YT-Seite), reine CSS-Animation auf `transform`, `pointer-events: none`, aus bei „Bewegung reduzieren“, abschaltbar in den Einstellungen (`effects.petals`). Ohne Animation bleiben die statischen Blätter aus dem Mockup in der Titelleiste.
+- **Theme-Effekte** (`shared/effects/`, Einstellung `effects.theme`, Standard an, ein Schalter für das jeweils aktive Theme; ersetzt `effects.petals` aus 1.1.0, alte Einstellung wird übernommen): reine CSS-Animationen auf `transform`/`opacity`, `pointer-events: none`, Farben aus den Theme-Tokens (`--fx-accent`, `--fx-text`), live beim Theme-Wechsel ausgetauscht. In der Pegel-UI und über der YT-Seite (dort etwas mehr Partikel).
+  - **Vorne** (wie die Blütenblätter, bei „Bewegung reduzieren“ aus): Sakura fallende Blütenblätter (8/14), Glut aufsteigende Funken, Bernstein schwebender Lichtstaub, Lagune aufsteigende Luftblasen, Wald Glühwürmchen. Ohne Animation bleiben bei Sakura die statischen Blätter aus dem Mockup in der Titelleiste.
+  - **Hinten** (hinter dem Inhalt, bei „Bewegung reduzieren“ stehend): Nordlicht Polarlicht-Bänder im oberen Bereich, Mitternacht funkelnder Sternenhimmel mit gelegentlicher Sternschnuppe. Auf der YT-Seite liegt die Ebene bei `z-index: -1`; `body` wird dafür durchsichtig (die Farbe bleibt auf `html`), und der Pegel-Verlauf oben auf Übersichtsseiten blendet nach transparent statt nach `bg` aus. In der Pegel-UI scheint sie durch Titelleiste und Pegel-Seiten.
+  - Standard, Neon und Mono bleiben schlicht.
 - **Visualizer** hinter der Player-Leiste (`effects.visualizer`, Standard an): Frequenzbalken mit Spitzen-Kappen in der Akzentfarbe, Daten aus einem `AnalyserNode` am Ende der EQ-Kette, logarithmische Bänder 40 Hz bis 16 kHz, 30 fps, nur während der Wiedergabe. YTs Lautstärke wird über das dB-Fenster des Analysers ausgeglichen. Canvas mit `z-index: -1` in YTs Player-Leiste (eigener Stapelkontext): über deren Hintergrund, unter den Bedienelementen.
   - Hinweis zum Testen: Liegt das Fenster komplett verdeckt hinter anderen, rendert Chromium unter Windows keine Frames (native Verdeckungsberechnung). Für Tests mit verdecktem Fenster `npm run dev -- -- --disable-features=CalculateNativeWinOcclusion`.
 - **Themes:** Standard, Sakura, Nordlicht, Bernstein sowie (nach M5 ergänzt, kontrastreicher) Mitternacht, Lagune, Glut, Wald, Neon und Mono. Ein neues Theme braucht nur Tokens in `shared/themes.ts`; die Kontrast-Tests prüfen es automatisch. Auswahl in den Einstellungen als kompakte Chips.
@@ -766,6 +769,56 @@ social: {
 - [x] README: Abschnitt „Freunde & Hör-Party“ und Datenschutz
 - [x] Version 1.1.0 mit dem Commit aus M9 veröffentlicht (vor dem Test mit Freunden, damit alle dieselbe Version haben; Fehler werden in 1.1.x behoben)
 - **Fertig, wenn:** Johann und mindestens zwei Freunde sich per Code hinzufügen, einander online mit „Hört gerade“ sehen und eine Party über mehrere Titel synchron hören, auch wenn einer mitten im Lied beitritt, Werbung bekommt oder kurz die Verbindung verliert.
+
+### M11 – Gemeinsame Party-Warteschlange (Release 1.2)
+
+> Wunsch nach dem ersten Test von 1.1.0: Die Kontrolle liegt zu sehr beim Host. Johanns Entscheidungen vom 19.10.2026:
+> - Pause und Überspringen dürfen alle.
+> - Titel kommen über einen „+“-Knopf in YT in die Warteschlange. Geht der zu oft kaputt, wird eine andere Lösung gesucht.
+> - Der Host bekommt einen Schalter „Alle dürfen steuern“.
+
+**Warum nicht YTs eigene Warteschlange?** Jeder hört über sein eigenes Konto, also hat jeder seine eigene YT-Warteschlange. An die kommt Pegel nur über DOM-Klicks im Kontextmenü heran. Deshalb führt Pegel eine eigene **Party-Warteschlange** auf dem Party-Server, nur im Arbeitsspeicher, wie der Rest der Party.
+
+**Ablauf**
+
+- **Hinzufügen:**
+  - Während einer Party setzt Pegel neben jeden Titel in YT-Listen (Playlists, Alben, Suche, Warteschlange) einen „+“-Knopf. Ein Klick hängt den Titel an die Party-Warteschlange, die Musik läuft weiter.
+  - Selektoren nur in `yt/selectors.ts`. Fehlt der Knopf, meldet der Selbsttest „Hör-Party (+ Knopf)“.
+  - Klickt ein Gast trotzdem direkt auf einen Titel, wird der wie bisher erkannt und landet ebenfalls in der Warteschlange, mit kurzem Aussetzer.
+- **Abspielen:**
+  - Kurz vor dem Ende eines Titels (≤ 300 ms) lädt der Host-Pegel den nächsten Titel aus der Warteschlange, die Gäste folgen wie gewohnt.
+  - Ist die Warteschlange leer, geht es in der Playlist des Hosts weiter, an der Stelle nach dem letzten Playlist-Titel. Die Stelle merkt sich Pegel über `getPlaylistId`/`getPlaylistIndex` von YTs Player.
+- **Steuern:**
+  - Mit „Alle dürfen steuern“ (Standard an) schicken Gäste Pause, Play, Überspringen und Spulen an den Party-Server. Der leitet sie an den Host-Pegel weiter, der sie auf seiner YT-Seite ausführt. Alle anderen folgen.
+  - Auch YTs eigene Knöpfe beim Gast (Pause, Spulen, Weiter) werden zu Party-Befehlen.
+  - Jede Aktion zeigt kurz in der Party-Pille z. B. „Lea hat übersprungen“.
+- **Ohne „Alle dürfen steuern“:** Es gilt das Verhalten aus M10. Gäste pausieren nur für sich, der „+“-Knopf schickt einen Vorschlag (wenn erlaubt). Angenommene Vorschläge kommen in die Warteschlange, statt sofort zu spielen.
+- **Warteschlange im Social-Panel:** Titel mit „von Lea“. Entfernen kann, wer den Titel hinzugefügt hat, und der Host. Der Host kann einen Titel nach oben holen.
+
+**Protokoll v2** (Party; der Hub bleibt v1-kompatibel, damit 1.1.0 weiter Freunde sieht):
+
+| Richtung | Nachricht | Inhalt |
+| --- | --- | --- |
+| C→S | `queue.add` | `track` (`videoId`, `title`, `artist`); mit „Alle dürfen steuern“ alle, sonst nur der Host |
+| C→S | `queue.remove` | `id`; wer ihn hinzugefügt hat, oder der Host |
+| C→S | `queue.move` | `id`, `index`; nur der Host |
+| C→S | `queue.played` | `id`; Host, sobald der Titel läuft |
+| C→S | `control` | `action` (`play`, `pause`, `skip`, `seek`), `positionMs?`; geht nur an den Host |
+| S→C | `queue` | ganze Liste (`id`, Track, `by`, `byName`), höchstens 100, 20 pro Person |
+| S→C | `control` | an den Host: `action`, `positionMs?`, `from` |
+| S→C | `activity` | an alle: `userId`, `name`, `action` (`play`, `pause`, `skip`, `seek`, `add`), `title?` |
+
+`PartyOptions` bekommt `everyoneControls`. `welcome` liefert die Warteschlange mit. Angenommene Vorschläge verschiebt der Server direkt in die Warteschlange.
+
+**Schritte**
+
+- [ ] Protokoll v2 und Server (Warteschlange, Steuerbefehle, Aktivität), Tests
+- [ ] YT-Seite: Player-Fähigkeiten prüfen (`getPlaylistIndex`), „+“-Knopf an Listen-Titeln, Selbsttest
+- [ ] Host: Warteschlange abspielen, Rückkehr zur Playlist, Befehle der Gäste ausführen
+- [ ] Gast: eigene Bedienung (YT-Knöpfe, Mini-Player, Tray) wird zum Party-Befehl, wenn erlaubt
+- [ ] UI: Warteschlange und Steuerung in der Party-Karte, Schalter „Alle dürfen steuern“, Aktivität in der Party-Pille, Mini-Player-Knöpfe für Gäste
+- [ ] Test mit zwei Instanzen (lokaler Server), danach Deploy und Release 1.2.0 (nach Rückfrage, weil 1.1.0 ab dem Deploy keine Partys mehr kann)
+- **Fertig, wenn:** Zwei Leute abwechselnd Titel per „+“ hinzufügen, beide pausieren und überspringen können und nach der Warteschlange die Playlist des Hosts an der richtigen Stelle weiterläuft.
 
 ### Später (optional)
 

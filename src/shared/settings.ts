@@ -35,7 +35,7 @@ export const DEFAULT_SETTINGS: Settings = {
   discord: { enabled: true, hideWhenPaused: true },
   window: { maximized: false },
   welcomeShown: false,
-  effects: { petals: true, visualizer: true },
+  effects: { theme: true, visualizer: true },
   trayHintShown: false,
   social: {
     enabled: false,
@@ -194,7 +194,8 @@ export function normalizeSettings(input: unknown): Settings {
     },
     welcomeShown: bool(raw['welcomeShown'], d.welcomeShown),
     effects: {
-      petals: bool(effects['petals'], d.effects.petals),
+      // `petals` is the name from 1.1.0 and earlier, when only Sakura had an effect.
+      theme: bool(effects['theme'], bool(effects['petals'], d.effects.theme)),
       visualizer: bool(effects['visualizer'], d.effects.visualizer),
     },
     trayHintShown: bool(raw['trayHintShown'], d.trayHintShown),

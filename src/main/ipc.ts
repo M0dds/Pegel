@@ -199,7 +199,7 @@ export function registerIpc(): void {
       const effects = p['effects'];
       if (typeof effects === 'object' && effects !== null) {
         const e = effects as Record<string, unknown>;
-        if (typeof e['petals'] === 'boolean') s.effects.petals = e['petals'];
+        if (typeof e['theme'] === 'boolean') s.effects.theme = e['theme'];
         if (typeof e['visualizer'] === 'boolean') s.effects.visualizer = e['visualizer'];
       }
     });

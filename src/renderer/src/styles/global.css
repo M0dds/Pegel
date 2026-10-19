@@ -572,6 +572,21 @@ button {
   position: relative;
 }
 
+/* ---------- Theme effects behind the content (aurora, stars) ---------- */
+/* The layer sits at z-index -1, right above the body background. It shows through
+   the title bar and the Pegel pages; those hide the music area instead of covering it. */
+.app.back-effect .titlebar {
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+.app.back-effect .page {
+  background: transparent;
+}
+
+.app.back-effect:not([data-view='music']) .music {
+  visibility: hidden;
+}
+
 /* ---------- Settings sections ---------- */
 .section {
   background: var(--surface);

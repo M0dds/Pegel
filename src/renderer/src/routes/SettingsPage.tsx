@@ -1,4 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
+import { themeEffect } from '@shared/effects';
 import { AUDIO_OFFSET_MAX_MS } from '@shared/settings';
 import { NAME_MAX } from '@shared/social-protocol';
 import { THEME_IDS, THEMES } from '@shared/themes';
@@ -60,6 +61,7 @@ export function SettingsPage({ settings, appInfo, selectorIssues, update }: Prop
   const updatesSupported = appInfo?.updatesSupported ?? false;
   const canInstall = update.state === 'ready' || update.state === 'available';
   const busy = update.state === 'checking' || update.state === 'downloading';
+  const effect = themeEffect(settings.theme);
 
   return (
     <div className="page">
@@ -100,15 +102,19 @@ export function SettingsPage({ settings, appInfo, selectorIssues, update }: Prop
               );
             })}
           </div>
-          {settings.theme === 'sakura' && (
+          {effect && (
             <Row
-              title="Fallende Blütenblätter"
-              hint="Aus, wenn im System „Bewegung reduzieren“ aktiv ist"
+              title={effect.label}
+              hint={
+                effect.layer === 'back'
+                  ? 'Steht still, wenn im System „Bewegung reduzieren“ aktiv ist'
+                  : 'Aus, wenn im System „Bewegung reduzieren“ aktiv ist'
+              }
             >
               <Switch
-                checked={settings.effects.petals}
-                label="Fallende Blütenblätter"
-                onChange={(petals) => window.pegel.patchSettings({ effects: { petals } })}
+                checked={settings.effects.theme}
+                label={effect.label}
+                onChange={(theme) => window.pegel.patchSettings({ effects: { theme } })}
               />
             </Row>
           )}

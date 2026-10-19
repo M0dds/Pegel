@@ -8,6 +8,7 @@ import {
   TITLEBAR_HEIGHT,
 } from '@shared/layout';
 import { findPegelLink, isSameContent, type PegelLink } from '@shared/links';
+import { themeEffect } from '@shared/effects';
 import { THEMES } from '@shared/themes';
 import type { EqSettings, PlayerCommand, Settings, View, YtEffects } from '@shared/types';
 import { isQuitting } from '../app-state';
@@ -109,7 +110,7 @@ export function sendPlayerCommand(command: PlayerCommand): void {
 /** What the YT view draws on top of YT, derived from theme and settings. */
 function ytEffects(settings: Settings): YtEffects {
   return {
-    petals: settings.theme === 'sakura' && settings.effects.petals,
+    themeEffect: settings.effects.theme && themeEffect(settings.theme) ? settings.theme : null,
     visualizer: settings.effects.visualizer,
     accent: THEMES[settings.theme].tokens.accent,
   };

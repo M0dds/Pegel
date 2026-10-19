@@ -174,7 +174,9 @@ ${SELECTORS.browseGradient} { background-repeat: no-repeat !important; }
 /**
  * Pegel themes: instead of the cover-art glow at the top of browse pages, a
  * dark gradient with a hint of the accent that fades into the theme
- * background. Hides the art with opacity only, so nothing moves.
+ * background. Translucent over the page colour (looks the same as fading to
+ * `bg`), so a theme effect behind the content (aurora, stars) shows through.
+ * Hides the art with opacity only, so nothing moves.
  */
 export function buildYtBackgroundCss(theme: Theme): string {
   const { accent, bg } = theme.tokens;
@@ -183,7 +185,7 @@ export function buildYtBackgroundCss(theme: Theme): string {
 html, body { background-color: ${bg} !important; }
 ${SELECTORS.browseBackground} { opacity: 0 !important; }
 ${SELECTORS.browseGradient} {
-  background-image: linear-gradient(180deg, color-mix(in srgb, ${accent} 12%, ${bg}) 0, ${bg} 420px) !important;
+  background-image: linear-gradient(180deg, color-mix(in srgb, ${accent} 12%, transparent) 0, transparent 420px) !important;
   background-size: 100% 420px !important;
 }
 `;
