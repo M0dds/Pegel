@@ -7,6 +7,7 @@ import {
   navigateToEndpoint,
   navigateToTrack,
   playerApi,
+  readPlayerTime,
   readResumeEndpoint,
   readTrackInfo,
   runCommand,
@@ -49,6 +50,8 @@ const SKIP_INTENT_MS = 3000;
  * queue after a load) and Pegel simply goes back to the party's track.
  */
 const PICK_CLICK_MS = 4000;
+/** Checks driven by media `timeupdate` events run at most this often. */
+const MEDIA_TICK_MS = 200;
 
 /**
  * Listening party in the YT view, right at the media element.
@@ -89,15 +92,21 @@ export class PartyEngine {
   /** Host: the track we already moved on from (no double advance). */
   private advancedFrom: string | null = null;
   private unloading = false;
+  private lastTickAt = 0;
 
   constructor(
     private readonly latencyMs: () => number,
     private readonly onReport: (report: PartyReport) => void,
   ) {
     const soon = () => setTimeout(() => this.tick(), 30);
-    for (const type of ['play', 'playing', 'seeked', 'loadedmetadata', 'ended']) {
+    for (const type of ['play', 'playing', 'seeked', 'loadedmetadata']) {
       document.addEventListener(type, (e) => this.isOwnMedia(e) && soon(), true);
     }
+    // Media events keep coming when Chromium throttles the timers of a hidden page
+    // (down to once a minute after a while in the background). The end of a track
+    // must not be missed then, so these run the check directly.
+    document.addEventListener('timeupdate', () => this.tickFromMedia(), true);
+    document.addEventListener('ended', () => this.tickFromMedia(true), true);
     document.addEventListener('pause', (e) => this.isOwnMedia(e) && this.onPause(), true);
     document.addEventListener('play', (e) => this.isOwnMedia(e) && this.onPlay(), true);
     document.addEventListener('seeking', (e) => this.isOwnMedia(e) && this.onSeeking(), true);
@@ -149,15 +158,38 @@ export class PartyEngine {
    * Host: shortly before a track ends, the party queue comes first. If YT
    * already moved on by itself (timer late), the queued track still wins.
    */
+  /** From media events: at most every 200 ms, always for `ended`. */
+  private tickFromMedia(force = false): void {
+    if (!this.control) return;
+    const now = Date.now();
+    if (!force && now - this.lastTickAt < MEDIA_TICK_MS) return;
+    this.tick();
+  }
+
+  /** Position and length of the current track; YT's player first, the media element as fallback. */
+  private trackTime(
+    el: HTMLMediaElement | null,
+  ): { currentMs: number; durationMs: number; playing: boolean } | null {
+    const fromPlayer = readPlayerTime();
+    if (fromPlayer) return fromPlayer;
+    if (!el || !Number.isFinite(el.duration)) return null;
+    return {
+      currentMs: el.currentTime * 1000,
+      durationMs: el.duration * 1000,
+      playing: !el.paused,
+    };
+  }
+
   private hostTick(
     control: Extract<PartyControl, { role: 'host' }>,
     el: HTMLMediaElement | null,
   ): void {
-    if (!el || isAdShowing()) return;
+    if (isAdShowing()) return;
     const info = readTrackInfo();
-    if (!info) return;
-    const remaining = el.duration * 1000 - el.currentTime * 1000;
-    const nearEnd = Number.isFinite(remaining) && !el.paused && remaining <= ADVANCE_BEFORE_END_MS;
+    const time = this.trackTime(el);
+    if (!info || !time) return;
+    const remaining = time.durationMs - time.currentMs;
+    const nearEnd = time.playing && remaining <= ADVANCE_BEFORE_END_MS;
     const movedOnAlone =
       this.lastVideoId !== null &&
       info.videoId !== this.lastVideoId &&
@@ -204,7 +236,12 @@ export class PartyEngine {
       return;
     }
     if (control.role === 'host' && wasGuest) this.reset();
-    if (!this.timer) this.timer = setInterval(() => this.tick(), TICK_MS);
+    // Skipped when media events just ran the check (no double work).
+    if (!this.timer) {
+      this.timer = setInterval(() => {
+        if (Date.now() - this.lastTickAt >= TICK_MS - 50) this.tick();
+      }, TICK_MS);
+    }
     this.tick();
   }
 
@@ -289,6 +326,7 @@ export class PartyEngine {
   private tick(): void {
     const control = this.control;
     if (!control) return;
+    this.lastTickAt = Date.now();
     const el = media();
     const now = Date.now();
     const ad = isAdShowing();
@@ -302,10 +340,13 @@ export class PartyEngine {
       this.hostTick(control, el);
     }
 
-    if (!ad && info && el) {
-      this.lastVideoId = info.videoId;
-      this.lastPositionMs = el.currentTime * 1000;
-      this.lastDurationMs = Number.isFinite(el.duration) ? el.duration * 1000 : 0;
+    if (!ad && info) {
+      const time = this.trackTime(el);
+      if (time) {
+        this.lastVideoId = info.videoId;
+        this.lastPositionMs = time.currentMs;
+        this.lastDurationMs = time.durationMs;
+      }
     }
     this.report(control, el, now, ad, info, positionMs);
   }

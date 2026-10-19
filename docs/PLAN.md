@@ -828,6 +828,11 @@ social: {
   - *Behebung:* Titel aus der Warteschlange gehen ohne Playlist an die Gäste. Ein anderer Titel zählt nur dann als Wahl des Gasts, wenn er kurz vorher (≤ 4 s) wirklich in YT geklickt hat.
   - *Wunsch:* Hat ein Freund eine offene Party, steht in seiner Zeile „Beitreten“. „Zu meiner Party einladen“ wandert ins ⋯-Menü.
   - Die Interpreten-Zeile aus der Suche („Song • Künstler • 3,6 Mrd. Wiedergaben“) wird auf den Künstler gekürzt.
+- **Zweiter Test (1.2.1):** Bei Johann (angemeldet) lief nach dem aktuellen Titel die eigene Playlist weiter statt des Titels aus der Warteschlange. Manuelles Überspringen funktionierte.
+  - *Mit Testprofilen nicht nachstellbar:* Fenster offen, im Tray, minimiert und YT-Seite verdeckt liefen alle sauber. Die YT-Ansicht wird ohnehin nicht gedrosselt (`backgroundThrottling: false`).
+  - *Vermutete Ursache:* YT nutzt bei angemeldeten Konten ein zweites Media-Element (z. B. zum Vorladen). Pegel nahm immer das erste, sah „pausiert“ und falsche Zeiten und verpasste so das Titelende.
+  - *Behebung:* `media()` nimmt das spielende Element. Position und Länge kommen aus YTs Player (`getCurrentTime`, `getDuration`, `getPlayerState`). Die Prüfung aufs Titelende läuft zusätzlich bei jedem `timeupdate` und `ended`.
+  - Bestätigung steht aus.
 
 **Schritte**
 

@@ -10,8 +10,35 @@ const PAGE_POLL_MS = 700;
 /** The self-test waits a bit after the first playback so the player bar is complete. */
 const SELF_TEST_DELAY_MS = 2000;
 
+/**
+ * The element YT plays through. If YT keeps a second one (e.g. preloading the
+ * next track), the one that is playing wins.
+ */
 export function media(): HTMLMediaElement | null {
-  return document.querySelector<HTMLMediaElement>(SELECTORS.mediaElement);
+  const all = document.querySelectorAll<HTMLMediaElement>(SELECTORS.mediaElement);
+  for (const el of all) if (!el.paused && !el.ended) return el;
+  return all[0] ?? null;
+}
+
+/**
+ * Position and length of the current track as YT's player sees them (in ms),
+ * independent of which media element is used. Null if the player API is missing.
+ */
+export function readPlayerTime(): {
+  currentMs: number;
+  durationMs: number;
+  playing: boolean;
+} | null {
+  const current = playerApi<number>('getCurrentTime');
+  const duration = playerApi<number>('getDuration');
+  const state = playerApi<number>('getPlayerState');
+  if (typeof current !== 'number' || typeof duration !== 'number' || !(duration > 0)) return null;
+  // YT's player states: 1 = playing, 3 = buffering.
+  return {
+    currentMs: current * 1000,
+    durationMs: duration * 1000,
+    playing: state === 1 || state === 3,
+  };
 }
 
 /**
