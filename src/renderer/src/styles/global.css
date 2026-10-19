@@ -239,6 +239,8 @@ button {
   position: absolute;
   inset: 0;
   display: flex;
+  /* Own stacking context: z-indices inside (sliders, dialog) never cover Pegel pages. */
+  isolation: isolate;
 }
 
 .yt-slot {
