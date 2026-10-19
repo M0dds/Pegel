@@ -94,7 +94,7 @@ Die EQ-Panel-Breite und die Titelleistenhöhe sind Konstanten in `shared/layout.
 | `preload/yt.ts`               | Läuft in music.youtube.com: Audio-Engine (EQ), Player-Bridge (Status und Befehle)     |
 | `preload/ui.ts`               | `contextBridge`-API für die Pegel-UI                                                  |
 | `yt/selectors.ts`             | **Alle** DOM-Selektoren der YT-Seite an einer Stelle                                  |
-| `yt/themes/*.css`             | CSS-Overrides pro Theme für die YT-Seite                                              |
+| `yt/themes/yt-theme.ts`       | Erzeugt das Farb-CSS für die YT-Seite aus den Theme-Tokens                           |
 | `renderer/`                   | React-App mit den Routen `/` (Titelleiste und EQ), `/settings`, `/welcome`, `/mini`   |
 | `shared/`                     | Typen, IPC-Kanäle, Theme-Tokens, EQ-Presets, Layout-Konstanten                        |
 
@@ -164,7 +164,7 @@ interface PlayerState {
 
 - **Tokens** in `shared/themes.ts`, identisch zum Mockup: `bg`, `surface`, `surface-2`, `surface-3`, `border`, `text`, `text-dim`, `accent`, `accent-soft`, `on-accent`.
 - **Pegel-UI:** Die Tokens werden als CSS-Variablen auf `:root` gesetzt.
-- **YT-Seite:** Pro Theme eine CSS-Datei in `yt/themes/`, eingespielt per `webContents.insertCSS()` (nach jedem `did-navigate` bzw. `dom-ready` erneut). Die passenden Variablen ermittelt man per DevTools in der YT-Seite. YT Music nutzt eigene CSS-Variablen (Präfixe wie `--ytmusic-…` und `--yt-spec-…`) für Hintergründe, Text und Akzentfarbe, dazu einige feste Farben (Fortschrittsbalken, Like-Button), die gezielt überschrieben werden müssen.
+- **YT-Seite:** Das CSS wird aus den Theme-Tokens erzeugt (`yt/themes/yt-theme.ts`), statt eine CSS-Datei pro Theme zu pflegen. So bleibt `shared/themes.ts` die einzige Farbquelle, und ein neues Theme braucht nur Tokens. Eingespielt per `webContents.insertCSS()` nach jedem `dom-ready`, beim Theme-Wechsel live ausgetauscht (`removeInsertedCSS`). Das Standard-Theme bekommt kein Override, es ist der Original-Look von YT. YT Music definiert seine Farben als Variablen auf `html` (`--ytmusic-…`, `--yt-sys-color-baseline--…`, `--paper-…`; `--yt-spec-…` gibt es dort nicht mehr). Die Zuordnung Token → Variablen steht in `YT_COLOR_ROLES`. Farben, die YT direkt an einzelnen Elementen setzt, stehen in `YT_ELEMENT_COLORS` (bisher: der Verlauf des Fortschrittsbalkens an `#progress-bar`). Google-Login- und Consent-Seiten werden nicht eingefärbt.
 - **Grundsatz:** Nur Farben überschreiben, keine Abstände und kein Layout. So geht bei Updates von Google wenig kaputt.
 - **Windows:** Die Fenstersteuerung kommt über `titleBarOverlay`. Bei einem Theme-Wechsel `setTitleBarOverlay({ color, symbolColor })` aufrufen.
 - **Sakura-Extra:** Ein paar Blütenblätter in der Titelleiste, wie im Mockup. Optional später: eine dezente Animation (respektiert `prefers-reduced-motion`).
@@ -313,9 +313,9 @@ Die Meilensteine werden in dieser Reihenfolge abgearbeitet. Jeder endet mit eine
 
 ### M3 – Themes
 
-- [ ] Theme-Tokens, Pegel-UI themed
-- [ ] YT-CSS für alle 4 Themes, Titelleisten-Overlay-Farben (Windows)
-- [ ] Sakura-Blütenblätter
+- [x] Theme-Tokens, Pegel-UI themed
+- [x] YT-CSS für alle 4 Themes, Titelleisten-Overlay-Farben (Windows)
+- [x] Sakura-Blütenblätter
 - **Fertig, wenn:** Ein Theme-Wechsel sofort wirkt, ohne Neuladen. YT bleibt gut lesbar (Kontrast prüfen).
 
 ### M4 – Player-Bridge, Tray, Medientasten, Autostart

@@ -1,6 +1,7 @@
 import { app, ipcMain, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron';
 import type { InvokeArgs, InvokeChannel, InvokeResult, UiToMainChannels } from '@shared/ipc';
 import { isEqAction, reduceEq } from '@shared/eq';
+import { isThemeId } from '@shared/themes';
 import { isView } from '@shared/types';
 import { getSettings, updateSettings } from './settings';
 import {
@@ -54,6 +55,12 @@ export function registerIpc(): void {
     });
   });
   on('eq:toggle-panel', () => toggleEqPanel());
+  on('theme:set', (_event, theme) => {
+    if (!isThemeId(theme)) return;
+    updateSettings((s) => {
+      s.theme = theme;
+    });
+  });
   on('eq-panel:animation-done', (_event, payload) => {
     const open = (payload as { open?: unknown } | null)?.open;
     if (typeof open === 'boolean') onPanelAnimationDone(open);

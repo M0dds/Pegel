@@ -13,7 +13,7 @@ import { isExternalWebUrl } from '../navigation';
 import { getSettings, onSettingsChanged, updateSettings } from '../settings';
 import { matchShortcut } from '../shortcuts';
 import { isRectVisible } from '../window-state';
-import { createYtView, reloadYtView } from '../yt-view';
+import { applyYtTheme, createYtView, reloadYtView } from '../yt-view';
 
 const SAVE_BOUNDS_DELAY_MS = 400;
 /** Fallback if the UI never reports the end of the panel's close animation. */
@@ -101,12 +101,24 @@ function audioKey(eq: EqSettings): string {
   return JSON.stringify(audio);
 }
 
+/** Live theme switch for window, title bar buttons (Windows) and YT view. */
+function applyWindowTheme(): void {
+  if (!win || !ytView) return;
+  const { tokens } = THEMES[getSettings().theme];
+  win.setBackgroundColor(tokens.bg);
+  if (process.platform !== 'darwin') {
+    win.setTitleBarOverlay({ color: tokens.surface, symbolColor: tokens['text-dim'] });
+  }
+  applyYtTheme(ytView);
+}
+
 function watchSettings(): () => void {
   let previous = getSettings();
   return onSettingsChanged((settings: Settings) => {
     sendToUi('settings:changed', settings);
     if (audioKey(settings.eq) !== audioKey(previous.eq)) sendToYt('yt:eq-apply', settings.eq);
     if (settings.eq.panelOpen !== previous.eq.panelOpen) updatePanelSpace(settings.eq.panelOpen);
+    if (settings.theme !== previous.theme) applyWindowTheme();
     previous = settings;
   });
 }
@@ -241,11 +253,13 @@ export function createMainWindow(): BrowserWindow {
   });
   window.webContents.on('will-navigate', (event) => event.preventDefault());
 
+  // The theme comes along in the URL so the UI paints in the right colours from the start.
+  const query = { theme: getSettings().theme };
   const devUrl = process.env['ELECTRON_RENDERER_URL'];
   if (devUrl) {
-    void window.loadURL(devUrl);
+    void window.loadURL(`${devUrl}?${new URLSearchParams(query)}`);
   } else {
-    void window.loadFile(join(__dirname, '../renderer/index.html'));
+    void window.loadFile(join(__dirname, '../renderer/index.html'), { query });
   }
 
   return window;

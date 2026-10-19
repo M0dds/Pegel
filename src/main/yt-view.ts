@@ -1,7 +1,9 @@
 import { join } from 'node:path';
-import { app, session, shell, WebContentsView, type Session } from 'electron';
+import { app, session, shell, WebContentsView, type Session, type WebContents } from 'electron';
 import { THEMES } from '@shared/themes';
+import { buildYtThemeCss } from '../yt/themes/yt-theme';
 import { isAllowedInApp, isExternalWebUrl, YT_MUSIC_URL } from './navigation';
+import { getSettings } from './settings';
 import { toChromeUserAgent } from './user-agent';
 
 export const YT_PARTITION = 'persist:pegel';
@@ -42,6 +44,39 @@ export interface YtViewEvents {
   onLoaded(): void;
 }
 
+const isMusicUrl = (url: string) => url.startsWith('https://music.youtube.com/');
+
+/** Key of the currently inserted theme CSS per view, for removeInsertedCSS. */
+const themeCssKeys = new WeakMap<WebContents, string>();
+let themeQueue: Promise<void> = Promise.resolve();
+
+/**
+ * (Re)applies the theme CSS. Must run after every full page load because
+ * inserted CSS does not survive a navigation. Google's pages stay untouched.
+ */
+function injectTheme(wc: WebContents): Promise<void> {
+  themeQueue = themeQueue.then(async () => {
+    if (wc.isDestroyed()) return;
+    const previous = themeCssKeys.get(wc);
+    themeCssKeys.delete(wc);
+    if (previous) await wc.removeInsertedCSS(previous).catch(() => undefined);
+    const css = buildYtThemeCss(THEMES[getSettings().theme]);
+    if (css && isMusicUrl(wc.getURL())) themeCssKeys.set(wc, await wc.insertCSS(css));
+  });
+  return themeQueue;
+}
+
+/** YT Music gets the theme background; Google's login and consent pages expect white. */
+function updateBackground(view: WebContentsView, url: string): void {
+  view.setBackgroundColor(isMusicUrl(url) ? THEMES[getSettings().theme].tokens.bg : '#ffffff');
+}
+
+/** Live theme switch, no reload needed. */
+export function applyYtTheme(view: WebContentsView): void {
+  updateBackground(view, view.webContents.getURL() || YT_MUSIC_URL);
+  void injectTheme(view.webContents);
+}
+
 function openExternal(url: string): void {
   if (isExternalWebUrl(url)) void shell.openExternal(url);
 }
@@ -58,17 +93,13 @@ export function createYtView(events: YtViewEvents): WebContentsView {
   });
   const wc = view.webContents;
 
-  // YT Music is dark, so a dark background avoids a white flash while it loads.
-  // Google's login and consent pages have a transparent body and expect white.
-  const updateBackground = (url: string) => {
-    const isMusic = url.startsWith('https://music.youtube.com/');
-    view.setBackgroundColor(isMusic ? THEMES.standard.tokens.bg : '#ffffff');
-  };
-  updateBackground(YT_MUSIC_URL);
+  // A dark background avoids a white flash while YT Music loads.
+  updateBackground(view, YT_MUSIC_URL);
   wc.on('did-start-navigation', (event) => {
-    if (event.isMainFrame && !event.isSameDocument) updateBackground(event.url);
+    if (event.isMainFrame && !event.isSameDocument) updateBackground(view, event.url);
   });
-  wc.on('did-navigate', (_event, url) => updateBackground(url)); // covers redirects
+  wc.on('did-navigate', (_event, url) => updateBackground(view, url)); // covers redirects
+  wc.on('dom-ready', () => void injectTheme(wc));
 
   // Navigation guard: only YT Music and the Google login stay in the app.
   const guard = (event: { preventDefault(): void }, url: string) => {

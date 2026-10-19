@@ -1,5 +1,13 @@
 import type { EqAction } from './eq';
-import type { AppInfo, EqSettings, PlayerCommand, PlayerState, Settings, View } from './types';
+import type {
+  AppInfo,
+  EqSettings,
+  PlayerCommand,
+  PlayerState,
+  Settings,
+  ThemeId,
+  View,
+} from './types';
 
 /**
  * Typed IPC channels. The main process is the single source of truth for
@@ -20,6 +28,7 @@ export interface UiToMainChannels {
   /** Equalizer button / Ctrl+E: from a Pegel page back to the music with the panel open. */
   'eq:toggle-panel': void;
   'view:show': View;
+  'theme:set': ThemeId;
   'yt:retry': void;
   /** The panel's open/close transition ended, so the YT view may take the space back. */
   'eq-panel:animation-done': { open: boolean };
@@ -63,6 +72,7 @@ export interface PegelApi {
   getSettings(): Promise<Settings>;
   onSettingsChanged(listener: (settings: Settings) => void): () => void;
   eqAction(action: EqAction): void;
+  setTheme(theme: ThemeId): void;
   toggleEqPanel(): void;
   eqPanelAnimationDone(open: boolean): void;
   showView(view: View): void;

@@ -41,6 +41,7 @@ const api: PegelApi = {
   getSettings: () => invoke('settings:get'),
   onSettingsChanged: (listener) => subscribe('settings:changed', listener),
   eqAction: (action) => send('eq:action', action),
+  setTheme: (theme) => send('theme:set', theme),
   toggleEqPanel: () => send('eq:toggle-panel'),
   eqPanelAnimationDone: (open) => send('eq-panel:animation-done', { open }),
   showView: (view) => send('view:show', view),
