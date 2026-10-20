@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '1.7.0',
+    date: '2026-10-20',
+    items: [
+      'Eigenes Theme für den Mini-Player: Unter Einstellungen → Darstellung kann der Mini-Player anders aussehen als das Hauptfenster.',
+      'Transparenz des Mini-Players: Ein Regler macht ihn bis zu 30 % durchsichtig. Mit der Maus darüber ist er wieder voll sichtbar.',
+      'Der Visualizer im Mini-Player zeigt keine gestrichelte Linie mehr, solange nichts spielt.',
+    ],
+  },
+  {
     version: '1.6.0',
     date: '2026-10-20',
     items: [
