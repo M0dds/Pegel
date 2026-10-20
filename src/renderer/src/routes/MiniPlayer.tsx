@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { isDirty } from '@shared/eq';
 import { barCount, BarMeter, drawBars, fitCanvas } from '@shared/spectrum';
+import { miniThemeId } from '@shared/settings';
 import { THEMES } from '@shared/themes';
 import type { PartyView } from '@shared/social';
 import type { PlayerCommand, PlayerState, Settings } from '@shared/types';
@@ -138,7 +139,7 @@ export function MiniPlayer() {
     };
   }, []);
 
-  const theme = settings?.theme;
+  const theme = settings ? miniThemeId(settings) : undefined;
   useEffect(() => {
     if (theme) applyTheme(theme);
   }, [theme]);
@@ -224,7 +225,7 @@ export function MiniPlayer() {
 
       <div className="mini-ctrl">
         {settings?.mini.visualizer && (
-          <MiniVisualizer color={THEMES[settings.theme].tokens.accent} />
+          <MiniVisualizer color={THEMES[miniThemeId(settings)].tokens.accent} />
         )}
         <button
           className="icon-btn"

@@ -69,8 +69,21 @@ export interface Settings {
   mediaKeys: boolean;
   /** Offer YT links from the clipboard when the window gets focus. */
   clipboardLinks: boolean;
-  /** `visualizer`: frequency bars behind the mini player's controls. */
-  mini: { alwaysOnTop: boolean; bounds?: Rect; hideMainOnOpen: boolean; visualizer: boolean };
+  /**
+   * `visualizer`: frequency bars behind the mini player's controls.
+   * `ownTheme`/`theme`: the mini player in another theme than the main window
+   * (`theme` is kept while switched off). `opacity`: 0.3…1 (window opacity,
+   * full while the mouse is over it).
+   */
+  mini: {
+    alwaysOnTop: boolean;
+    bounds?: Rect;
+    hideMainOnOpen: boolean;
+    visualizer: boolean;
+    ownTheme: boolean;
+    theme?: ThemeId;
+    opacity: number;
+  };
   discord: { enabled: boolean; hideWhenPaused: boolean };
   window: { bounds?: Rect; maximized: boolean };
   welcomeShown: boolean;
@@ -110,7 +123,12 @@ export interface SocialSettings {
 export type SettingsPatch = Partial<
   Pick<Settings, 'closeToTray' | 'startAtLogin' | 'mediaKeys' | 'clipboardLinks'>
 > & {
-  mini?: Partial<Pick<Settings['mini'], 'alwaysOnTop' | 'hideMainOnOpen' | 'visualizer'>>;
+  mini?: Partial<
+    Pick<
+      Settings['mini'],
+      'alwaysOnTop' | 'hideMainOnOpen' | 'visualizer' | 'ownTheme' | 'theme' | 'opacity'
+    >
+  >;
   effects?: Partial<Settings['effects']>;
 };
 

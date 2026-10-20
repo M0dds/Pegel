@@ -3,6 +3,7 @@ import { MINI_WINDOW_SIZE } from '@shared/layout';
 import { THEMES } from '@shared/themes';
 import type { Rect } from '@shared/types';
 import { getSettings, onSettingsChanged, updateSettings } from '../settings';
+import { miniThemeId } from '@shared/settings';
 import { isRectVisible } from '../window-state';
 import { loadUi, UI_WEB_PREFERENCES, uiWindowIcon } from './load-ui';
 
@@ -58,6 +59,36 @@ function applyAlwaysOnTop(window: BrowserWindow, onTop: boolean): void {
   window.setAlwaysOnTop(onTop, process.platform === 'darwin' ? 'floating' : 'normal');
 }
 
+/** How often the cursor is checked while the mini player is see-through. */
+const HOVER_CHECK_MS = 120;
+
+/**
+ * Setting "Transparenz": the whole window fades to `mini.opacity`, but is
+ * fully visible while the mouse is over it, so it stays readable and usable.
+ * The page cannot tell (the window is one big drag area, which swallows mouse
+ * events on Windows), so the cursor position is checked here.
+ */
+function watchOpacity(window: BrowserWindow): () => void {
+  let applied = -1;
+  const apply = () => {
+    if (window.isDestroyed()) return;
+    const { opacity } = getSettings().mini;
+    const { x, y } = screen.getCursorScreenPoint();
+    const b = window.getBounds();
+    const hover = x >= b.x && x < b.x + b.width && y >= b.y && y < b.y + b.height;
+    const target = hover ? 1 : opacity;
+    if (target === applied) return;
+    applied = target;
+    window.setOpacity(target);
+  };
+  apply();
+  const timer = setInterval(() => {
+    // Nothing to check while it is fully opaque anyway.
+    if (getSettings().mini.opacity < 1 || applied !== 1) apply();
+  }, HOVER_CHECK_MS);
+  return () => clearInterval(timer);
+}
+
 /**
  * Frameless 360×150 window with route /mini. It never talks to YT itself;
  * everything comes from the main process (PlayerState, settings).
@@ -78,7 +109,7 @@ export function openMiniWindow(handleShortcuts: (wc: WebContents) => void): Brow
     fullscreenable: false,
     show: false,
     title: 'Pegel Mini-Player',
-    backgroundColor: THEMES[settings.theme].tokens.surface,
+    backgroundColor: THEMES[miniThemeId(settings)].tokens.surface,
     ...uiWindowIcon(),
     webPreferences: UI_WEB_PREFERENCES,
   });
@@ -100,13 +131,15 @@ export function openMiniWindow(handleShortcuts: (wc: WebContents) => void): Brow
     }, SAVE_DELAY_MS);
   });
 
+  const stopOpacity = watchOpacity(window);
+
   let previous = settings;
   const stopWatching = onSettingsChanged((next) => {
     if (next.mini.alwaysOnTop !== previous.mini.alwaysOnTop) {
       applyAlwaysOnTop(window, next.mini.alwaysOnTop);
     }
-    if (next.theme !== previous.theme) {
-      window.setBackgroundColor(THEMES[next.theme].tokens.surface);
+    if (miniThemeId(next) !== miniThemeId(previous)) {
+      window.setBackgroundColor(THEMES[miniThemeId(next)].tokens.surface);
     }
     previous = next;
   });
@@ -114,12 +147,13 @@ export function openMiniWindow(handleShortcuts: (wc: WebContents) => void): Brow
   window.once('ready-to-show', () => window.show());
   window.on('closed', () => {
     stopWatching();
+    stopOpacity();
     if (timer) clearTimeout(timer);
     mini = null;
     emit();
   });
 
-  loadUi(window, { theme: settings.theme, view: 'mini' });
+  loadUi(window, { theme: miniThemeId(settings), view: 'mini' });
   emit();
   return window;
 }

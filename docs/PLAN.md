@@ -892,6 +892,13 @@ social: {
 - [x] Changelog-Eintrag und Release 1.6.0
 - [ ] Test mit einem Freund (Johann)
 
+### M15 – Mini-Player: eigenes Theme und Transparenz (nach 1.6.0)
+
+- [x] Schalter „Eigenes Theme für den Mini-Player“ mit eigener Theme-Auswahl (`mini.ownTheme`, `mini.theme`, `miniThemeId()`). Beim ersten Einschalten startet es mit dem Theme des Hauptfensters, ausgeschaltet bleibt die Wahl gespeichert.
+- [x] Regler „Transparenz des Mini-Players“ (30–100 %, `mini.opacity`, `BrowserWindow.setOpacity`). Mit der Maus darüber ist er voll sichtbar. Der Main-Prozess prüft die Mausposition, weil das Fenster eine Ziehfläche ist und die Seite unter Windows dort keine Mausereignisse bekommt. Unter Linux ignoriert Electron die Deckkraft.
+- [x] Visualizer: keine Kappen am Boden, solange nichts spielt (vorher eine gestrichelte Linie)
+- [ ] Changelog-Eintrag beim nächsten Release
+
 ### Später (optional)
 
 - Liedtexte im Seitenpanel, Last.fm-Scrobbling, weitere Themes

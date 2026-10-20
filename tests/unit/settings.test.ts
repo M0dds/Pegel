@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { clampDb, DEFAULT_SETTINGS, normalizeSettings } from '@shared/settings';
+import {
+  clampDb,
+  clampMiniOpacity,
+  DEFAULT_SETTINGS,
+  miniThemeId,
+  normalizeSettings,
+} from '@shared/settings';
 
 describe('normalizeSettings', () => {
   it('returns defaults for missing or broken input', () => {
@@ -76,5 +82,24 @@ describe('social notifications', () => {
     expect(normalizeSettings({ social: { notifications: 'nein' } }).social.notifications).toBe(
       true,
     );
+  });
+});
+
+describe('mini player theme and opacity', () => {
+  it('uses the main theme unless its own theme is switched on', () => {
+    const s = normalizeSettings({ theme: 'wald', mini: { theme: 'sakura' } });
+    expect(miniThemeId(s)).toBe('wald');
+    expect(miniThemeId({ ...s, mini: { ...s.mini, ownTheme: true } })).toBe('sakura');
+    // Switched on without a stored theme: still the main theme.
+    const noTheme = normalizeSettings({ theme: 'neon', mini: { ownTheme: true } });
+    expect(miniThemeId(noTheme)).toBe('neon');
+  });
+
+  it('keeps opacity between 30 and 100 %, in 5 % steps', () => {
+    expect(normalizeSettings({}).mini.opacity).toBe(1);
+    expect(normalizeSettings({ mini: { opacity: 0.1 } }).mini.opacity).toBe(0.3);
+    expect(normalizeSettings({ mini: { opacity: 0.62 } }).mini.opacity).toBe(0.6);
+    expect(normalizeSettings({ mini: { opacity: 'halb' } }).mini.opacity).toBe(1);
+    expect(clampMiniOpacity(3)).toBe(1);
   });
 });

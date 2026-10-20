@@ -119,6 +119,8 @@ export function drawBars(
     const h = meter.levels[i]! * usable;
     ctx.fillStyle = fill;
     ctx.fillRect(x, height - h, barWidth, h);
+    // A cap at the floor would draw a dashed line while nothing plays.
+    if (meter.caps[i]! <= 0.001) continue;
     ctx.fillStyle = `${color}88`;
     ctx.fillRect(x, height - meter.caps[i]! * usable - 3, barWidth, 2);
   }

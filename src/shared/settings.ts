@@ -9,7 +9,7 @@ import {
 } from './presets';
 import { cleanName } from './social-protocol';
 import { isThemeId } from './themes';
-import type { EqPreset, PlaylistPreset, Rect, Settings } from './types';
+import type { EqPreset, PlaylistPreset, Rect, Settings, ThemeId } from './types';
 
 export const SETTINGS_VERSION = 1;
 
@@ -31,7 +31,13 @@ export const DEFAULT_SETTINGS: Settings = {
   startAtLogin: false,
   mediaKeys: true,
   clipboardLinks: true,
-  mini: { alwaysOnTop: true, hideMainOnOpen: true, visualizer: true },
+  mini: {
+    alwaysOnTop: true,
+    hideMainOnOpen: true,
+    visualizer: true,
+    ownTheme: false,
+    opacity: 1,
+  },
   discord: { enabled: true, hideWhenPaused: true },
   window: { maximized: false },
   welcomeShown: false,
@@ -51,6 +57,18 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 export const AUDIO_OFFSET_MAX_MS = 300;
+
+export const MINI_OPACITY_MIN = 0.3;
+
+/** 0.3…1 in steps of 0.05. */
+export function clampMiniOpacity(value: number): number {
+  return Math.min(1, Math.max(MINI_OPACITY_MIN, Math.round(value * 20) / 20));
+}
+
+/** The theme the mini player shows: its own one when switched on, else the main window's. */
+export function miniThemeId(settings: Pick<Settings, 'theme' | 'mini'>): ThemeId {
+  return settings.mini.ownTheme && settings.mini.theme ? settings.mini.theme : settings.theme;
+}
 
 type Obj = Record<string, unknown>;
 
@@ -184,6 +202,9 @@ export function normalizeSettings(input: unknown): Settings {
       alwaysOnTop: bool(mini['alwaysOnTop'], d.mini.alwaysOnTop),
       hideMainOnOpen: bool(mini['hideMainOnOpen'], d.mini.hideMainOnOpen),
       visualizer: bool(mini['visualizer'], d.mini.visualizer),
+      ownTheme: bool(mini['ownTheme'], d.mini.ownTheme),
+      ...(isThemeId(mini['theme']) && { theme: mini['theme'] }),
+      opacity: isNum(mini['opacity']) ? clampMiniOpacity(mini['opacity']) : d.mini.opacity,
       ...(miniBounds && { bounds: miniBounds }),
     },
     discord: {

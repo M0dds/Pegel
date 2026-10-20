@@ -1,9 +1,9 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { reducedMotionHint, themeEffect } from '@shared/effects';
-import { AUDIO_OFFSET_MAX_MS } from '@shared/settings';
+import { AUDIO_OFFSET_MAX_MS, MINI_OPACITY_MIN, miniThemeId } from '@shared/settings';
 import { NAME_MAX } from '@shared/social-protocol';
 import { THEME_IDS, THEMES } from '@shared/themes';
-import type { AppInfo, Settings } from '@shared/types';
+import type { AppInfo, Settings, ThemeId } from '@shared/types';
 import type { UpdateStatus } from '@shared/update';
 import { ChangelogDialog } from '../components/ChangelogDialog';
 import { PageHead } from '../components/PageHead';
@@ -90,29 +90,7 @@ export function SettingsPage({
 
         <section className="section">
           <h4>Darstellung</h4>
-          <div className="theme-chips">
-            {THEME_IDS.map((id) => {
-              const { name, tokens } = THEMES[id];
-              return (
-                <button
-                  key={id}
-                  className="theme-chip"
-                  aria-pressed={settings.theme === id}
-                  onClick={() => window.pegel.setTheme(id)}
-                >
-                  <span className="swatch" style={{ background: tokens.bg }} aria-hidden="true">
-                    {PREVIEW_BARS.map((h, i) => (
-                      <i
-                        key={i}
-                        style={{ height: h, background: tokens.accent, opacity: 1 - i * 0.18 }}
-                      />
-                    ))}
-                  </span>
-                  {name}
-                </button>
-              );
-            })}
-          </div>
+          <ThemeChips value={settings.theme} onChange={(id) => window.pegel.setTheme(id)} />
           {effect && (
             <Row title={effect.label} hint={reducedMotionHint(effect)}>
               <Switch
@@ -141,6 +119,44 @@ export function SettingsPage({
               label="Visualizer im Mini-Player"
               onChange={(visualizer) => window.pegel.patchSettings({ mini: { visualizer } })}
             />
+          </Row>
+          <Row
+            title="Eigenes Theme für den Mini-Player"
+            hint="Der Mini-Player sieht anders aus als das Hauptfenster"
+          >
+            <Switch
+              checked={settings.mini.ownTheme}
+              label="Eigenes Theme für den Mini-Player"
+              onChange={(ownTheme) => window.pegel.patchSettings({ mini: { ownTheme } })}
+            />
+          </Row>
+          {settings.mini.ownTheme && (
+            <ThemeChips
+              value={miniThemeId(settings)}
+              label="Theme des Mini-Players"
+              onChange={(theme) => window.pegel.patchSettings({ mini: { theme } })}
+            />
+          )}
+          <Row
+            title="Transparenz des Mini-Players"
+            hint="Mit der Maus darüber ist er wieder voll sichtbar"
+          >
+            <div className="offset">
+              <input
+                type="range"
+                min={MINI_OPACITY_MIN * 100}
+                max={100}
+                step={5}
+                value={Math.round(settings.mini.opacity * 100)}
+                style={opacityFill(settings.mini.opacity)}
+                aria-label="Deckkraft des Mini-Players"
+                onChange={(e) =>
+                  window.pegel.patchSettings({ mini: { opacity: Number(e.target.value) / 100 } })
+                }
+                onDoubleClick={() => window.pegel.patchSettings({ mini: { opacity: 1 } })}
+              />
+              <span>{Math.round(settings.mini.opacity * 100)} %</span>
+            </div>
           </Row>
         </section>
 
@@ -316,6 +332,49 @@ export function SettingsPage({
 }
 
 /** Track fill of the offset slider from 0 to the value (see input[type='range']). */
+/** Track fill from the left edge to the value. */
+function opacityFill(opacity: number): CSSProperties {
+  const pos = ((opacity - MINI_OPACITY_MIN) / (1 - MINI_OPACITY_MIN)) * 100;
+  return { '--from': '0%', '--to': `${pos}%` } as CSSProperties;
+}
+
+/** Theme selection as compact chips (main window, and the mini player's own theme). */
+function ThemeChips({
+  value,
+  label,
+  onChange,
+}: {
+  value: ThemeId;
+  label?: string;
+  onChange(id: ThemeId): void;
+}) {
+  return (
+    <div className="theme-chips" role="group" aria-label={label ?? 'Theme'}>
+      {THEME_IDS.map((id) => {
+        const { name, tokens } = THEMES[id];
+        return (
+          <button
+            key={id}
+            className="theme-chip"
+            aria-pressed={value === id}
+            onClick={() => onChange(id)}
+          >
+            <span className="swatch" style={{ background: tokens.bg }} aria-hidden="true">
+              {PREVIEW_BARS.map((h, i) => (
+                <i
+                  key={i}
+                  style={{ height: h, background: tokens.accent, opacity: 1 - i * 0.18 }}
+                />
+              ))}
+            </span>
+            {name}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function offsetFill(value: number): CSSProperties {
   const pos = (v: number) => `${((v + AUDIO_OFFSET_MAX_MS) / (2 * AUDIO_OFFSET_MAX_MS)) * 100}%`;
   return { '--from': pos(Math.min(value, 0)), '--to': pos(Math.max(value, 0)) } as CSSProperties;

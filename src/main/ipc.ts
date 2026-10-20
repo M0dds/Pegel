@@ -43,6 +43,7 @@ import {
 } from './player';
 import { reapplyPlaylistContext } from './playlist-eq';
 import { getPendingChangelog, markChangelogSeen } from './changelog';
+import { clampMiniOpacity } from '@shared/settings';
 import { getSettings, updateSettings } from './settings';
 import { checkForUpdates, getUpdateStatus, installUpdate, updatesSupported } from './updater';
 import {
@@ -203,6 +204,15 @@ export function registerIpc(): void {
         if (typeof m['alwaysOnTop'] === 'boolean') s.mini.alwaysOnTop = m['alwaysOnTop'];
         if (typeof m['hideMainOnOpen'] === 'boolean') s.mini.hideMainOnOpen = m['hideMainOnOpen'];
         if (typeof m['visualizer'] === 'boolean') s.mini.visualizer = m['visualizer'];
+        if (typeof m['ownTheme'] === 'boolean') {
+          s.mini.ownTheme = m['ownTheme'];
+          // First time on: start from the main window's theme.
+          if (m['ownTheme'] && !s.mini.theme) s.mini.theme = s.theme;
+        }
+        if (isThemeId(m['theme'])) s.mini.theme = m['theme'];
+        if (typeof m['opacity'] === 'number' && Number.isFinite(m['opacity'])) {
+          s.mini.opacity = clampMiniOpacity(m['opacity']);
+        }
       }
       const effects = p['effects'];
       if (typeof effects === 'object' && effects !== null) {
