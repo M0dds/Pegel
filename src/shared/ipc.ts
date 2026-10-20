@@ -83,6 +83,10 @@ export interface UiToMainChannels {
   'party:suggestion': { id: string; accept: boolean };
   /** Guest: back to the party after a local pause. */
   'party:resume': void;
+  /** Friend list: play the track a friend is listening to. */
+  'social:play-friend-track': string;
+  /** Friend list: open the playlist a friend is listening to. */
+  'social:open-friend-playlist': string;
   'player:command': PlayerCommand;
   'mini:open': void;
   /** "Enlarge": close the mini player and show the main window. */
@@ -217,6 +221,8 @@ export interface PegelApi {
   partyTransfer(userId: string): void;
   partySuggestion(id: string, accept: boolean): void;
   partyResume(): void;
+  playFriendTrack(friendId: string): void;
+  openFriendPlaylist(friendId: string): void;
   onSpectrum(listener: (levels: number[]) => void): () => void;
   /** Returns a function that removes the listener. */
   onViewChanged(listener: (view: View) => void): () => void;

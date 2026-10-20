@@ -67,6 +67,7 @@ Pegel blockiert keine Werbung, lädt nichts herunter und speichert keine Passwö
   - Der Host steuert. Wählt ein Gast einen anderen Titel, geht der als Vorschlag an den Host.
   - Bekommt ein Gast ohne Premium Werbung, wartet die Party bis zu 30 Sekunden auf ihn.
   - Der Equalizer bleibt bei jedem der eigene.
+  - **Mithören:** Ein Klick auf „hört …“ bei einem Freund spielt den Titel bei dir ab. „aus …“ öffnet seine Playlist, wenn sie öffentlich oder per Link geteilt ist.
   - Läuft dein Ton mit Bluetooth-Kopfhörern hörbar hinterher, hilft „Audio-Versatz“ in den Einstellungen.
 
 ## Datenschutz
@@ -80,6 +81,7 @@ Pegel blockiert keine Werbung, lädt nichts herunter und speichert keine Passwö
   - Der Server kennt deinen Namen, deinen öffentlichen Schlüssel, deine Freundesliste und „Hört gerade“ nur im Arbeitsspeicher, solange du online bist.
   - Gespeichert werden nur Freundescodes (höchstens 24 Stunden) und noch nicht zugestellte Hinweise „X hat deinen Code eingelöst“ (höchstens 30 Tage).
   - Party-Daten verschwinden, wenn die Party endet.
+  - Zu „Hört gerade“ gehört auch die Playlist, aus der du hörst (Name und ID). Freunde können sie öffnen, wenn sie öffentlich oder per Link geteilt ist.
   - Deine Freundesliste liegt nur auf deinem Rechner. „Hört gerade teilen“ lässt sich abschalten, „Zurücksetzen“ löscht Schlüssel und Liste.
 
 ---

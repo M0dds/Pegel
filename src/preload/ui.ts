@@ -94,6 +94,8 @@ const api: PegelApi = {
   partyTransfer: (userId) => send('party:transfer', userId),
   partySuggestion: (id, accept) => send('party:suggestion', { id, accept }),
   partyResume: () => send('party:resume'),
+  playFriendTrack: (friendId) => send('social:play-friend-track', friendId),
+  openFriendPlaylist: (friendId) => send('social:open-friend-playlist', friendId),
 };
 
 contextBridge.exposeInMainWorld('pegel', api);

@@ -865,6 +865,23 @@ social: {
 - [x] Test mit zwei Instanzen: Gast startet einen Titel per echtem Klick → wird Host, der bisherige Host folgt (25–50 ms)
 - [x] Server deployt und Release 1.3.0
 
+### M13 – Hören, was Freunde hören
+
+> Wunsch von Johann nach 1.3.0. Noch kein Release, es kommt vielleicht mehr dazu.
+
+- **Titel:** In der Freundesliste ist „hört Titel – Interpret“ klickbar und spielt denselben Titel in der eigenen YT-Ansicht ab (`yt:play-track`, Navigation innerhalb der Seite). Das geht auch ohne Party.
+- **Playlist:** Darunter steht „aus „Playlistname““. Ein Klick öffnet die Playlist-Seite.
+  - Öffentliche und nicht gelistete Playlists öffnen sich über ihre ID.
+  - Private zeigen in YT eine leere Seite ohne Überschrift. Pegel prüft deshalb nach 7 s, ob die Playlist-Seite erschienen ist, und meldet sonst „… ist privat oder nicht verfügbar“.
+  - „LM“ (Lieblingssongs) wird nicht geteilt, weil sie beim Freund seine eigene Liste öffnen würde.
+- **In einer Party:** Als Gast übernimmt man damit (mit „Alle dürfen steuern“). Ohne den Schalter weist Pegel darauf hin, dass der Host steuert.
+- **Datenschutz:** `NowPlaying` trägt zusätzlich `playlistId` und `playlistTitle`. Es gilt dieselbe Freigabe wie bei „Hört gerade teilen“.
+- **Server:** Der Hub muss die neuen Felder durchreichen. Bis zum nächsten Deploy entfernt der laufende Server sie, dann ist nur der Titel klickbar.
+- [x] Protokoll: `playlistId` und `playlistTitle` in `NowPlaying`
+- [x] Klick auf Titel und Playlist, Prüfung auf private Listen, Verhalten in der Party
+- [x] Getestet mit zwei Instanzen (lokaler Server): Titel startet, Album-Seite öffnet sich, unbekannte Playlist ergibt keine Überschrift
+- [ ] Server-Deploy und Release (mit dem nächsten Paket an Wünschen)
+
 ### Später (optional)
 
 - Liedtexte im Seitenpanel, Last.fm-Scrobbling, weitere Themes

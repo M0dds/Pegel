@@ -146,6 +146,15 @@ export class PartyService {
     this.cleanup();
   }
 
+  /** Guest with "Alle dürfen steuern" may take over by playing own music. */
+  get canTakeOver(): boolean {
+    return !!this.socket && !this.isHost && this.options.everyoneControls;
+  }
+
+  claimHost(): void {
+    if (this.canTakeOver) this.socket?.send({ t: 'host.claim' });
+  }
+
   kick(userId: UserId): void {
     if (this.isHost) this.socket?.send({ t: 'kick', userId });
   }

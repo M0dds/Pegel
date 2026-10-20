@@ -11,14 +11,16 @@ import {
   type UserId,
 } from '@shared/social-protocol';
 import type { PlayerCommand } from '@shared/types';
-import { getPlayerState, onPlayerState } from '../player';
+import { getPagePlaylist, getPlayerState, onPlayerState } from '../player';
 import { getSettings, onSettingsChanged, updateSettings } from '../settings';
 import {
   focusMainWindow,
   onYtReady,
+  openLink,
   sendPlayerCommand,
   sendToUi,
   sendToYt,
+  showView,
   toggleSocialPanel,
 } from '../windows/main-window';
 import { SOCIAL_SERVER_URL } from './config';
@@ -103,6 +105,15 @@ const party = new PartyService(SOCIAL_SERVER_URL, {
 let lastPresenceKey = '';
 
 /** "Hört gerade" (only while playing, never during an ad) and the own party. */
+/**
+ * "LM" is everyone's own "Liked music": for a friend it would open their own
+ * list, not ours, so it is not shared. Everything else is (private lists
+ * simply do not open for friends; Pegel says so).
+ */
+function isShareablePlaylist(playlistId: string): boolean {
+  return playlistId !== 'LM';
+}
+
 function updatePresence(): void {
   if (!identity || !getSettings().social.enabled) return;
   const state = getPlayerState();
@@ -112,11 +123,22 @@ function updatePresence(): void {
           title: state.title.slice(0, 300),
           artist: state.artist.slice(0, 300),
           ...(state.videoId && isVideoId(state.videoId) && { videoId: state.videoId }),
+          ...(state.playlistId &&
+            isShareablePlaylist(state.playlistId) && {
+              playlistId: state.playlistId,
+              ...(state.playlistTitle && { playlistTitle: state.playlistTitle.slice(0, 200) }),
+            }),
         }
       : null;
   const partyPresence =
     party.isHost && party.id ? { partyId: party.id, open: getSettings().social.partyOpen } : null;
-  const key = JSON.stringify([nowPlaying?.title, nowPlaying?.artist, partyPresence]);
+  const key = JSON.stringify([
+    nowPlaying?.title,
+    nowPlaying?.artist,
+    nowPlaying?.playlistId,
+    nowPlaying?.playlistTitle,
+    partyPresence,
+  ]);
   if (key === lastPresenceKey) return;
   lastPresenceKey = key;
   friends.updatePresence(nowPlaying, partyPresence);
@@ -317,6 +339,52 @@ export function answerSuggestion(raw: unknown): void {
 
 export function resumeParty(): void {
   sendToYt('yt:party-resume');
+}
+
+/** How long YT may take to show a friend's playlist before Pegel calls it unavailable. */
+const PLAYLIST_CHECK_MS = 7000;
+
+/**
+ * Before playing something a friend listens to: in a party as guest that
+ * means taking over (with "Alle dürfen steuern"), otherwise it is not allowed.
+ */
+function mayPlayOwnMusic(): boolean {
+  if (!party.active || party.isHost) return true;
+  if (party.canTakeOver) {
+    party.claimHost();
+    return true;
+  }
+  setNotice('In dieser Party steuert der Host. Verlass sie, um selbst etwas zu hören.', 'info');
+  return false;
+}
+
+/** Click on "hört …" in the friend list: the same track in the own YT. */
+export function playFriendTrack(friendId: unknown): void {
+  if (!isUserId(friendId)) return;
+  const np = friends.views().find((f) => f.id === friendId)?.nowPlaying;
+  if (!np?.videoId || !mayPlayOwnMusic()) return;
+  showView('music');
+  sendToYt('yt:play-track', { videoId: np.videoId });
+}
+
+/**
+ * The friend's current playlist in the own YT. Public and unlisted lists open
+ * by id; private ones do not, which YT shows as an empty page, so Pegel checks
+ * whether the playlist page appeared and says so otherwise.
+ */
+export function openFriendPlaylist(friendId: unknown): void {
+  if (!isUserId(friendId)) return;
+  const np = friends.views().find((f) => f.id === friendId)?.nowPlaying;
+  const playlistId = np?.playlistId;
+  if (!playlistId) return;
+  const url = `https://music.youtube.com/playlist?list=${encodeURIComponent(playlistId)}`;
+  openLink({ url, kind: 'playlist' });
+  const label = np.playlistTitle ? `„${np.playlistTitle}“` : 'Die Playlist';
+  setTimeout(() => {
+    const page = getPagePlaylist();
+    if (page?.playlistId === playlistId && page.title) return;
+    setNotice(`${label} ist privat oder nicht verfügbar.`, 'error');
+  }, PLAYLIST_CHECK_MS);
 }
 
 export function handlePartyReport(report: PartyReport): void {

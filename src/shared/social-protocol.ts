@@ -48,6 +48,9 @@ export interface NowPlaying {
   title: string;
   artist: string;
   videoId?: string;
+  /** The playlist it plays from; friends can open it if it is public or unlisted. */
+  playlistId?: string;
+  playlistTitle?: string;
 }
 
 export interface PartyPresence {
@@ -290,6 +293,13 @@ function nowPlaying(v: unknown): NowPlaying | null | undefined {
   if (v['videoId'] !== undefined) {
     if (!isVideoId(v['videoId'])) return undefined;
     result.videoId = v['videoId'];
+  }
+  if (v['playlistId'] !== undefined) {
+    if (!matches(v['playlistId'], PLAYLIST_ID_PATTERN)) return undefined;
+    result.playlistId = v['playlistId'];
+    if (isStr(v['playlistTitle'], 200) && v['playlistTitle'].trim()) {
+      result.playlistTitle = v['playlistTitle'].trim();
+    }
   }
   return result;
 }

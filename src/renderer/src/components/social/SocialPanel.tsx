@@ -427,6 +427,7 @@ function FriendRow({ friend, state }: { friend: FriendView; state: SocialState }
     friend.party.partyId !== party?.partyId &&
     state.connection === 'online';
 
+  const np = friend.nowPlaying;
   let sub = friend.online ? 'online' : 'offline';
   if (inMyParty) sub = 'in deiner Party';
   else if (friend.nowPlaying) sub = `hört ${nowPlayingText(friend.nowPlaying)}`;
@@ -437,7 +438,26 @@ function FriendRow({ friend, state }: { friend: FriendView; state: SocialState }
       <i className={`dot${friend.online ? ' ok' : ' away'}`} />
       <div className="friend-meta">
         <b>{friend.name}</b>
-        <small title={sub}>{sub}</small>
+        {!inMyParty && np?.videoId ? (
+          <button
+            className="np-link"
+            title={`Anhören: ${nowPlayingText(np)}`}
+            onClick={() => window.pegel.playFriendTrack(friend.id)}
+          >
+            {sub}
+          </button>
+        ) : (
+          <small title={sub}>{sub}</small>
+        )}
+        {!inMyParty && np?.playlistId && (
+          <button
+            className="np-link playlist"
+            title="Playlist öffnen (geht, wenn sie öffentlich oder per Link geteilt ist)"
+            onClick={() => window.pegel.openFriendPlaylist(friend.id)}
+          >
+            aus {np.playlistTitle ? `„${np.playlistTitle}“` : 'einer Playlist'}
+          </button>
+        )}
       </div>
       {canJoin ? (
         <button className="chip-action" onClick={() => window.pegel.partyJoin(friend.id)}>

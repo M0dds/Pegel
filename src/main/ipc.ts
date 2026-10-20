@@ -25,6 +25,8 @@ import {
   resetSocial,
   respondToInvite,
   resumeParty,
+  openFriendPlaylist,
+  playFriendTrack,
   routePlayerCommand,
   startParty,
   transferParty,
@@ -124,6 +126,8 @@ export function registerIpc(): void {
   on('party:transfer', (_event, id) => transferParty(id));
   on('party:suggestion', (_event, payload) => answerSuggestion(payload));
   on('party:resume', () => resumeParty());
+  on('social:play-friend-track', (_event, id) => playFriendTrack(id));
+  on('social:open-friend-playlist', (_event, id) => openFriendPlaylist(id));
 
   on('view:show', (_event, view) => {
     if (isView(view)) showView(view);
