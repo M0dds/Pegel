@@ -66,3 +66,15 @@ describe('clampDb', () => {
     expect(Object.is(clampDb(-0.1, -12, 12), 0)).toBe(true);
   });
 });
+
+describe('social notifications', () => {
+  it('are on by default and keep a stored choice', () => {
+    expect(normalizeSettings({}).social.notifications).toBe(true);
+    expect(normalizeSettings({ social: { notifications: false } }).social.notifications).toBe(
+      false,
+    );
+    expect(normalizeSettings({ social: { notifications: 'nein' } }).social.notifications).toBe(
+      true,
+    );
+  });
+});

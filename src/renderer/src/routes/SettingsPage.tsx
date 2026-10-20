@@ -367,6 +367,16 @@ function SocialSection({ settings }: { settings: Settings }) {
             />
           </Row>
           <Row
+            title="Benachrichtigungen"
+            hint="Bei Einladungen und wenn jemand deiner Party beitritt, solange Pegel im Hintergrund ist"
+          >
+            <Switch
+              checked={social.notifications}
+              label="Benachrichtigungen"
+              onChange={(notifications) => window.pegel.socialPatch({ notifications })}
+            />
+          </Row>
+          <Row
             title="Audio-Versatz"
             hint="Nur nötig, wenn du in einer Party hörbar hinterher- oder vorausläufst (z. B. Bluetooth). Plus: dein Ton kommt später an"
           >

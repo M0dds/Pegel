@@ -40,6 +40,7 @@ export interface SocialSettingsPatch {
   displayName?: string;
   shareNowPlaying?: boolean;
   audioOffsetMs?: number;
+  notifications?: boolean;
   partyOpen?: boolean;
   allowSuggestions?: boolean;
   everyoneControls?: boolean;

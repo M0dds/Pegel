@@ -95,6 +95,8 @@ export interface SocialSettings {
   shareNowPlaying: boolean;
   /** Extra output delay of this device (e.g. Bluetooth), -300…300 ms. */
   audioOffsetMs: number;
+  /** System notifications for invites and new guests while Pegel is in the background. */
+  notifications: boolean;
   /** Host: friends may join the party without an invite. */
   partyOpen: boolean;
   /** Host: guests may suggest tracks. */

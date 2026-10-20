@@ -39,6 +39,23 @@ const partyListeners = new Set<() => void>();
 
 const displayName = () => getSettings().social.displayName || 'Pegel';
 
+/**
+ * System notification while Pegel is in the background (setting
+ * "Benachrichtigungen"); a click opens the Social panel. In the foreground the
+ * in-app hints are enough.
+ */
+function notifySystem(title: string, body: string): void {
+  if (!getSettings().social.notifications || anyWindowFocused() || !Notification.isSupported()) {
+    return;
+  }
+  const n = new Notification({ title, body });
+  n.on('click', () => {
+    focusMainWindow();
+    toggleSocialPanel(true);
+  });
+  n.show();
+}
+
 function setNotice(text: string, kind: 'info' | 'error'): void {
   notice = { text, kind };
   if (noticeTimer) clearTimeout(noticeTimer);
@@ -63,31 +80,19 @@ function emitChange(): void {
 const friends = new FriendsService(SOCIAL_SERVER_URL, {
   onChange: emitChange,
   notice: setNotice,
-  onInvite: (invite) => {
-    if (anyWindowFocused() || !Notification.isSupported()) return;
-    const n = new Notification({
-      title: 'Einladung zur Hör-Party',
-      body: `${invite.name} lädt dich zur Party ein.`,
-    });
-    n.on('click', () => {
-      focusMainWindow();
-      toggleSocialPanel(true);
-    });
-    n.show();
-  },
+  onInvite: (invite) =>
+    notifySystem('Einladung zur Hör-Party', `${invite.name} lädt dich zur Party ein.`),
   onJoinTicket: (ticket) => {
     if (!identity) return;
     party.leave();
     party.join(identity, displayName, ticket);
   },
-  onJoinRequest: (from, name, partyId) => {
+  onJoinRequest: (from, _name, partyId) => {
     // Open party: friends get a ticket right away.
     if (!party.isHost || party.id !== partyId || !getSettings().social.partyOpen) return;
     const ticket = party.makeTicket(from);
-    if (ticket) {
-      friends.invite(from, ticket, true);
-      setNotice(`${name} kommt dazu.`, 'info');
-    }
+    // The "… ist dabei" notice follows when the friend's member update arrives.
+    if (ticket) friends.invite(from, ticket, true);
   },
 });
 
@@ -100,6 +105,11 @@ const party = new PartyService(SOCIAL_SERVER_URL, {
     sendToYt('yt:play-track', playlistId ? { videoId, playlistId } : { videoId }),
   audioOffsetMs: () => getSettings().social.audioOffsetMs,
   nameOf: (id) => friends.nameOf(id),
+  onMemberJoined: (name) => {
+    setNotice(`${name} ist der Party beigetreten.`, 'info');
+    // Only the host gets it outside Pegel: it is their party, guests would get one per guest.
+    if (party.isHost) notifySystem('Neu in deiner Party', `${name} hört jetzt mit.`);
+  },
 });
 
 let lastPresenceKey = '';
@@ -258,6 +268,7 @@ export function patchSocial(raw: unknown): void {
       if (name) s.social.displayName = name;
     }
     if (typeof p.shareNowPlaying === 'boolean') s.social.shareNowPlaying = p.shareNowPlaying;
+    if (typeof p.notifications === 'boolean') s.social.notifications = p.notifications;
     if (typeof p.partyOpen === 'boolean') s.social.partyOpen = p.partyOpen;
     if (typeof p.allowSuggestions === 'boolean') s.social.allowSuggestions = p.allowSuggestions;
     if (typeof p.everyoneControls === 'boolean') s.social.everyoneControls = p.everyoneControls;

@@ -63,6 +63,8 @@ export interface PartyHooks {
   /** Host: plays an accepted suggestion. */
   playTrack(videoId: string, playlistId?: string): void;
   notice(text: string, kind: 'info' | 'error'): void;
+  /** Someone new joined while we are in the party (not the members found on joining). */
+  onMemberJoined(name: string): void;
   audioOffsetMs(): number;
   nameOf(userId: UserId): string | null;
 }
@@ -426,10 +428,14 @@ export class PartyService {
         this.pushTarget();
         break;
       }
-      case 'member':
-        this.upsertMember(msg.member);
+      case 'member': {
+        const member = this.upsertMember(msg.member);
+        if (member?.isNew && member.userId !== this.identity?.id) {
+          this.hooks.onMemberJoined(member.name);
+        }
         if (this.isHost) this.hostUpdate(false);
         break;
+      }
       case 'member.left': {
         const name = this.members.get(msg.userId)?.name;
         this.members.delete(msg.userId);
@@ -496,11 +502,13 @@ export class PartyService {
     this.hooks.onChange();
   }
 
-  private upsertMember(raw: unknown): void {
-    if (typeof raw !== 'object' || raw === null) return;
+  /** Adds or updates a member; `isNew` if it was not in the party before. */
+  private upsertMember(raw: unknown): { userId: UserId; name: string; isNew: boolean } | null {
+    if (typeof raw !== 'object' || raw === null) return null;
     const m = raw as Record<string, unknown>;
     const name = cleanName(m['name']);
-    if (!isUserId(m['userId']) || !name) return;
+    if (!isUserId(m['userId']) || !name) return null;
+    const isNew = !this.members.has(m['userId']);
     this.members.set(m['userId'], {
       userId: m['userId'],
       name,
@@ -508,6 +516,7 @@ export class PartyService {
       joinedAt: typeof m['joinedAt'] === 'number' ? m['joinedAt'] : 0,
       status: toMemberStatus(m['status']),
     });
+    return { userId: m['userId'], name, isNew };
   }
 
   /** Host or guest: the YT view gets its role, the host starts its tick. */
