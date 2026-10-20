@@ -14,6 +14,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '1.7.1',
+    date: '2026-10-20',
+    items: [
+      '„Was ist neu“ zeigt die aktuelle Version und ihre Korrekturen ausgeklappt, ältere Versionen sind eingeklappt und lassen sich per Klick öffnen.',
+    ],
+  },
+  {
     version: '1.7.0',
     date: '2026-10-20',
     items: [
@@ -121,4 +128,21 @@ export function changelogToShow(
 ): string | null {
   const updated = lastSeen ? isNewerVersion(current, lastSeen) : welcomeShown;
   return updated && CHANGELOG.some((e) => e.version === current) ? current : null;
+}
+
+/** "1.7.1" → "1.7". */
+function minorOf(version: string): string {
+  return version.split('.').slice(0, 2).join('.');
+}
+
+/**
+ * Open in the dialog: the newest minor version (X.Y) and its patches (X.Y.Z);
+ * everything older starts collapsed. E.g. with 1.7.1 on top: 1.7.1 and 1.7.0.
+ */
+export function isExpandedByDefault(
+  version: string,
+  entries: readonly ChangelogEntry[] = CHANGELOG,
+): boolean {
+  const latest = entries[0]?.version;
+  return !!latest && minorOf(version) === minorOf(latest);
 }

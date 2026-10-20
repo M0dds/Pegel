@@ -2376,15 +2376,47 @@ input[type='checkbox']:checked::after {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 2px;
   margin-right: -8px;
   padding-right: 8px;
 }
 
+/* The header expands and collapses the version (older ones start collapsed). */
 .changelog-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  margin-left: -8px;
+  box-sizing: content-box;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.changelog-head:hover {
+  background: var(--surface-3);
+}
+
+.changelog-chevron {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  fill: none;
+  stroke: var(--text-dim);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.15s;
+}
+
+.changelog-head[aria-expanded='true'] .changelog-chevron {
+  transform: rotate(90deg);
 }
 
 .changelog-head b {
@@ -2408,8 +2440,8 @@ input[type='checkbox']:checked::after {
 }
 
 .changelog-entry ul {
-  margin: 6px 0 0;
-  padding-left: 18px;
+  margin: 2px 0 10px;
+  padding-left: 36px;
   color: var(--text-dim);
   font-size: 13px;
   line-height: 1.45;
