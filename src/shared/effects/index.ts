@@ -2,7 +2,7 @@ import { THEMES } from '../themes';
 import type { ThemeId } from '../types';
 import { AURORA } from './aurora';
 import { BUBBLES } from './bubbles';
-import { CITY } from './city';
+import { NEON } from './neon';
 import { FX, FX_ROOT_ID, type EffectPart, type EffectTarget, type ThemeEffect } from './common';
 import { FIREFLIES } from './fireflies';
 import { FOREST, LEAVES } from './forest';
@@ -31,7 +31,7 @@ export const THEME_EFFECTS: Partial<Record<ThemeId, ThemeEffect>> = {
   lagune: effect('Aufsteigende Luftblasen', { front: [BUBBLES] }),
   glut: effect('Aufsteigende Funken', { front: [SPARKS] }),
   wald: effect('Wald mit Glühwürmchen', { back: [FOREST], front: [LEAVES, FIREFLIES] }),
-  neon: effect('Neon-Stadt im Hintergrund', { back: [CITY] }),
+  neon: effect('Neon-Raster im Hintergrund', { back: [NEON] }),
 };
 
 export function themeEffect(theme: ThemeId): ThemeEffect | undefined {

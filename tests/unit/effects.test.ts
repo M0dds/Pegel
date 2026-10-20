@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { effectParts, reducedMotionHint, THEME_EFFECTS } from '@shared/effects';
-import { skyline } from '@shared/effects/city';
 import { firPath } from '@shared/effects/forest';
 import { MOON_PASS_S, moonLit, moonPath, moonState } from '@shared/effects/moon';
 import { rayConfigs } from '@shared/effects/rays';
@@ -99,20 +98,6 @@ describe('theme effects', () => {
         expect(part.count.yt).toBeGreaterThanOrEqual(part.count.ui);
       }
     }
-  });
-
-  it('build the skyline across the whole width, tall buildings behind', () => {
-    const buildings = skyline(34);
-    for (const far of [true, false]) {
-      const row = buildings.filter((b) => b.far === far);
-      expect(Math.min(...row.map((b) => b.x))).toBeLessThanOrEqual(0);
-      expect(Math.max(...row.map((b) => b.x + b.w))).toBeGreaterThanOrEqual(1600);
-    }
-    const avg = (far: boolean) => {
-      const row = buildings.filter((b) => b.far === far);
-      return row.reduce((sum, b) => sum + b.h, 0) / row.length;
-    };
-    expect(avg(true)).toBeGreaterThan(avg(false));
   });
 
   it('draw fir trees as closed shapes standing on the ground', () => {

@@ -2,7 +2,7 @@ import { FX, type EffectPart, type EffectTarget } from './common';
 
 /**
  * Mitternacht: a moon crossing the sky behind the content on a flat arc,
- * slowly, one pass at a time. Every pass shows the next phase, in the real
+ * slowly, one pass at a time, softly as if through a thin layer of cloud. Every pass shows the next phase, in the real
  * order (new → waxing → full → waning). Pass and phase come from the clock,
  * so the Pegel UI and the YT view show the same moon at the same spot.
  */
@@ -44,6 +44,8 @@ export function moonLit(index: number): number {
 }
 
 const MOON_COLOR = 'color-mix(in oklch, var(--fx-text) 88%, var(--fx-accent))';
+const CLOUD_COLOR =
+  'color-mix(in srgb, color-mix(in oklch, var(--fx-bg) 70%, var(--fx-text)) 45%, transparent)';
 const DARK_COLOR = 'color-mix(in oklch, var(--fx-bg) 93%, var(--fx-text))';
 
 const CSS = `
@@ -60,12 +62,31 @@ ${FX} .mo {
   position: relative; width: var(--size); height: var(--size);
   animation: pegel-fx-moon-tilt var(--pass) linear var(--delay) infinite;
 }
+/* Halo: wide and soft, as if the light scatters in a thin layer of cloud. */
 ${FX} .mo::before {
-  content: ''; position: absolute; inset: -110%; border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in srgb, ${MOON_COLOR} 30%, transparent), transparent);
-  opacity: calc(0.15 + var(--lit) * 0.6);
+  content: ''; position: absolute; inset: -170%; border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, ${MOON_COLOR} 20%, transparent), transparent);
+  opacity: calc(0.2 + var(--lit) * 0.5);
 }
-${FX} .mo svg { position: relative; display: block; width: 100%; height: 100%; overflow: visible; }
+/* The disc itself: dimmed and out of focus, behind the haze. */
+${FX} .mo svg {
+  position: relative; display: block; width: 100%; height: 100%; overflow: visible;
+  opacity: 0.58; filter: blur(1.3px);
+}
+/* Thin cloud veils drifting over the moon. */
+${FX} .mo-cloud {
+  position: absolute; left: -130%; top: -20%; width: 360%; height: 140%;
+  background:
+    radial-gradient(28% 22% at 38% 46%, ${CLOUD_COLOR}, transparent),
+    radial-gradient(24% 16% at 62% 64%, ${CLOUD_COLOR}, transparent),
+    radial-gradient(30% 18% at 52% 30%, ${CLOUD_COLOR}, transparent);
+  animation: pegel-fx-cloud 70s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes pegel-fx-cloud {
+  from { transform: translate3d(-14%, 0, 0); }
+  to { transform: translate3d(14%, 0, 0); }
+}
 ${FX} .mo .dark { fill: ${DARK_COLOR}; }
 ${FX} .mo .rim { fill: none; stroke: color-mix(in srgb, ${MOON_COLOR} 12%, transparent); stroke-width: 0.02; }
 ${FX} .mo .lit { fill: url(#pegel-moon-shade); }
@@ -91,7 +112,7 @@ ${FX} .mo .s-sea + .s-sea { stop-opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
   ${FX} .mo-x { animation: none; transform: translateX(72vw); }
   ${FX} .mo-y { animation: none; transform: translateY(12vh); }
-  ${FX} .mo { animation: none; }
+  ${FX} .mo, ${FX} .mo-cloud { animation: none; }
 }
 `;
 
@@ -169,7 +190,9 @@ export const MOON: EffectPart = {
       maria,
       svgEl('circle', { class: 'rim', r: '0.985' }),
     );
-    moon.append(svg);
+    const cloud = doc.createElement('div');
+    cloud.className = 'mo-cloud';
+    moon.append(svg, cloud);
     y.append(moon);
     x.append(y);
     layer.append(x);

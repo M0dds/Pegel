@@ -2,10 +2,10 @@ import { FX, rangeRandom, type EffectPart } from './common';
 import { fallingShapes } from './petals';
 
 /**
- * Wald: three rows of fir trees along the bottom behind the content, lighter
- * with distance, with slowly drifting mist between the rows and a faint glow
- * of light in the sky. In front, a few leaves fall (see LEAVES) and the
- * fireflies wander.
+ * Wald: a forest only hinted at behind the content: three faint, out-of-focus
+ * rows of fir trees along the bottom, lighter with distance, fading upwards,
+ * with slowly drifting mist between the rows and a faint glow in the sky.
+ * In front, a few leaves fall (see LEAVES) and the fireflies wander.
  */
 
 const VIEW_W = 1600;
@@ -20,8 +20,15 @@ ${FX} .fo-row {
   position: absolute; left: 0; bottom: 0; width: 100%; aspect-ratio: ${VIEW_W} / ${VIEW_H};
 }
 ${FX} .fo-row svg { display: block; width: 100%; height: 100%; }
-${FX} .fo-far { fill: oklch(from var(--fx-bg) calc(l + 0.1) calc(c + 0.02) h); opacity: 0.75; }
-${FX} .fo-mid { fill: oklch(from var(--fx-bg) calc(l + 0.06) calc(c + 0.015) h); }
+${FX} .fo-row { filter: blur(var(--blur)); }
+/* Only a hint of a forest: faint, out of focus, the tree tops fade into the sky. */
+${FX} .fo-trees {
+  position: absolute; inset: 0; opacity: 0.5;
+  -webkit-mask-image: linear-gradient(to top, #000 25%, transparent 75%);
+  mask-image: linear-gradient(to top, #000 25%, transparent 75%);
+}
+${FX} .fo-far { fill: oklch(from var(--fx-bg) calc(l + 0.05) calc(c + 0.01) h); }
+${FX} .fo-mid { fill: oklch(from var(--fx-bg) calc(l + 0.035) calc(c + 0.01) h); }
 ${FX} .fo-near { fill: oklch(from var(--fx-bg) calc(l + 0.02) c h); }
 ${FX} .fo-mist {
   position: absolute; left: -30%; width: 160%; bottom: var(--b); height: var(--h);
@@ -74,6 +81,9 @@ const ROWS: readonly Row[] = [
   { cls: 'fo-near', density: 8, h: [230, 400], ground: 10 },
 ];
 
+/** Out of focus, more with distance (px). */
+const BLUR = [2.5, 1.8, 1.2];
+
 /** Mist bands: bottom (%), height (%), alpha (%), cycle (s). Between far/mid and mid/near. */
 const MIST: readonly [number, number, number, number][] = [
   [14, 26, 10, 48],
@@ -88,10 +98,13 @@ export const FOREST: EffectPart = {
     const ns = 'http://www.w3.org/2000/svg';
     const sky = doc.createElement('div');
     sky.className = 'fo-sky';
-    layer.append(sky);
+    const trees = doc.createElement('div');
+    trees.className = 'fo-trees';
+    layer.append(sky, trees);
     ROWS.forEach((row, i) => {
       const box = doc.createElement('div');
       box.className = 'fo-row';
+      box.style.setProperty('--blur', `${BLUR[i] ?? 1}px`);
       const svg = doc.createElementNS(ns, 'svg');
       svg.setAttribute('viewBox', `0 0 ${VIEW_W} ${VIEW_H}`);
       svg.setAttribute('preserveAspectRatio', 'none');
@@ -108,7 +121,7 @@ export const FOREST: EffectPart = {
       path.setAttribute('d', d);
       svg.append(path);
       box.append(svg);
-      layer.append(box);
+      trees.append(box);
       const mist = MIST[i];
       if (mist) {
         const [b, h, a, dur] = mist;
@@ -119,7 +132,7 @@ export const FOREST: EffectPart = {
         el.style.setProperty('--a', `${a}%`);
         el.style.setProperty('--dur', `${dur}s`);
         el.style.setProperty('--delay', `${-between(0, dur).toFixed(1)}s`);
-        layer.append(el);
+        trees.append(el);
       }
     });
   },
