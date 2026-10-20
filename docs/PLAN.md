@@ -882,7 +882,7 @@ social: {
 - [x] Protokoll: `playlistId` und `playlistTitle` in `NowPlaying`
 - [x] Klick auf Titel und Playlist, Prüfung auf private Listen, Verhalten in der Party
 - [x] Getestet mit zwei Instanzen (lokaler Server): Titel startet, Album-Seite öffnet sich, unbekannte Playlist ergibt keine Überschrift
-- [ ] Server-Deploy und Release (mit dem nächsten Paket an Wünschen)
+- [x] Server deployt und Release 1.4.0 (zusammen mit den überarbeiteten Theme-Effekten)
 
 ### Später (optional)
 
