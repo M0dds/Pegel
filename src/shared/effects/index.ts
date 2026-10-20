@@ -5,8 +5,7 @@ import { BUBBLES } from './bubbles';
 import { NEON } from './neon';
 import { FX, FX_ROOT_ID, type EffectPart, type EffectTarget, type ThemeEffect } from './common';
 import { FIREFLIES } from './fireflies';
-import { FOREST, LEAVES } from './forest';
-import { MOON } from './moon';
+import { LEAVES, WOODS } from './forest';
 import { MOTES } from './motes';
 import { PETALS } from './petals';
 import { RAYS } from './rays';
@@ -27,10 +26,10 @@ export const THEME_EFFECTS: Partial<Record<ThemeId, ThemeEffect>> = {
   sakura: effect('Fallende Blütenblätter', { front: [PETALS] }),
   nordlicht: effect('Polarlicht im Hintergrund', { back: [AURORA] }),
   bernstein: effect('Lichtstrahlen und Staub', { back: [RAYS], front: [MOTES] }),
-  mitternacht: effect('Sternenhimmel mit Mond', { back: [STARS, MOON] }),
+  mitternacht: effect('Funkelnder Sternenhimmel', { back: [STARS] }),
   lagune: effect('Aufsteigende Luftblasen', { front: [BUBBLES] }),
   glut: effect('Aufsteigende Funken', { front: [SPARKS] }),
-  wald: effect('Wald mit Glühwürmchen', { back: [FOREST], front: [LEAVES, FIREFLIES] }),
+  wald: effect('Glühwürmchen und Nebel', { back: [WOODS], front: [LEAVES, FIREFLIES] }),
   neon: effect('Neon-Raster im Hintergrund', { back: [NEON] }),
 };
 

@@ -2,34 +2,16 @@ import { FX, rangeRandom, type EffectPart } from './common';
 import { fallingShapes } from './petals';
 
 /**
- * Wald: a forest only hinted at behind the content: three faint, out-of-focus
- * rows of fir trees along the bottom, lighter with distance, fading upwards,
- * with slowly drifting mist between the rows and a faint glow in the sky.
- * In front, a few leaves fall (see LEAVES) and the fireflies wander.
+ * Wald: behind the content, a faint glow of light in the sky and slowly
+ * drifting mist near the bottom. In front, a few leaves fall (see LEAVES)
+ * and the fireflies wander.
  */
-
-const VIEW_W = 1600;
-const VIEW_H = 440;
 
 const CSS = `
 ${FX} .fo-sky {
   position: absolute; inset: 0;
   background: radial-gradient(70% 55% at 78% 0%, color-mix(in srgb, var(--fx-text) 7%, transparent), transparent 70%);
 }
-${FX} .fo-row {
-  position: absolute; left: 0; bottom: 0; width: 100%; aspect-ratio: ${VIEW_W} / ${VIEW_H};
-}
-${FX} .fo-row svg { display: block; width: 100%; height: 100%; }
-${FX} .fo-row { filter: blur(var(--blur)); }
-/* Only a hint of a forest: faint, out of focus, the tree tops fade into the sky. */
-${FX} .fo-trees {
-  position: absolute; inset: 0; opacity: 0.5;
-  -webkit-mask-image: linear-gradient(to top, #000 25%, transparent 75%);
-  mask-image: linear-gradient(to top, #000 25%, transparent 75%);
-}
-${FX} .fo-far { fill: oklch(from var(--fx-bg) calc(l + 0.05) calc(c + 0.01) h); }
-${FX} .fo-mid { fill: oklch(from var(--fx-bg) calc(l + 0.035) calc(c + 0.01) h); }
-${FX} .fo-near { fill: oklch(from var(--fx-bg) calc(l + 0.02) c h); }
 ${FX} .fo-mist {
   position: absolute; left: -30%; width: 160%; bottom: var(--b); height: var(--h);
   background: radial-gradient(closest-side, color-mix(in srgb, var(--fx-text) var(--a), transparent), transparent);
@@ -45,96 +27,30 @@ ${FX} .fo-mist {
 }
 `;
 
-/** A fir tree: three tiers and a short trunk, standing on `base`. */
-export function firPath(x: number, base: number, h: number, w: number): string {
-  const top = base - h;
-  const f = (n: number) => n.toFixed(1);
-  const tiers: [number, number, number][] = [
-    // [y of the tier's tips, half width at the tips, half width where the next tier starts]
-    [0.32, 0.24, 0.1],
-    [0.6, 0.38, 0.18],
-    [0.88, 0.5, 0.06],
-  ];
-  let right = '';
-  for (const [y, tip, inner] of tiers) {
-    right += `L${f(x + tip * w)} ${f(top + y * h)}L${f(x + inner * w)} ${f(top + y * h - h * 0.02)}`;
-  }
-  let left = '';
-  for (const [y, tip, inner] of [...tiers].reverse()) {
-    left += `L${f(x - inner * w)} ${f(top + y * h - h * 0.02)}L${f(x - tip * w)} ${f(top + y * h)}`;
-  }
-  const trunk = `M${f(x - w * 0.05)} ${f(top + 0.86 * h)}h${f(w * 0.1)}V${base}h${f(-w * 0.1)}Z`;
-  return `M${f(x)} ${f(top)}${right}${left}Z${trunk}`;
-}
-
-interface Row {
-  cls: string;
-  /** Trees per 1000 viewBox units, height range, ground height. */
-  density: number;
-  h: [number, number];
-  ground: number;
-}
-
-const ROWS: readonly Row[] = [
-  { cls: 'fo-far', density: 24, h: [150, 250], ground: 70 },
-  { cls: 'fo-mid', density: 14, h: [180, 300], ground: 36 },
-  { cls: 'fo-near', density: 8, h: [230, 400], ground: 10 },
-];
-
-/** Out of focus, more with distance (px). */
-const BLUR = [2.5, 1.8, 1.2];
-
-/** Mist bands: bottom (%), height (%), alpha (%), cycle (s). Between far/mid and mid/near. */
+/** Mist bands: bottom (%), height (%), alpha (%), cycle (s). */
 const MIST: readonly [number, number, number, number][] = [
-  [14, 26, 10, 48],
-  [4, 18, 8, 37],
+  [10, 24, 6, 48],
+  [2, 16, 5, 37],
 ];
 
-export const FOREST: EffectPart = {
+export const WOODS: EffectPart = {
   count: { ui: 1, yt: 1 },
   css: CSS,
   build(doc, layer) {
     const between = rangeRandom(41);
-    const ns = 'http://www.w3.org/2000/svg';
     const sky = doc.createElement('div');
     sky.className = 'fo-sky';
-    const trees = doc.createElement('div');
-    trees.className = 'fo-trees';
-    layer.append(sky, trees);
-    ROWS.forEach((row, i) => {
-      const box = doc.createElement('div');
-      box.className = 'fo-row';
-      box.style.setProperty('--blur', `${BLUR[i] ?? 1}px`);
-      const svg = doc.createElementNS(ns, 'svg');
-      svg.setAttribute('viewBox', `0 0 ${VIEW_W} ${VIEW_H}`);
-      svg.setAttribute('preserveAspectRatio', 'none');
-      const base = VIEW_H - row.ground;
-      let d = `M0 ${base}H${VIEW_W}V${VIEW_H}H0Z`;
-      const n = Math.round((VIEW_W / 1000) * row.density);
-      for (let t = 0; t < n; t++) {
-        const x = ((t + between(0.1, 0.9)) / n) * VIEW_W;
-        const h = between(...row.h);
-        d += firPath(x, base + between(0, 6), h, h * between(0.42, 0.55));
-      }
-      const path = doc.createElementNS(ns, 'path');
-      path.setAttribute('class', row.cls);
-      path.setAttribute('d', d);
-      svg.append(path);
-      box.append(svg);
-      trees.append(box);
-      const mist = MIST[i];
-      if (mist) {
-        const [b, h, a, dur] = mist;
-        const el = doc.createElement('div');
-        el.className = 'fo-mist';
-        el.style.setProperty('--b', `${b}%`);
-        el.style.setProperty('--h', `${h}%`);
-        el.style.setProperty('--a', `${a}%`);
-        el.style.setProperty('--dur', `${dur}s`);
-        el.style.setProperty('--delay', `${-between(0, dur).toFixed(1)}s`);
-        trees.append(el);
-      }
-    });
+    layer.append(sky);
+    for (const [b, h, a, dur] of MIST) {
+      const el = doc.createElement('div');
+      el.className = 'fo-mist';
+      el.style.setProperty('--b', `${b}%`);
+      el.style.setProperty('--h', `${h}%`);
+      el.style.setProperty('--a', `${a}%`);
+      el.style.setProperty('--dur', `${dur}s`);
+      el.style.setProperty('--delay', `${-between(0, dur).toFixed(1)}s`);
+      layer.append(el);
+    }
   },
 };
 

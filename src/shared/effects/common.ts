@@ -6,7 +6,7 @@ export const FX = `#${FX_ROOT_ID}`;
 export type EffectTarget = 'ui' | 'yt';
 
 /**
- * One part of a theme's optional animated extra, e.g. the stars or the moon.
+ * One part of a theme's optional animated extra, e.g. the stars or the fireflies.
  * Pure CSS animations on transform and opacity, so they run on the compositor;
  * nothing takes pointer events. Colours come from CSS variables the layer sets
  * from the theme tokens: `--fx-accent`, `--fx-text`, `--fx-bg`.
