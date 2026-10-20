@@ -33,6 +33,9 @@ interface Props {
   /** Features limited because YT changed its page. */
   selectorIssues: string[];
   update: UpdateStatus;
+  /** "Was ist neu" is open (also opened by itself after an update, see App). */
+  changelogOpen: boolean;
+  onChangelog(open: boolean): void;
 }
 
 function updateHint(update: UpdateStatus, supported: boolean): string {
@@ -56,9 +59,15 @@ function updateHint(update: UpdateStatus, supported: boolean): string {
 }
 
 /** Settings page (Discord integration is deferred, see M6 in docs/PLAN.md). */
-export function SettingsPage({ settings, appInfo, selectorIssues, update }: Props) {
+export function SettingsPage({
+  settings,
+  appInfo,
+  selectorIssues,
+  update,
+  changelogOpen,
+  onChangelog,
+}: Props) {
   const [confirmSignOut, setConfirmSignOut] = useState(false);
-  const [changelogOpen, setChangelogOpen] = useState(false);
   const mediaKeysPending = appInfo !== null && settings.mediaKeys !== appInfo.mediaKeysAtStart;
   const updatesSupported = appInfo?.updatesSupported ?? false;
   const canInstall = update.state === 'ready' || update.state === 'available';
@@ -261,7 +270,7 @@ export function SettingsPage({ settings, appInfo, selectorIssues, update }: Prop
                     type="button"
                     className="version-link"
                     title="Was ist neu?"
-                    onClick={() => setChangelogOpen(true)}
+                    onClick={() => onChangelog(true)}
                   >
                     {appInfo.version}
                   </button>
@@ -300,7 +309,7 @@ export function SettingsPage({ settings, appInfo, selectorIssues, update }: Prop
         </section>
       </div>
       {changelogOpen && (
-        <ChangelogDialog current={appInfo?.version} onClose={() => setChangelogOpen(false)} />
+        <ChangelogDialog current={appInfo?.version} onClose={() => onChangelog(false)} />
       )}
     </div>
   );

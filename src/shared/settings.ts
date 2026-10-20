@@ -194,6 +194,10 @@ export function normalizeSettings(input: unknown): Settings {
       ...(windowBounds && { bounds: windowBounds }),
     },
     welcomeShown: bool(raw['welcomeShown'], d.welcomeShown),
+    ...(typeof raw['lastSeenVersion'] === 'string' &&
+      /^\d+\.\d+\.\d+$/.test(raw['lastSeenVersion']) && {
+        lastSeenVersion: raw['lastSeenVersion'],
+      }),
     effects: {
       // `petals` is the name from 1.1.0 and earlier, when only Sakura had an effect.
       theme: bool(effects['theme'], bool(effects['petals'], d.effects.theme)),

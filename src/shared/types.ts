@@ -74,6 +74,8 @@ export interface Settings {
   discord: { enabled: boolean; hideWhenPaused: boolean };
   window: { bounds?: Rect; maximized: boolean };
   welcomeShown: boolean;
+  /** Version whose changelog was last shown; after an update it opens once. */
+  lastSeenVersion?: string;
   /**
    * Visual extras; both can be switched off in the settings. `theme`: the
    * current theme's animated effect (petals, aurora, sparks …), if it has one.

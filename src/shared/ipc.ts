@@ -23,6 +23,8 @@ import type {
 /** Request/response: renderer → main via `ipcRenderer.invoke`. */
 export interface InvokeChannels {
   'app:get-info': { args: []; result: AppInfo };
+  /** Version whose "Was ist neu" should open once after an update, or null. */
+  'changelog:get-pending': { args: []; result: string | null };
   'settings:get': { args: []; result: Settings };
   'view:get': { args: []; result: View };
   'window:is-maximized': { args: []; result: boolean };
@@ -56,6 +58,8 @@ export interface UiToMainChannels {
   'yt:retry': void;
   'yt:reload': void;
   'welcome:finish': { signIn: boolean };
+  /** The changelog opened by itself after an update was shown. */
+  'changelog:seen': void;
   'account:sign-out': void;
   /** A side panel's (EQ or Social) open/close transition ended, so the YT view may take the space back. */
   'eq-panel:animation-done': { open: boolean };
@@ -165,6 +169,8 @@ export type PayloadArgs<T> = [T] extends [void] ? [] : [T];
 export interface PegelApi {
   /** `process.platform`, available synchronously for layout. */
   platform: string;
+  getPendingChangelog(): Promise<string | null>;
+  markChangelogSeen(): void;
   getAppInfo(): Promise<AppInfo>;
   getView(): Promise<View>;
   getSettings(): Promise<Settings>;

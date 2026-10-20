@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CHANGELOG, formatReleaseDate } from '@shared/changelog';
+import { CHANGELOG, changelogToShow, formatReleaseDate } from '@shared/changelog';
 
 const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
   version: string;
@@ -24,5 +24,24 @@ describe('changelog', () => {
 
   it('formats dates in German', () => {
     expect(formatReleaseDate('2026-10-20')).toBe('20. Oktober 2026');
+  });
+});
+
+describe('changelogToShow', () => {
+  const current = CHANGELOG[0]!.version;
+
+  it('opens once after an update', () => {
+    expect(changelogToShow(current, '0.9.0', true)).toBe(current);
+  });
+
+  it('counts settings from before the feature as an update, a fresh install not', () => {
+    expect(changelogToShow(current, undefined, true)).toBe(current);
+    expect(changelogToShow(current, undefined, false)).toBeNull();
+  });
+
+  it('shows nothing for the same version, a downgrade or a version without entry', () => {
+    expect(changelogToShow(current, current, true)).toBeNull();
+    expect(changelogToShow('1.0.0', '1.4.0', true)).toBeNull();
+    expect(changelogToShow('9.9.9', '1.0.0', true)).toBeNull();
   });
 });

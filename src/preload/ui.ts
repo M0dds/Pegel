@@ -37,6 +37,8 @@ function subscribe<C extends keyof MainToUiChannels>(
 const api: PegelApi = {
   platform: process.platform,
   getAppInfo: () => invoke('app:get-info'),
+  getPendingChangelog: () => invoke('changelog:get-pending'),
+  markChangelogSeen: () => send('changelog:seen'),
   getView: () => invoke('view:get'),
   getSettings: () => invoke('settings:get'),
   onSettingsChanged: (listener) => subscribe('settings:changed', listener),

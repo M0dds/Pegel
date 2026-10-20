@@ -31,6 +31,8 @@ function partyPill(social: SocialState): { label: string; waiting: boolean } | n
 
 export function App() {
   const [view, setView] = useState<View>('music');
+  /** "Was ist neu" dialog; `auto`: opened by itself after an update. */
+  const [changelog, setChangelog] = useState<{ auto: boolean } | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [selectorIssues, setSelectorIssues] = useState<string[]>([]);
   const [playing, setPlaying] = useState<PlayerState | null>(null);
@@ -47,7 +49,19 @@ export function App() {
     void window.pegel.getView().then(setView);
     void window.pegel.getAppInfo().then(setAppInfo);
     void window.pegel.getSettings().then(setSettings);
-    const offView = window.pegel.onViewChanged(setView);
+    const offView = window.pegel.onViewChanged((next) => {
+      setView(next);
+      // Leaving the settings in another way closes the dialog with them.
+      if (next !== 'settings') setChangelog(null);
+    });
+    // After an update: "Was ist neu" once, on the settings page (the YT view would
+    // cover anything shown over the music). Closing it goes back to the music.
+    void window.pegel.getPendingChangelog().then((version) => {
+      if (!version) return;
+      window.pegel.markChangelogSeen();
+      setChangelog({ auto: true });
+      window.pegel.showView('settings');
+    });
     const offSettings = window.pegel.onSettingsChanged(setSettings);
     void window.pegel.getSelectorIssues().then(setSelectorIssues);
     const offIssues = window.pegel.onSelectorIssues(setSelectorIssues);
@@ -175,6 +189,12 @@ export function App() {
             appInfo={appInfo}
             selectorIssues={selectorIssues}
             update={update}
+            changelogOpen={!!changelog}
+            onChangelog={(open) => {
+              if (open) return setChangelog({ auto: false });
+              if (changelog?.auto) window.pegel.showView('music');
+              setChangelog(null);
+            }}
           />
         )}
         {view === 'offline' && <OfflinePage />}

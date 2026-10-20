@@ -1,5 +1,6 @@
 import { app } from 'electron';
 import { setMediaKeysAtStart, trackQuitting } from './app-state';
+import { initChangelog } from './changelog';
 import { getProfile } from './profile';
 import { shouldStartHidden, syncStartAtLogin } from './autostart';
 import { registerIpc } from './ipc';
@@ -64,6 +65,7 @@ if (!app.requestSingleInstanceLock()) {
       onPartyChanged,
     });
     // Autostart (--hidden): YT loads in the background, only the tray is visible.
+    initChangelog();
     createMainWindow({ show: !shouldStartHidden() });
     startSocial();
     startUpdates();

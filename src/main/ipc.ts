@@ -42,6 +42,7 @@ import {
   setSelectorIssues,
 } from './player';
 import { reapplyPlaylistContext } from './playlist-eq';
+import { getPendingChangelog, markChangelogSeen } from './changelog';
 import { getSettings, updateSettings } from './settings';
 import { checkForUpdates, getUpdateStatus, installUpdate, updatesSupported } from './updater';
 import {
@@ -91,6 +92,8 @@ function on<C extends keyof UiToMainChannels>(
 }
 
 export function registerIpc(): void {
+  handle('changelog:get-pending', () => getPendingChangelog());
+  on('changelog:seen', () => markChangelogSeen());
   handle('app:get-info', () => ({
     version: app.getVersion(),
     platform: process.platform,

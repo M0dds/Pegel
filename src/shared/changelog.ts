@@ -1,3 +1,5 @@
+import { isNewerVersion } from './update';
+
 /**
  * What changed in each version, for the "Was ist neu" dialog (click on the
  * version in the settings). Newest first; the first entry must match the
@@ -11,6 +13,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: readonly ChangelogEntry[] = [
+  {
+    version: '1.5.0',
+    date: '2026-10-20',
+    items: [
+      '„Was ist neu“: Ein Klick auf die Versionsnummer unter Einstellungen → Über zeigt, was sich in jeder Version geändert hat.',
+      'Nach einem Update öffnet sich „Was ist neu“ einmal von selbst.',
+      'Esc schließt in den Einstellungen zuerst offene Dialoge und Auswahllisten, erst dann die Seite.',
+    ],
+  },
   {
     version: '1.4.0',
     date: '2026-10-20',
@@ -78,4 +89,19 @@ export function formatReleaseDate(iso: string): string {
     month: 'long',
     year: 'numeric',
   });
+}
+
+/**
+ * After an update: the version whose changelog opens once by itself, or null.
+ * A fresh install (welcome page not seen yet) and a downgrade show nothing.
+ * Settings from before 1.5.0 have no `lastSeenVersion`; a seen welcome page
+ * means Pegel was used before, so that counts as an update.
+ */
+export function changelogToShow(
+  current: string,
+  lastSeen: string | undefined,
+  welcomeShown: boolean,
+): string | null {
+  const updated = lastSeen ? isNewerVersion(current, lastSeen) : welcomeShown;
+  return updated && CHANGELOG.some((e) => e.version === current) ? current : null;
 }
