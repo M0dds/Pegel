@@ -14,6 +14,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '1.6.0',
+    date: '2026-10-20',
+    items: [
+      'Benachrichtigung, wenn jemand deiner Party beitritt, solange Pegel im Hintergrund ist. In Pegel selbst sehen alle in der Party einen kurzen Hinweis.',
+      'Neuer Schalter „Benachrichtigungen“ unter Einstellungen → Freunde & Party, für Einladungen und Beitritte.',
+    ],
+  },
+  {
     version: '1.5.0',
     date: '2026-10-20',
     items: [

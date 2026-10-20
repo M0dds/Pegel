@@ -889,7 +889,8 @@ social: {
 - [x] System-Benachrichtigung, wenn jemand deiner Party beitritt (nur für den Host, sonst bekäme jeder Gast eine pro Gast). Innerhalb von Pegel sehen alle Mitglieder einen kurzen Hinweis.
 - [x] Einladungen und Beitritte teilen sich `notifySystem` in `src/main/social/index.ts`: nur, solange kein Pegel-Fenster im Vordergrund ist. Ein Klick öffnet das Social-Panel.
 - [x] Schalter „Benachrichtigungen“ unter Freunde & Party (`social.notifications`, standardmäßig an)
-- [ ] Test mit zwei Instanzen und einem Freund, Changelog-Eintrag beim nächsten Release
+- [x] Changelog-Eintrag und Release 1.6.0
+- [ ] Test mit einem Freund (Johann)
 
 ### Später (optional)
 
