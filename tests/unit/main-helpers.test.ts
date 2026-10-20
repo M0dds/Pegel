@@ -53,49 +53,43 @@ describe('matchShortcut', () => {
 
   it('opens settings with Ctrl+, on Windows and ⌘+, on macOS', () => {
     const settings = { type: 'show', view: 'settings' };
-    expect(matchShortcut(key(',', { control: true }), 'win32', 'music', false)).toEqual(settings);
-    expect(matchShortcut(key(',', { meta: true }), 'darwin', 'music', false)).toEqual(settings);
-    expect(matchShortcut(key(',', { control: true }), 'darwin', 'music', false)).toBeNull();
+    expect(matchShortcut(key(',', { control: true }), 'win32', false)).toEqual(settings);
+    expect(matchShortcut(key(',', { meta: true }), 'darwin', false)).toEqual(settings);
+    expect(matchShortcut(key(',', { control: true }), 'darwin', false)).toBeNull();
   });
 
   it('toggles the equalizer with Ctrl+E / ⌘+E', () => {
     const toggle = { type: 'toggleEq' };
-    expect(matchShortcut(key('e', { control: true }), 'win32', 'music', false)).toEqual(toggle);
-    expect(matchShortcut(key('E', { meta: true }), 'darwin', 'settings', false)).toEqual(toggle);
-    expect(
-      matchShortcut(key('e', { control: true, shift: true }), 'win32', 'music', false),
-    ).toBeNull();
+    expect(matchShortcut(key('e', { control: true }), 'win32', false)).toEqual(toggle);
+    expect(matchShortcut(key('E', { meta: true }), 'darwin', false)).toEqual(toggle);
+    expect(matchShortcut(key('e', { control: true, shift: true }), 'win32', false)).toBeNull();
   });
 
   it('toggles the mini player with Ctrl+M, on macOS via the menu instead', () => {
-    expect(matchShortcut(key('m', { control: true }), 'win32', 'music', false)).toEqual({
+    expect(matchShortcut(key('m', { control: true }), 'win32', false)).toEqual({
       type: 'toggleMini',
     });
     // ⌘M is a menu accelerator on macOS, handled before input reaches the page.
-    expect(matchShortcut(key('m', { meta: true }), 'darwin', 'music', false)).toBeNull();
+    expect(matchShortcut(key('m', { meta: true }), 'darwin', false)).toBeNull();
   });
 
   it('reloads YT with F5 and Ctrl+R / ⌘R', () => {
     const reload = { type: 'reloadYt' };
-    expect(matchShortcut(key('F5'), 'win32', 'music', false)).toEqual(reload);
-    expect(matchShortcut(key('r', { control: true }), 'win32', 'settings', false)).toEqual(reload);
-    expect(matchShortcut(key('r', { meta: true }), 'darwin', 'music', false)).toEqual(reload);
-    expect(matchShortcut(key('r'), 'win32', 'music', false)).toBeNull();
+    expect(matchShortcut(key('F5'), 'win32', false)).toEqual(reload);
+    expect(matchShortcut(key('r', { control: true }), 'win32', false)).toEqual(reload);
+    expect(matchShortcut(key('r', { meta: true }), 'darwin', false)).toEqual(reload);
+    expect(matchShortcut(key('r'), 'win32', false)).toBeNull();
   });
 
-  it('leaves Escape to YT on the music view', () => {
-    expect(matchShortcut(key('Escape'), 'win32', 'music', false)).toBeNull();
-    expect(matchShortcut(key('Escape'), 'win32', 'offline', false)).toBeNull();
-    expect(matchShortcut(key('Escape'), 'win32', 'settings', false)).toEqual({
-      type: 'show',
-      view: 'music',
-    });
+  it('leaves Escape to the page (YT, or the Pegel UI, which closes its dialogs first)', () => {
+    expect(matchShortcut(key('Escape'), 'win32', false)).toBeNull();
+    expect(matchShortcut(key('Escape'), 'darwin', false)).toBeNull();
   });
 
   it('ignores key up and only offers devtools in development', () => {
     const keyUp = { ...key(',', { control: true }), type: 'keyUp' };
-    expect(matchShortcut(keyUp, 'win32', 'music', false)).toBeNull();
-    expect(matchShortcut(key('F12'), 'win32', 'music', false)).toBeNull();
-    expect(matchShortcut(key('F12'), 'win32', 'music', true)).toEqual({ type: 'devtools' });
+    expect(matchShortcut(keyUp, 'win32', false)).toBeNull();
+    expect(matchShortcut(key('F12'), 'win32', false)).toBeNull();
+    expect(matchShortcut(key('F12'), 'win32', true)).toEqual({ type: 'devtools' });
   });
 });

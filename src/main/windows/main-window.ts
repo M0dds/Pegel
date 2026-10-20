@@ -373,7 +373,7 @@ function restoredBounds(): Electron.Rectangle | undefined {
 
 function handleShortcuts(wc: WebContents): void {
   wc.on('before-input-event', (event, input) => {
-    const action = matchShortcut(input, process.platform, currentView, !app.isPackaged);
+    const action = matchShortcut(input, process.platform, !app.isPackaged);
     if (!action) return;
     event.preventDefault();
     if (action.type === 'devtools') return wc.toggleDevTools();

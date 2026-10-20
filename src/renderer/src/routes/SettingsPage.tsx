@@ -5,6 +5,7 @@ import { NAME_MAX } from '@shared/social-protocol';
 import { THEME_IDS, THEMES } from '@shared/themes';
 import type { AppInfo, Settings } from '@shared/types';
 import type { UpdateStatus } from '@shared/update';
+import { ChangelogDialog } from '../components/ChangelogDialog';
 import { PageHead } from '../components/PageHead';
 import { Switch } from '../components/Switch';
 import { CloseIcon, PlaylistIcon } from '../components/icons';
@@ -12,7 +13,7 @@ import { CloseIcon, PlaylistIcon } from '../components/icons';
 const isMac = window.pegel.platform === 'darwin';
 const OS_NAME = isMac ? 'macOS' : 'Windows';
 
-function Row({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
+function Row({ title, hint, children }: { title: ReactNode; hint: string; children: ReactNode }) {
   return (
     <div className="row">
       <div>
@@ -57,6 +58,7 @@ function updateHint(update: UpdateStatus, supported: boolean): string {
 /** Settings page (Discord integration is deferred, see M6 in docs/PLAN.md). */
 export function SettingsPage({ settings, appInfo, selectorIssues, update }: Props) {
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
   const mediaKeysPending = appInfo !== null && settings.mediaKeys !== appInfo.mediaKeysAtStart;
   const updatesSupported = appInfo?.updatesSupported ?? false;
   const canInstall = update.state === 'ready' || update.state === 'available';
@@ -251,7 +253,21 @@ export function SettingsPage({ settings, appInfo, selectorIssues, update }: Prop
         <section className="section">
           <h4>Über</h4>
           <Row
-            title={`Pegel ${appInfo?.version ?? ''}`.trim()}
+            title={
+              <>
+                Pegel{' '}
+                {appInfo && (
+                  <button
+                    type="button"
+                    className="version-link"
+                    title="Was ist neu?"
+                    onClick={() => setChangelogOpen(true)}
+                  >
+                    {appInfo.version}
+                  </button>
+                )}
+              </>
+            }
             hint="Inoffizieller Desktop-Client für YouTube Music. Nicht mit Google verbunden."
           >
             <button
@@ -283,6 +299,9 @@ export function SettingsPage({ settings, appInfo, selectorIssues, update }: Prop
           </Row>
         </section>
       </div>
+      {changelogOpen && (
+        <ChangelogDialog current={appInfo?.version} onClose={() => setChangelogOpen(false)} />
+      )}
     </div>
   );
 }

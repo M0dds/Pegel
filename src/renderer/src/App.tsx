@@ -77,6 +77,18 @@ export function App() {
   // Links dropped onto Pegel's own pages and the title bar (the YT view handles its own).
   useEffect(() => watchLinkDrops(window, (url) => window.pegel.dropLink(url)), []);
 
+  // Esc leaves Pegel's pages. Dialogs, menus and dropdowns on them stop the key
+  // first, so it closes only them.
+  useEffect(() => {
+    if (view !== 'settings' && view !== 'welcome') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || e.ctrlKey || e.metaKey) return;
+      window.pegel.showView('music');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [view]);
+
   const theme = settings?.theme;
   useEffect(() => {
     if (theme) applyTheme(theme);

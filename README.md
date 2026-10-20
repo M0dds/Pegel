@@ -107,7 +107,7 @@ PEGEL_SOCIAL_URL=ws://127.0.0.1:8787 PEGEL_USER_DATA=/tmp/pegel-a npm run dev
 
 - **Geschenk-Build:** `npm run dist -- --profile=<name>` liest `build-profiles/<name>.json`. Die Datei legt das Theme für den ersten Start fest, zum Beispiel `{ "defaultTheme": "sakura" }`. Der Installer heißt dann `Pegel-Setup-<Version>-<name>.exe`.
 - **Icons neu erzeugen:** `node --experimental-strip-types scripts/make-icons.mts` schreibt `resources/icon.png`, `icon.ico` und `icon.icns`.
-- **Release veröffentlichen:** Version in `package.json` erhöhen, committen, dann einen Tag `v<Version>` pushen (z. B. `git tag v1.0.1 && git push origin v1.0.1`). Der Workflow `.github/workflows/release.yml` baut Windows und macOS, lädt alles in ein GitHub-Release und veröffentlicht es. Installierte Pegels finden das Update dann von selbst.
+- **Release veröffentlichen:** Version in `package.json` erhöhen und oben in `src/shared/changelog.ts` eintragen, was neu ist (das zeigt Pegel unter „Was ist neu“, und ein Test schlägt fehl, wenn der Eintrag fehlt). Dann committen, dann einen Tag `v<Version>` pushen (z. B. `git tag v1.0.1 && git push origin v1.0.1`). Der Workflow `.github/workflows/release.yml` baut Windows und macOS, lädt alles in ein GitHub-Release und veröffentlicht es. Installierte Pegels finden das Update dann von selbst.
 - **macOS-DMGs** lassen sich nur auf einem Mac bauen, oder über den GitHub-Actions-Workflow `.github/workflows/build.yml`. Den Workflow startest du von Hand unter Actions → Build → Run workflow.
 
 Plan, Architektur und Meilensteine: [docs/PLAN.md](docs/PLAN.md).
