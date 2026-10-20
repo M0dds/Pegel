@@ -4,6 +4,7 @@ import { rayConfigs } from '@shared/effects/rays';
 import { CURTAINS, curtainEdge, rayLevel } from '@shared/effects/aurora';
 import { bubbleConfigs } from '@shared/effects/bubbles';
 import { fireflyConfigs } from '@shared/effects/fireflies';
+import { heatWaves } from '@shared/effects/heat';
 import { moteConfigs } from '@shared/effects/motes';
 import { petalConfigs } from '@shared/effects/petals';
 import { sparkConfigs } from '@shared/effects/sparks';
@@ -98,6 +99,21 @@ describe('theme effects', () => {
     expect(Math.max(...levels) - Math.min(...levels)).toBeGreaterThan(0.2);
   });
 
+  it('heat shimmer stays low and keeps a band rising at any time', () => {
+    const waves = heatWaves(6);
+    expect(heatWaves(6)).toEqual(waves);
+    for (const w of waves) {
+      expect(w.bottom + w.height).toBeLessThan(20);
+      expect(w.delay).toBeLessThanOrEqual(0);
+      expect(w.delay).toBeGreaterThan(-w.dur);
+      expect(w.ripple).toEqual([...w.ripple].sort((a, b) => a - b));
+    }
+    // Phases spread over the cycle (no two bands start together).
+    const phases = waves.map((w) => -w.delay / w.dur).sort();
+    for (let i = 1; i < phases.length; i++)
+      expect(phases[i]! - phases[i - 1]!).toBeGreaterThan(0.02);
+  });
+
   it('underwater light stays in the upper part of the window', () => {
     for (const b of waterLightBands(3)) {
       expect(b.top).toBeLessThan(20);
@@ -111,7 +127,8 @@ describe('theme effects', () => {
       ['bernstein', 'glut', 'lagune', 'mitternacht', 'neon', 'nordlicht', 'sakura', 'wald'].sort(),
     );
     expect(THEME_EFFECTS.nordlicht?.layer).toBe('back');
-    expect(THEME_EFFECTS.glut?.layer).toBe('front');
+    expect(THEME_EFFECTS.sakura?.layer).toBe('front');
+    expect(THEME_EFFECTS.glut?.back?.length).toBeGreaterThan(0);
     // Back and front: the main layer is the back one (it stands still with reduced motion).
     expect(THEME_EFFECTS.wald?.layer).toBe('back');
     expect(THEME_EFFECTS.wald?.front?.length).toBeGreaterThan(0);

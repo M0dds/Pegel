@@ -8,17 +8,17 @@ import { FX, particle, pct, px, rangeRandom, sec, type EffectPart } from './comm
  * undulating and shimmering.
  *
  * Drawn on a canvas at a third of the window size and scaled up (the
- * softness is wanted), about 24 frames per second, only while the page is
+ * softness is wanted), about 20 frames per second, only while the page is
  * visible; with reduced motion one still frame.
  */
 
 const SCALE = 3; // canvas pixel = 3 CSS pixels
-const FRAME_MS = 1000 / 24;
+const FRAME_MS = 1000 / 20;
 
 const CSS = `
 ${FX} .ar {
   position: absolute; inset: 0; width: 100%; height: 100%;
-  opacity: 0.55; filter: blur(2px);
+  opacity: 0.38; filter: blur(2px);
 }
 ${FX} .ar-star {
   position: absolute; left: var(--x); top: var(--y); width: var(--s); height: var(--s);
@@ -53,9 +53,9 @@ export const CURTAINS: readonly Curtain[] = [
   {
     y0: 0.72,
     y1: 0.3,
-    fold: [0.07, 1.3, 0.05],
-    swirl: [0.03, 3.4, 0.11],
-    height: 0.38,
+    fold: [0.07, 1.3, 0.035],
+    swirl: [0.03, 3.4, 0.07],
+    height: 0.3,
     strength: 1,
     phase: 0,
   },
@@ -63,21 +63,11 @@ export const CURTAINS: readonly Curtain[] = [
   {
     y0: 0.5,
     y1: 0.16,
-    fold: [0.05, 1.8, 0.04],
-    swirl: [0.02, 4.1, 0.09],
-    height: 0.3,
-    strength: 0.55,
+    fold: [0.05, 1.8, 0.03],
+    swirl: [0.02, 4.1, 0.06],
+    height: 0.24,
+    strength: 0.45,
     phase: 2.1,
-  },
-  // Far, faint curtain near the top.
-  {
-    y0: 0.3,
-    y1: 0.12,
-    fold: [0.04, 2.2, 0.03],
-    swirl: [0.015, 5, 0.07],
-    height: 0.22,
-    strength: 0.35,
-    phase: 4.2,
   },
 ];
 
@@ -97,9 +87,9 @@ export function curtainEdge(c: Curtain, u: number, t: number): number {
 export function rayLevel(c: Curtain, x: number, u: number, t: number): number {
   const rays =
     0.6 +
-    0.22 * Math.sin(x * 0.31 + t * 0.45 + c.phase) +
-    0.12 * Math.sin(x * 0.77 - t * 0.8) +
-    0.06 * Math.sin(x * 1.9 + t * 0.3 + c.phase * 3);
+    0.22 * Math.sin(x * 0.31 + t * 0.28 + c.phase) +
+    0.12 * Math.sin(x * 0.77 - t * 0.5) +
+    0.06 * Math.sin(x * 1.9 + t * 0.2 + c.phase * 3);
   // Patches along the curtain: some parts glow, others nearly vanish.
   const wave = Math.sin(u * 2 * Math.PI * 0.9 + t * 0.06 + c.phase * 2);
   const wave2 = Math.sin(u * 2 * Math.PI * 2.3 - t * 0.04 + c.phase);
@@ -180,7 +170,7 @@ function drawAurora(
 
 export const AURORA: EffectPart = {
   /** Stars in the sky. */
-  count: { ui: 40, yt: 70 },
+  count: { ui: 30, yt: 55 },
   css: CSS,
   build(doc, layer, count) {
     const between = rangeRandom(53);
