@@ -1,4 +1,4 @@
-import { FX, particle, pct, px, rangeRandom, sec, spread, type ThemeEffect } from './common';
+import { FX, particle, pct, px, rangeRandom, sec, spread, type EffectPart } from './common';
 
 /**
  * Bernstein: warm dust motes floating like in late sunlight. Each mote
@@ -57,9 +57,7 @@ export function moteConfigs(count: number, seed = 13): Mote[] {
   });
 }
 
-export const MOTES: ThemeEffect = {
-  label: 'Schwebender Lichtstaub',
-  layer: 'front',
+export const MOTES: EffectPart = {
   count: { ui: 10, yt: 18 },
   css: CSS,
   build(doc, root, count) {

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { THEME_EFFECTS } from '@shared/effects';
+import { effectParts, reducedMotionHint, THEME_EFFECTS } from '@shared/effects';
+import { skyline } from '@shared/effects/city';
+import { firPath } from '@shared/effects/forest';
+import { MOON_PASS_S, moonLit, moonPath, moonState } from '@shared/effects/moon';
+import { rayConfigs } from '@shared/effects/rays';
 import { auroraBands } from '@shared/effects/aurora';
 import { bubbleConfigs } from '@shared/effects/bubbles';
 import { fireflyConfigs } from '@shared/effects/fireflies';
@@ -67,22 +71,87 @@ describe('theme effects', () => {
 
   it('exist for the themes with a fitting one, scoped and with a reduced-motion fallback', () => {
     expect(Object.keys(THEME_EFFECTS).sort()).toEqual(
-      ['bernstein', 'glut', 'lagune', 'mitternacht', 'nordlicht', 'sakura', 'wald'].sort(),
+      ['bernstein', 'glut', 'lagune', 'mitternacht', 'neon', 'nordlicht', 'sakura', 'wald'].sort(),
     );
     expect(THEME_EFFECTS.nordlicht?.layer).toBe('back');
     expect(THEME_EFFECTS.glut?.layer).toBe('front');
+    // Back and front: the main layer is the back one (it stands still with reduced motion).
+    expect(THEME_EFFECTS.wald?.layer).toBe('back');
+    expect(THEME_EFFECTS.wald?.front?.length).toBeGreaterThan(0);
+    expect(reducedMotionHint(THEME_EFFECTS.wald!)).toMatch(/^Nur der Hintergrund/);
+    expect(reducedMotionHint(THEME_EFFECTS.mitternacht!)).toMatch(/^Steht still/);
+    expect(reducedMotionHint(THEME_EFFECTS.sakura!)).toMatch(/^Aus/);
     for (const effect of Object.values(THEME_EFFECTS)) {
-      expect(effect.css).toContain('prefers-reduced-motion');
-      // Every rule (apart from at-rules and keyframe steps) is scoped to the layer.
-      const selectors = effect.css
-        .split('\n')
-        .filter((line) => line.trimEnd().endsWith('{'))
-        .map((line) => line.trim())
-        .filter((line) => !/^(@|from|to|[\d.%, ]+\{)/.test(line));
-      expect(selectors.length).toBeGreaterThan(0);
-      for (const selector of selectors) expect(selector).toMatch(/^#pegel-fx /);
-      expect(effect.count.yt).toBeGreaterThanOrEqual(effect.count.ui);
+      for (const part of effectParts(effect)) {
+        expect(part.css).toContain('prefers-reduced-motion');
+        // Every rule (apart from at-rules and keyframe steps) is scoped to the layer.
+        const selectors = part.css
+          .split('\n')
+          .filter((line) => line.trimEnd().endsWith('{'))
+          .map((line) => line.trim())
+          .filter((line) => !/^(@|from|to|[\d.%, ]+\{)/.test(line));
+        expect(selectors.length).toBeGreaterThan(0);
+        for (const selector of selectors) {
+          for (const one of selector.replace(/\s*\{$/, '').split(',')) {
+            expect(one.trim()).toMatch(/^#pegel-fx /);
+          }
+        }
+        expect(part.count.yt).toBeGreaterThanOrEqual(part.count.ui);
+      }
     }
+  });
+
+  it('build the skyline across the whole width, tall buildings behind', () => {
+    const buildings = skyline(34);
+    for (const far of [true, false]) {
+      const row = buildings.filter((b) => b.far === far);
+      expect(Math.min(...row.map((b) => b.x))).toBeLessThanOrEqual(0);
+      expect(Math.max(...row.map((b) => b.x + b.w))).toBeGreaterThanOrEqual(1600);
+    }
+    const avg = (far: boolean) => {
+      const row = buildings.filter((b) => b.far === far);
+      return row.reduce((sum, b) => sum + b.h, 0) / row.length;
+    };
+    expect(avg(true)).toBeGreaterThan(avg(false));
+  });
+
+  it('draw fir trees as closed shapes standing on the ground', () => {
+    const d = firPath(100, 280, 120, 60);
+    expect(d.startsWith('M100.0 160.0')).toBe(true);
+    expect(d.match(/Z/g)).toHaveLength(2);
+    expect(d).toContain('V280');
+  });
+
+  it('let light shafts start near the upper left and lean the same way', () => {
+    for (const r of rayConfigs(5)) {
+      expect(r.x).toBeLessThan(50);
+      expect(r.angle).toBeLessThan(-20);
+    }
+  });
+});
+
+describe('moon', () => {
+  it('goes through the phases in order, one per pass', () => {
+    const pass = MOON_PASS_S * 1000;
+    const phases = Array.from({ length: 10 }, (_, i) => moonState(i * pass + pass / 2).phase);
+    expect(phases).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 0, 1]);
+    expect(moonState(pass * 3 + pass / 4).progress).toBeCloseTo(0.25);
+  });
+
+  it('is dark at new moon, round at full moon, lit on the right while waxing', () => {
+    expect(moonPath(0)).toBe('');
+    expect(moonPath(4)).toContain('A1 1 0 1 1 0 1');
+    // Waxing: the limb runs clockwise over the right side, waning over the left.
+    for (const i of [1, 2, 3]) expect(moonPath(i)).toMatch(/^M0 -1A1 1 0 0 1 0 1/);
+    for (const i of [5, 6, 7]) expect(moonPath(i)).toMatch(/^M0 -1A1 1 0 0 0 0 1/);
+    // Quarter moons: a straight terminator.
+    expect(moonPath(2)).toContain('A0 1 ');
+    // Crescents are thin, gibbous moons full: the terminator bulges the other way.
+    expect(moonPath(1)).toMatch(/A0\.7071 1 0 0 0 0 -1Z$/);
+    expect(moonPath(3)).toMatch(/A0\.7071 1 0 0 1 0 -1Z$/);
+    expect(moonLit(0)).toBe(0);
+    expect(moonLit(4)).toBe(1);
+    expect(moonLit(2)).toBeCloseTo(0.5);
   });
 });
 

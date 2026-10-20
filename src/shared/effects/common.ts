@@ -6,21 +6,31 @@ export const FX = `#${FX_ROOT_ID}`;
 export type EffectTarget = 'ui' | 'yt';
 
 /**
- * A theme's optional animated extra. Pure CSS animations on transform and
- * opacity, so they run on the compositor; nothing takes pointer events.
- * Colours come from CSS variables the layer sets from the theme tokens:
- * `--fx-accent`, `--fx-text`, `--fx-bg`.
+ * One part of a theme's optional animated extra, e.g. the stars or the moon.
+ * Pure CSS animations on transform and opacity, so they run on the compositor;
+ * nothing takes pointer events. Colours come from CSS variables the layer sets
+ * from the theme tokens: `--fx-accent`, `--fx-text`, `--fx-bg`.
  */
-export interface ThemeEffect {
-  /** Name of the switch in the settings (German UI). */
-  label: string;
-  /** `front` floats over everything (like the petals), `back` sits behind the content. */
-  layer: 'front' | 'back';
-  /** Number of particles (or bands) in the Pegel UI and over the YT page. */
+export interface EffectPart {
+  /** Number of particles (or bands, buildings …) in the Pegel UI and over the YT page. */
   count: Record<EffectTarget, number>;
   /** Rules scoped with `FX`, including the `prefers-reduced-motion` fallback. */
   css: string;
-  build(doc: Document, root: HTMLElement, count: number): void;
+  build(doc: Document, layer: HTMLElement, count: number, target: EffectTarget): void;
+}
+
+export interface ThemeEffect {
+  /** Name of the switch in the settings (German UI). */
+  label: string;
+  /** Parts behind the content (aurora, sky, skyline …). */
+  back?: readonly EffectPart[];
+  /** Parts floating over everything, like the petals. */
+  front?: readonly EffectPart[];
+  /**
+   * `back` when anything sits behind the content: that part stands still with
+   * reduced motion (the settings hint says so); front parts are hidden then.
+   */
+  layer: 'front' | 'back';
 }
 
 /** Small deterministic PRNG so every start looks the same (and tests are stable). */

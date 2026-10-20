@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
-import { themeEffect } from '@shared/effects';
+import { reducedMotionHint, themeEffect } from '@shared/effects';
 import { AUDIO_OFFSET_MAX_MS } from '@shared/settings';
 import { NAME_MAX } from '@shared/social-protocol';
 import { THEME_IDS, THEMES } from '@shared/themes';
@@ -103,14 +103,7 @@ export function SettingsPage({ settings, appInfo, selectorIssues, update }: Prop
             })}
           </div>
           {effect && (
-            <Row
-              title={effect.label}
-              hint={
-                effect.layer === 'back'
-                  ? 'Steht still, wenn im System „Bewegung reduzieren“ aktiv ist'
-                  : 'Aus, wenn im System „Bewegung reduzieren“ aktiv ist'
-              }
-            >
+            <Row title={effect.label} hint={reducedMotionHint(effect)}>
               <Switch
                 checked={settings.effects.theme}
                 label={effect.label}

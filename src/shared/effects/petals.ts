@@ -1,4 +1,4 @@
-import { FX, particle, pct, px, rangeRandom, sec, type ThemeEffect } from './common';
+import { FX, particle, pct, px, rangeRandom, sec, type EffectPart } from './common';
 
 /**
  * Sakura: falling petals. Each petal falls on its own path: an outer element
@@ -17,7 +17,7 @@ ${FX} .pp {
 }
 ${FX} .pp svg {
   display: block; width: var(--size); height: var(--size); opacity: var(--alpha);
-  fill: var(--fx-accent);
+  fill: var(--fill, var(--fx-accent));
   animation: pegel-petal-sway var(--sway) ease-in-out var(--delay) infinite alternate;
 }
 @keyframes pegel-petal-fall {
@@ -46,13 +46,17 @@ export interface PetalConfig {
   alpha: number;
 }
 
-export function petalConfigs(count: number, seed = 7): PetalConfig[] {
+export function petalConfigs(
+  count: number,
+  seed = 7,
+  sizes: [number, number] = [9, 16],
+): PetalConfig[] {
   const between = rangeRandom(seed);
   return Array.from({ length: count }, (_, i) => {
     const fall = between(11, 19);
     return {
       x: ((i + between(0.1, 0.9)) / count) * 100,
-      size: between(9, 16),
+      size: between(...sizes),
       fall,
       delay: -between(0, fall),
       sway: between(2.2, 4),
@@ -65,38 +69,68 @@ export function petalConfigs(count: number, seed = 7): PetalConfig[] {
   });
 }
 
-export const PETALS: ThemeEffect = {
-  label: 'Fallende Blütenblätter',
-  layer: 'front',
+export interface FallingOptions {
+  /** SVG path in a 24 × 24 box. */
+  path: string;
+  /** Fill colours, used in turn. */
+  colors: readonly string[];
+  count: EffectPart['count'];
+  seed?: number;
+  sizes?: [number, number];
+}
+
+/** Shapes falling and tumbling like the petals (also used for Wald's leaves). */
+export function fallingShapes({
+  path,
+  colors,
+  count,
+  seed = 7,
+  sizes,
+}: FallingOptions): EffectPart {
+  return {
+    count,
+    css: CSS,
+    build(doc, root, n) {
+      const ns = 'http://www.w3.org/2000/svg';
+      petalConfigs(n, seed, sizes).forEach((p, i) => {
+        const petal = particle(
+          doc,
+          'pp',
+          {
+            '--x': pct(p.x),
+            '--size': px(p.size),
+            '--fall': sec(p.fall),
+            '--delay': sec(p.delay),
+            '--sway': sec(p.sway),
+            '--amp': px(p.amp),
+            '--drift': px(p.drift),
+            '--r0': `${p.r0.toFixed(1)}deg`,
+            '--r1': `${p.r1.toFixed(1)}deg`,
+            '--alpha': p.alpha.toFixed(2),
+            '--fill': colors[i % colors.length]!,
+          },
+          false,
+        );
+        const svg = doc.createElementNS(ns, 'svg');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        const shape = doc.createElementNS(ns, 'path');
+        shape.setAttribute('d', path);
+        svg.append(shape);
+        petal.append(svg);
+        root.append(petal);
+      });
+    },
+  };
+}
+
+/** Sakura: the accent and a lighter, almost white pink, for depth against the dark background. */
+export const PETALS = fallingShapes({
+  path: PETAL_PATH,
+  colors: [
+    'var(--fx-accent)',
+    'color-mix(in oklch, var(--fx-accent) 55%, var(--fx-text))',
+    'var(--fx-accent)',
+    'color-mix(in oklch, var(--fx-accent) 80%, var(--fx-bg))',
+  ],
   count: { ui: 8, yt: 14 },
-  css: CSS,
-  build(doc, root, count) {
-    const ns = 'http://www.w3.org/2000/svg';
-    for (const p of petalConfigs(count)) {
-      const petal = particle(
-        doc,
-        'pp',
-        {
-          '--x': pct(p.x),
-          '--size': px(p.size),
-          '--fall': sec(p.fall),
-          '--delay': sec(p.delay),
-          '--sway': sec(p.sway),
-          '--amp': px(p.amp),
-          '--drift': px(p.drift),
-          '--r0': `${p.r0.toFixed(1)}deg`,
-          '--r1': `${p.r1.toFixed(1)}deg`,
-          '--alpha': p.alpha.toFixed(2),
-        },
-        false,
-      );
-      const svg = doc.createElementNS(ns, 'svg');
-      svg.setAttribute('viewBox', '0 0 24 24');
-      const path = doc.createElementNS(ns, 'path');
-      path.setAttribute('d', PETAL_PATH);
-      svg.append(path);
-      petal.append(svg);
-      root.append(petal);
-    }
-  },
-};
+});

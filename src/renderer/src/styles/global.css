@@ -587,6 +587,26 @@ button {
   visibility: hidden;
 }
 
+/* ---------- Neon: accents glow like neon tubes ---------- */
+:root[data-theme='neon'] .brand svg,
+:root[data-theme='neon'] .tb-btn[aria-pressed='true'] svg,
+:root[data-theme='neon'] .curve svg {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--accent) 75%, transparent));
+}
+
+:root[data-theme='neon'] .switch[aria-checked='true'],
+:root[data-theme='neon'] .presets .chip[aria-pressed='true'],
+:root[data-theme='neon'] .mini-ctrl .play:not(:disabled) {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent),
+    0 0 12px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+:root[data-theme='neon'] .section,
+:root[data-theme='neon'] .curve {
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--border) 100%, transparent);
+}
+
 /* ---------- Settings sections ---------- */
 .section {
   background: var(--surface);

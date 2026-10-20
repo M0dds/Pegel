@@ -215,5 +215,19 @@ export function buildYtColorVarsCss(theme: Theme): string {
 export function buildYtThemeCss(theme: Theme): string {
   const polish = buildYtPolishCss(theme);
   if (theme.id === 'standard') return polish;
-  return polish + buildYtColorVarsCss(theme) + buildYtBackgroundCss(theme);
+  return polish + buildYtColorVarsCss(theme) + buildYtBackgroundCss(theme) + buildYtGlowCss(theme);
+}
+
+/**
+ * Neon only: the progress bar glows like a neon tube (cyberpunk look). A
+ * drop-shadow on the bar, nothing moves and the bar stays fully usable.
+ */
+export function buildYtGlowCss(theme: Theme): string {
+  if (theme.id !== 'neon') return '';
+  const { accent } = theme.tokens;
+  return `
+html ${SELECTORS.progressBar} {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, ${accent} 70%, transparent)) !important;
+}
+`;
 }

@@ -1,4 +1,4 @@
-import { FX, particle, pct, px, rangeRandom, sec, spread, type ThemeEffect } from './common';
+import { FX, particle, pct, px, rangeRandom, sec, spread, type EffectPart } from './common';
 
 /**
  * Wald: fireflies wandering through the lower part of the window, glowing up
@@ -74,9 +74,7 @@ export function fireflyConfigs(count: number, seed = 29): Firefly[] {
   });
 }
 
-export const FIREFLIES: ThemeEffect = {
-  label: 'Glühwürmchen',
-  layer: 'front',
+export const FIREFLIES: EffectPart = {
   count: { ui: 6, yt: 12 },
   css: CSS,
   build(doc, root, count) {

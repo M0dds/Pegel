@@ -1,4 +1,4 @@
-import { FX, particle, pct, px, rangeRandom, sec, spread, type ThemeEffect } from './common';
+import { FX, particle, pct, px, rangeRandom, sec, spread, type EffectPart } from './common';
 
 /**
  * Glut: small glowing sparks rising from the bottom edge. The outer element
@@ -62,9 +62,7 @@ export function sparkConfigs(count: number, seed = 5): Spark[] {
   });
 }
 
-export const SPARKS: ThemeEffect = {
-  label: 'Aufsteigende Funken',
-  layer: 'front',
+export const SPARKS: EffectPart = {
   count: { ui: 8, yt: 16 },
   css: CSS,
   build(doc, root, count) {

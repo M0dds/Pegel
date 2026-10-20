@@ -1,4 +1,4 @@
-import { FX, particle, pct, px, rangeRandom, sec, spread, type ThemeEffect } from './common';
+import { FX, particle, pct, px, rangeRandom, sec, spread, type EffectPart } from './common';
 
 /**
  * Lagune: small air bubbles rising through the water. Thin rings with a
@@ -64,9 +64,7 @@ export function bubbleConfigs(count: number, seed = 17): Bubble[] {
   });
 }
 
-export const BUBBLES: ThemeEffect = {
-  label: 'Aufsteigende Luftblasen',
-  layer: 'front',
+export const BUBBLES: EffectPart = {
   count: { ui: 6, yt: 12 },
   css: CSS,
   build(doc, root, count) {

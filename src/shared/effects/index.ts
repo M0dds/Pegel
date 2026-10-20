@@ -2,37 +2,62 @@ import { THEMES } from '../themes';
 import type { ThemeId } from '../types';
 import { AURORA } from './aurora';
 import { BUBBLES } from './bubbles';
-import { FX, FX_ROOT_ID, type EffectTarget, type ThemeEffect } from './common';
+import { CITY } from './city';
+import { FX, FX_ROOT_ID, type EffectPart, type EffectTarget, type ThemeEffect } from './common';
 import { FIREFLIES } from './fireflies';
+import { FOREST, LEAVES } from './forest';
+import { MOON } from './moon';
 import { MOTES } from './motes';
 import { PETALS } from './petals';
+import { RAYS } from './rays';
 import { SPARKS } from './sparks';
 import { STARS } from './stars';
 
-export { FX_ROOT_ID, type EffectTarget, type ThemeEffect } from './common';
+export { FX_ROOT_ID, type EffectPart, type EffectTarget, type ThemeEffect } from './common';
 
-/** The optional effect of each theme (setting `effects.theme`). Standard, Neon and Mono stay plain. */
+function effect(
+  label: string,
+  parts: { back?: readonly EffectPart[]; front?: readonly EffectPart[] },
+): ThemeEffect {
+  return { label, ...parts, layer: parts.back ? 'back' : 'front' };
+}
+
+/** The optional effect of each theme (setting `effects.theme`). Standard and Mono stay plain. */
 export const THEME_EFFECTS: Partial<Record<ThemeId, ThemeEffect>> = {
-  sakura: PETALS,
-  nordlicht: AURORA,
-  bernstein: MOTES,
-  mitternacht: STARS,
-  lagune: BUBBLES,
-  glut: SPARKS,
-  wald: FIREFLIES,
+  sakura: effect('Fallende Blütenblätter', { front: [PETALS] }),
+  nordlicht: effect('Polarlicht im Hintergrund', { back: [AURORA] }),
+  bernstein: effect('Lichtstrahlen und Staub', { back: [RAYS], front: [MOTES] }),
+  mitternacht: effect('Sternenhimmel mit Mond', { back: [STARS, MOON] }),
+  lagune: effect('Aufsteigende Luftblasen', { front: [BUBBLES] }),
+  glut: effect('Aufsteigende Funken', { front: [SPARKS] }),
+  wald: effect('Wald mit Glühwürmchen', { back: [FOREST], front: [LEAVES, FIREFLIES] }),
+  neon: effect('Neon-Stadt im Hintergrund', { back: [CITY] }),
 };
 
 export function themeEffect(theme: ThemeId): ThemeEffect | undefined {
   return THEME_EFFECTS[theme];
 }
 
+/** Settings hint: what "Bewegung reduzieren" in the system does to the effect. */
+export function reducedMotionHint(fx: ThemeEffect): string {
+  const when = 'wenn im System „Bewegung reduzieren“ aktiv ist';
+  if (fx.back && fx.front) return `Nur der Hintergrund bleibt (ohne Bewegung), ${when}`;
+  return fx.back ? `Steht still, ${when}` : `Aus, ${when}`;
+}
+
+/** All parts of an effect, for tests and the layer builder. */
+export function effectParts(fx: ThemeEffect): EffectPart[] {
+  return [...(fx.back ?? []), ...(fx.front ?? [])];
+}
+
 const BASE_CSS = `
-${FX} {
+${FX} { display: contents; }
+${FX} > .fx-layer {
   position: fixed; inset: 0; overflow: hidden; pointer-events: none; contain: strict;
 }
-${FX}.fx-front { z-index: 2147483000; }
+${FX} > .fx-front { z-index: 2147483000; }
 /* Behind all content, above the page background (on <html> or the canvas). */
-${FX}.fx-back { z-index: -1; }
+${FX} > .fx-back { z-index: -1; }
 `;
 
 /**
@@ -42,20 +67,20 @@ ${FX}.fx-back { z-index: -1; }
 const YT_BACK_CSS = `html body { background-color: transparent !important; }`;
 
 /**
- * Builds the effect layer of a theme (null if the theme has none); the caller
- * appends it and removes it again. Everything is inside the returned element,
- * including its <style>, so removing it removes every trace.
+ * Builds the effect of a theme (null if the theme has none); the caller
+ * appends it and removes it again. The root takes no space (`display:
+ * contents`); its layers are fixed to the viewport. Everything is inside the
+ * returned element, including its <style>, so removing it removes every trace.
  */
 export function createThemeEffectLayer(
   doc: Document,
   theme: ThemeId,
   target: EffectTarget,
 ): HTMLElement | null {
-  const effect = THEME_EFFECTS[theme];
-  if (!effect) return null;
+  const fx = THEME_EFFECTS[theme];
+  if (!fx) return null;
   const root = doc.createElement('div');
   root.id = FX_ROOT_ID;
-  root.className = `fx-${effect.layer}`;
   root.setAttribute('aria-hidden', 'true');
   const { tokens } = THEMES[theme];
   root.style.setProperty('--fx-accent', tokens.accent);
@@ -63,8 +88,21 @@ export function createThemeEffectLayer(
   root.style.setProperty('--fx-bg', tokens.bg);
   const style = doc.createElement('style');
   style.textContent =
-    BASE_CSS + effect.css + (effect.layer === 'back' && target === 'yt' ? YT_BACK_CSS : '');
+    BASE_CSS +
+    effectParts(fx)
+      .map((part) => part.css)
+      .join('') +
+    (fx.back && target === 'yt' ? YT_BACK_CSS : '');
   root.append(style);
-  effect.build(doc, root, effect.count[target]);
+  for (const [name, parts] of [
+    ['fx-back', fx.back],
+    ['fx-front', fx.front],
+  ] as const) {
+    if (!parts) continue;
+    const layer = doc.createElement('div');
+    layer.className = `fx-layer ${name}`;
+    for (const part of parts) part.build(doc, layer, part.count[target], target);
+    root.append(layer);
+  }
   return root;
 }

@@ -1,4 +1,4 @@
-import { FX, particle, pct, rangeRandom, sec, type ThemeEffect } from './common';
+import { FX, particle, pct, rangeRandom, sec, type EffectPart } from './common';
 
 /**
  * Nordlicht: aurora bands across the upper part of the window, behind the
@@ -62,9 +62,7 @@ export function auroraBands(count: number, seed = 11): AuroraBand[] {
   });
 }
 
-export const AURORA: ThemeEffect = {
-  label: 'Polarlicht im Hintergrund',
-  layer: 'back',
+export const AURORA: EffectPart = {
   count: { ui: 3, yt: 3 },
   css: CSS,
   build(doc, root, count) {
