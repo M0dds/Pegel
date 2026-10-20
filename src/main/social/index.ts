@@ -358,7 +358,7 @@ function mayPlayOwnMusic(): boolean {
   return false;
 }
 
-/** Click on "hört …" in the friend list: the same track in the own YT. */
+/** Click on a friend's current track in the friend list: the same track in the own YT. */
 export function playFriendTrack(friendId: unknown): void {
   if (!isUserId(friendId)) return;
   const np = friends.views().find((f) => f.id === friendId)?.nowPlaying;

@@ -2315,7 +2315,7 @@ input[type='checkbox']:checked::after {
   height: 18px;
 }
 
-/* Friend list: "hört …" plays the track, "aus …" opens the playlist. */
+/* Friend list: the current track plays it, "aus …" opens the playlist. */
 .np-link {
   display: block;
   max-width: 100%;

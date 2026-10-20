@@ -430,7 +430,7 @@ function FriendRow({ friend, state }: { friend: FriendView; state: SocialState }
   const np = friend.nowPlaying;
   let sub = friend.online ? 'online' : 'offline';
   if (inMyParty) sub = 'in deiner Party';
-  else if (friend.nowPlaying) sub = `hört ${nowPlayingText(friend.nowPlaying)}`;
+  else if (friend.nowPlaying) sub = nowPlayingText(friend.nowPlaying);
   else if (friend.party) sub = 'in einer Party';
 
   return (

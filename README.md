@@ -67,7 +67,7 @@ Pegel blockiert keine Werbung, lädt nichts herunter und speichert keine Passwö
   - Der Host steuert. Wählt ein Gast einen anderen Titel, geht der als Vorschlag an den Host.
   - Bekommt ein Gast ohne Premium Werbung, wartet die Party bis zu 30 Sekunden auf ihn.
   - Der Equalizer bleibt bei jedem der eigene.
-  - **Mithören:** Ein Klick auf „hört …“ bei einem Freund spielt den Titel bei dir ab. „aus …“ öffnet seine Playlist, wenn sie öffentlich oder per Link geteilt ist.
+  - **Mithören:** Ein Klick auf den Titel, den ein Freund gerade hört, spielt ihn bei dir ab. „aus …“ öffnet seine Playlist, wenn sie öffentlich oder per Link geteilt ist.
   - Läuft dein Ton mit Bluetooth-Kopfhörern hörbar hinterher, hilft „Audio-Versatz“ in den Einstellungen.
 
 ## Datenschutz

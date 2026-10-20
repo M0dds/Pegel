@@ -871,7 +871,7 @@ social: {
 
 > Wunsch von Johann nach 1.3.0. Noch kein Release, es kommt vielleicht mehr dazu.
 
-- **Titel:** In der Freundesliste ist „hört Titel – Interpret“ klickbar und spielt denselben Titel in der eigenen YT-Ansicht ab (`yt:play-track`, Navigation innerhalb der Seite). Das geht auch ohne Party.
+- **Titel:** In der Freundesliste ist „Titel – Interpret“ klickbar und spielt denselben Titel in der eigenen YT-Ansicht ab (`yt:play-track`, Navigation innerhalb der Seite). Das geht auch ohne Party.
 - **Playlist:** Darunter steht „aus „Playlistname““. Ein Klick öffnet die Playlist-Seite.
   - Öffentliche und nicht gelistete Playlists öffnen sich über ihre ID.
   - Private zeigen in YT eine leere Seite ohne Überschrift. Pegel prüft deshalb nach 7 s, ob die Playlist-Seite erschienen ist, und meldet sonst „… ist privat oder nicht verfügbar“.
