@@ -128,6 +128,16 @@ export function SettingsPage({ settings, appInfo, selectorIssues, update }: Prop
               onChange={(visualizer) => window.pegel.patchSettings({ effects: { visualizer } })}
             />
           </Row>
+          <Row
+            title="Visualizer im Mini-Player"
+            hint="Frequenzbalken hinter den Tasten des Mini-Players"
+          >
+            <Switch
+              checked={settings.mini.visualizer}
+              label="Visualizer im Mini-Player"
+              onChange={(visualizer) => window.pegel.patchSettings({ mini: { visualizer } })}
+            />
+          </Row>
         </section>
 
         <section className="section">
@@ -227,16 +237,6 @@ export function SettingsPage({ settings, appInfo, selectorIssues, update }: Prop
               checked={settings.mini.alwaysOnTop}
               label="Mini-Player immer im Vordergrund"
               onChange={(alwaysOnTop) => window.pegel.patchSettings({ mini: { alwaysOnTop } })}
-            />
-          </Row>
-          <Row
-            title="Visualizer im Mini-Player"
-            hint="Frequenzbalken hinter den Tasten des Mini-Players"
-          >
-            <Switch
-              checked={settings.mini.visualizer}
-              label="Visualizer im Mini-Player"
-              onChange={(visualizer) => window.pegel.patchSettings({ mini: { visualizer } })}
             />
           </Row>
           <Row
