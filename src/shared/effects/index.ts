@@ -11,6 +11,7 @@ import { PETALS } from './petals';
 import { RAYS } from './rays';
 import { SPARKS } from './sparks';
 import { STARS } from './stars';
+import { WATER_LIGHT } from './waterlight';
 
 export { FX_ROOT_ID, type EffectPart, type EffectTarget, type ThemeEffect } from './common';
 
@@ -27,7 +28,7 @@ export const THEME_EFFECTS: Partial<Record<ThemeId, ThemeEffect>> = {
   nordlicht: effect('Polarlicht im Hintergrund', { back: [AURORA] }),
   bernstein: effect('Lichtstrahlen und Staub', { back: [RAYS], front: [MOTES] }),
   mitternacht: effect('Funkelnder Sternenhimmel', { back: [STARS] }),
-  lagune: effect('Aufsteigende Luftblasen', { front: [BUBBLES] }),
+  lagune: effect('Unterwasserlicht und Luftblasen', { back: [WATER_LIGHT], front: [BUBBLES] }),
   glut: effect('Aufsteigende Funken', { front: [SPARKS] }),
   wald: effect('Glühwürmchen und Nebel', { back: [WOODS], front: [LEAVES, FIREFLIES] }),
   neon: effect('Neon-Raster im Hintergrund', { back: [NEON] }),

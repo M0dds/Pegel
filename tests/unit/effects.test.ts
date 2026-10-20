@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { effectParts, reducedMotionHint, THEME_EFFECTS } from '@shared/effects';
 import { rayConfigs } from '@shared/effects/rays';
-import { auroraBands } from '@shared/effects/aurora';
+import { CURTAINS, curtainEdge, rayLevel } from '@shared/effects/aurora';
 import { bubbleConfigs } from '@shared/effects/bubbles';
 import { fireflyConfigs } from '@shared/effects/fireflies';
 import { moteConfigs } from '@shared/effects/motes';
 import { petalConfigs } from '@shared/effects/petals';
 import { sparkConfigs } from '@shared/effects/sparks';
 import { starConfigs } from '@shared/effects/stars';
+import { waterLightBands } from '@shared/effects/waterlight';
 import { DEFAULT_SETTINGS, normalizeSettings } from '@shared/settings';
 import { bandBins } from '../../src/yt/audio/visualizer';
 
@@ -36,7 +37,6 @@ describe('theme effects', () => {
   const particles = {
     sparks: sparkConfigs,
     motes: moteConfigs,
-    bubbles: bubbleConfigs,
     fireflies: fireflyConfigs,
     stars: starConfigs,
   };
@@ -44,7 +44,7 @@ describe('theme effects', () => {
   it.each(Object.entries(particles))(
     '%s are deterministic and spread across the width',
     (_, make) => {
-      const a = make(12);
+      const a = make(12).filter((p) => !('follower' in p) || !p.follower);
       expect(make(12)).toEqual(a);
       const xs = a.map((p) => p.x);
       for (const x of xs) {
@@ -58,8 +58,48 @@ describe('theme effects', () => {
     },
   );
 
-  it('aurora bands stay in the upper part of the window', () => {
-    for (const b of auroraBands(3)) {
+  it('bubbles: big ones rise faster, every fourth pulls two tiny followers', () => {
+    const all = bubbleConfigs(12);
+    expect(bubbleConfigs(12)).toEqual(all);
+    const main = all.filter((b) => !b.follower);
+    expect(main).toHaveLength(12);
+    expect(all.length - main.length).toBe(6);
+    const xs = main.map((b) => b.x);
+    expect(new Set(xs.map((x) => Math.floor((x / 100) * 12))).size).toBe(12);
+    for (const b of all) {
+      expect(b.delay).toBeLessThanOrEqual(0);
+      expect(b.delay).toBeGreaterThanOrEqual(-b.dur);
+    }
+    const bySize = [...main].sort((a, b) => a.size - b.size);
+    expect(bySize[0]!.dur).toBeGreaterThan(bySize.at(-1)!.dur);
+  });
+
+  it('aurora curtains run diagonally with a bright lower edge inside the sky', () => {
+    for (const c of CURTAINS) {
+      expect(c.y1).toBeLessThan(c.y0);
+      for (const t of [0, 37, 500]) {
+        for (let u = 0; u <= 1; u += 0.05) {
+          const edge = curtainEdge(c, u, t);
+          expect(edge).toBeGreaterThan(0.05);
+          expect(edge).toBeLessThan(0.9);
+          const level = rayLevel(c, u * 300, u, t);
+          expect(level).toBeGreaterThanOrEqual(0);
+          expect(level).toBeLessThanOrEqual(c.strength);
+        }
+      }
+    }
+    // Fine rays: neighbouring columns differ, the curtain is not a flat band.
+    const c = CURTAINS[0]!;
+    const brightest = Math.max(...Array.from({ length: 21 }, (_, i) => rayLevel(c, 0, i / 20, 10)));
+    const u = Array.from({ length: 21 }, (_, i) => i / 20).find(
+      (v) => rayLevel(c, 0, v, 10) === brightest,
+    )!;
+    const levels = Array.from({ length: 60 }, (_, x) => rayLevel(c, x, u, 10));
+    expect(Math.max(...levels) - Math.min(...levels)).toBeGreaterThan(0.2);
+  });
+
+  it('underwater light stays in the upper part of the window', () => {
+    for (const b of waterLightBands(3)) {
       expect(b.top).toBeLessThan(20);
       expect(b.top + b.height).toBeLessThan(80);
       expect(b.alpha).toBeLessThanOrEqual(0.35);
