@@ -1,11 +1,11 @@
 import { FX, particle, pct, px, rangeRandom, sec, type EffectPart } from './common';
 
 /**
- * Nordlicht: aurora curtains behind the content, over a dark sky with fine
- * stars. Like the real thing: bands that run diagonally across the sky and
- * fold into swirls, fine vertical rays inside, a bright sharp lower edge
- * that fades out upwards, green with violet to reddish tips, slowly
- * undulating and shimmering.
+ * Nordlicht: aurora curtains high up behind the content, over a dark sky
+ * with fine stars; the lower half of the window stays dark. Like the real
+ * thing: bands that run diagonally across the sky and fold into swirls, fine
+ * vertical rays inside, a bright sharp lower edge that fades out upwards,
+ * green with violet to reddish tips, slowly undulating and shimmering.
  *
  * Drawn on a canvas at a third of the window size and scaled up (the
  * softness is wanted), about 20 frames per second, only while the page is
@@ -19,6 +19,9 @@ const CSS = `
 ${FX} .ar {
   position: absolute; inset: 0; width: 100%; height: 100%;
   opacity: 0.38; filter: blur(2px);
+  /* High in the sky: fades out towards the middle of the window. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 62%);
+  mask-image: linear-gradient(to bottom, #000 40%, transparent 62%);
 }
 ${FX} .ar-star {
   position: absolute; left: var(--x); top: var(--y); width: var(--s); height: var(--s);
@@ -51,8 +54,8 @@ export interface Curtain {
 export const CURTAINS: readonly Curtain[] = [
   // Main band: from lower left rising to the upper right, with a fold in the middle.
   {
-    y0: 0.72,
-    y1: 0.3,
+    y0: 0.42,
+    y1: 0.2,
     fold: [0.07, 1.3, 0.035],
     swirl: [0.03, 3.4, 0.07],
     height: 0.3,
@@ -61,8 +64,8 @@ export const CURTAINS: readonly Curtain[] = [
   },
   // A fainter, higher band behind it.
   {
-    y0: 0.5,
-    y1: 0.16,
+    y0: 0.28,
+    y1: 0.13,
     fold: [0.05, 1.8, 0.03],
     swirl: [0.02, 4.1, 0.06],
     height: 0.24,

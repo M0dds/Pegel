@@ -6,7 +6,6 @@ import { NEON } from './neon';
 import { FX, FX_ROOT_ID, type EffectPart, type EffectTarget, type ThemeEffect } from './common';
 import { FIREFLIES } from './fireflies';
 import { LEAVES, WOODS } from './forest';
-import { HEAT } from './heat';
 import { MOTES } from './motes';
 import { PETALS } from './petals';
 import { RAYS } from './rays';
@@ -30,7 +29,7 @@ export const THEME_EFFECTS: Partial<Record<ThemeId, ThemeEffect>> = {
   bernstein: effect('Lichtstrahlen und Staub', { back: [RAYS], front: [MOTES] }),
   mitternacht: effect('Funkelnder Sternenhimmel', { back: [STARS] }),
   lagune: effect('Unterwasserlicht und Luftblasen', { back: [WATER_LIGHT], front: [BUBBLES] }),
-  glut: effect('Funken und Hitzeflimmern', { back: [HEAT], front: [SPARKS] }),
+  glut: effect('Aufsteigende Funken', { front: [SPARKS] }),
   wald: effect('Glühwürmchen und Nebel', { back: [WOODS], front: [LEAVES, FIREFLIES] }),
   neon: effect('Neon-Raster im Hintergrund', { back: [NEON] }),
 };
