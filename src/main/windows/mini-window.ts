@@ -1,8 +1,9 @@
 import { BrowserWindow, screen, type WebContents } from 'electron';
 import { MINI_WINDOW_SIZE } from '@shared/layout';
 import { THEMES } from '@shared/themes';
-import type { Rect } from '@shared/types';
+import type { PlayerCommand, Rect } from '@shared/types';
 import { getSettings, onSettingsChanged, updateSettings } from '../settings';
+import { setupThumbar } from '../thumbar';
 import { miniThemeId } from '@shared/settings';
 import { isRectVisible } from '../window-state';
 import { loadUi, UI_WEB_PREFERENCES, uiWindowIcon } from './load-ui';
@@ -93,7 +94,10 @@ function watchOpacity(window: BrowserWindow): () => void {
  * Frameless 360×150 window with route /mini. It never talks to YT itself;
  * everything comes from the main process (PlayerState, settings).
  */
-export function openMiniWindow(handleShortcuts: (wc: WebContents) => void): BrowserWindow {
+export function openMiniWindow(
+  handleShortcuts: (wc: WebContents) => void,
+  command: (command: PlayerCommand) => void,
+): BrowserWindow {
   if (mini && !mini.isDestroyed()) {
     mini.show();
     mini.focus();
@@ -132,6 +136,8 @@ export function openMiniWindow(handleShortcuts: (wc: WebContents) => void): Brow
   });
 
   const stopOpacity = watchOpacity(window);
+  // The main window is usually hidden now, so the taskbar preview shows this one.
+  const stopThumbar = setupThumbar(window, command);
 
   let previous = settings;
   const stopWatching = onSettingsChanged((next) => {
@@ -148,6 +154,7 @@ export function openMiniWindow(handleShortcuts: (wc: WebContents) => void): Brow
   window.on('closed', () => {
     stopWatching();
     stopOpacity();
+    stopThumbar();
     if (timer) clearTimeout(timer);
     mini = null;
     emit();

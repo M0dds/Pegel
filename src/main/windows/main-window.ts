@@ -148,7 +148,7 @@ export function handleYtReady(sender: WebContents): void {
 
 /** Opens the mini player; the main window hides (setting "hideMainOnOpen"), music continues. */
 export function openMiniPlayer(): void {
-  openMiniWindow(handleShortcuts);
+  openMiniWindow(handleShortcuts, sendPlayerCommand);
   if (getSettings().mini.hideMainOnOpen && win?.isVisible()) win.hide();
 }
 
