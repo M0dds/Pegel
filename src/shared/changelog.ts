@@ -14,6 +14,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '1.8.1',
+    date: '2026-10-21',
+    items: [
+      'Die Tasten Zurück, Abspielen/Pause und Weiter in der Taskleisten-Vorschau erscheinen jetzt auch während der Wiedergabe und nachdem Pegel im Infobereich war.',
+    ],
+  },
+  {
     version: '1.8.0',
     date: '2026-10-21',
     items: [
