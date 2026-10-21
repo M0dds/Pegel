@@ -905,7 +905,7 @@ social: {
 - [x] Symbole im Code gezeichnet (`src/main/media-icons.ts`, 16/24/32 px), hell oder dunkel passend zur Taskleiste (`nativeTheme.shouldUseDarkColorsForSystemIntegratedUI`)
 - [x] Nach dem Verstecken im Tray setzt Pegel die Tasten neu (Windows verwirft sie)
 - [x] Changelog-Eintrag und Release 1.8.0
-- [ ] Prüfung in der echten Taskleiste durch Johann
+- [x] Fehler in 1.8.0 behoben: Während der Wiedergabe fehlten die Buttons, weil Electron das Flag `'enabled'` ablehnt. Gesetzt wird jetzt erst nach dem Anzeigen und nach jedem Zurückholen aus dem Tray erneut. Geprüft mit Johann in der echten Taskleiste.
 - macOS hat keine Vorschau-Leiste. Dort decken „Jetzt läuft“ und das Menüleisten-Menü das ab.
 
 ### Später (optional)
