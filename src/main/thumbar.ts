@@ -53,24 +53,38 @@ export function setupThumbar(
     if (!force && key === applied) return;
     // Active buttons get no flags: with 'enabled', Electron rejects the whole
     // toolbar (setThumbarButtons returns false), so it vanished during playback.
-    const flags: 'disabled'[] | undefined = state ? undefined : ['disabled'];
+    const flags = (hidden = false): { flags?: ('disabled' | 'hidden')[] } => {
+      const list: ('disabled' | 'hidden')[] = [];
+      if (!state) list.push('disabled');
+      if (hidden) list.push('hidden');
+      return list.length ? { flags: list } : {};
+    };
+    // Play and pause sit in two slots of their own, one of them hidden: Windows
+    // keeps showing a button's old icon when only the icon changes (the tooltip
+    // did change), but showing and hiding buttons works.
     const ok = window.setThumbarButtons([
       {
         tooltip: 'Zurück',
         icon: image('previous', dark),
-        ...(flags && { flags }),
+        ...flags(),
         click: () => command({ type: 'previous' }),
       },
       {
-        tooltip: playing ? 'Pause' : 'Abspielen',
-        icon: image(playing ? 'pause' : 'play', dark),
-        ...(flags && { flags }),
+        tooltip: 'Abspielen',
+        icon: image('play', dark),
+        ...flags(playing),
+        click: () => command({ type: 'playPause' }),
+      },
+      {
+        tooltip: 'Pause',
+        icon: image('pause', dark),
+        ...flags(!playing),
         click: () => command({ type: 'playPause' }),
       },
       {
         tooltip: 'Weiter',
         icon: image('next', dark),
-        ...(flags && { flags }),
+        ...flags(),
         click: () => command({ type: 'next' }),
       },
     ]);
