@@ -14,6 +14,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '1.8.3',
+    date: '2026-10-21',
+    items: [
+      'Auch der Mini-Player hat in der Taskleisten-Vorschau Zurück, Abspielen/Pause und Weiter.',
+    ],
+  },
+  {
     version: '1.8.2',
     date: '2026-10-21',
     items: [
