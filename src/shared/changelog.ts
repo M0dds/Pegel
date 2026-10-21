@@ -14,6 +14,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '1.8.0',
+    date: '2026-10-21',
+    items: [
+      'Windows: Fährst du in der Taskleiste über Pegel, gibt es unter dem Vorschaubild Zurück, Abspielen/Pause und Weiter.',
+    ],
+  },
+  {
     version: '1.7.1',
     date: '2026-10-20',
     items: [

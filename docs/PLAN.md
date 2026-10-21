@@ -904,7 +904,8 @@ social: {
 - [x] Zurück, Abspielen/Pause und Weiter unter dem Vorschaubild in der Taskleiste (`setThumbarButtons`, `src/main/thumbar.ts`). Ohne Titel sind die Tasten ausgegraut, das Symbol folgt dem Wiedergabestatus.
 - [x] Symbole im Code gezeichnet (`src/main/media-icons.ts`, 16/24/32 px), hell oder dunkel passend zur Taskleiste (`nativeTheme.shouldUseDarkColorsForSystemIntegratedUI`)
 - [x] Nach dem Verstecken im Tray setzt Pegel die Tasten neu (Windows verwirft sie)
-- [ ] Prüfung in der echten Taskleiste durch Johann, Changelog-Eintrag beim nächsten Release
+- [x] Changelog-Eintrag und Release 1.8.0
+- [ ] Prüfung in der echten Taskleiste durch Johann
 - macOS hat keine Vorschau-Leiste. Dort decken „Jetzt läuft“ und das Menüleisten-Menü das ab.
 
 ### Später (optional)
