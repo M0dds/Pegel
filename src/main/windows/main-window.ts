@@ -20,6 +20,7 @@ import {
 } from '../player';
 import { getSettings, onSettingsChanged, updateSettings } from '../settings';
 import { matchShortcut } from '../shortcuts';
+import { setupThumbar } from '../thumbar';
 import { showBackgroundHint } from '../tray';
 import { onUpdateStatus } from '../updater';
 import { isRectVisible } from '../window-state';
@@ -433,6 +434,7 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
   const stopIssues = onSelectorIssues((issues) => sendToUi('player:selector-issues', issues));
   const stopPage = onPagePlaylist((page) => sendToUi('player:page-playlist', page));
   const stopUpdates = onUpdateStatus((status) => sendToUi('update:status', status));
+  const stopThumbar = setupThumbar(window, sendPlayerCommand);
   // The mini player closed: the YT view stops sending bar levels.
   const stopMini = onMiniChanged(() => {
     if (!isMiniOpen() && miniSpectrumBars) setMiniSpectrumBars(0);
@@ -500,6 +502,7 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
     stopIssues();
     stopPage();
     stopUpdates();
+    stopThumbar();
     stopMini();
     stopPlaylistCreated();
     if (!view.webContents.isDestroyed()) view.webContents.close();

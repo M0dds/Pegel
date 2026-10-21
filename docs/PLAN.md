@@ -899,6 +899,14 @@ social: {
 - [x] Visualizer: keine Kappen am Boden, solange nichts spielt (vorher eine gestrichelte Linie)
 - [x] Changelog-Eintrag und Release 1.7.0
 
+### M16 – Mediensteuerung in der Taskleisten-Vorschau (Windows)
+
+- [x] Zurück, Abspielen/Pause und Weiter unter dem Vorschaubild in der Taskleiste (`setThumbarButtons`, `src/main/thumbar.ts`). Ohne Titel sind die Tasten ausgegraut, das Symbol folgt dem Wiedergabestatus.
+- [x] Symbole im Code gezeichnet (`src/main/media-icons.ts`, 16/24/32 px), hell oder dunkel passend zur Taskleiste (`nativeTheme.shouldUseDarkColorsForSystemIntegratedUI`)
+- [x] Nach dem Verstecken im Tray setzt Pegel die Tasten neu (Windows verwirft sie)
+- [ ] Prüfung in der echten Taskleiste durch Johann, Changelog-Eintrag beim nächsten Release
+- macOS hat keine Vorschau-Leiste. Dort decken „Jetzt läuft“ und das Menüleisten-Menü das ab.
+
 ### Später (optional)
 
 - Liedtexte im Seitenpanel, Last.fm-Scrobbling, weitere Themes
