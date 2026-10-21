@@ -14,6 +14,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '1.8.2',
+    date: '2026-10-21',
+    items: [
+      'Der mittlere Knopf in der Taskleisten-Vorschau wechselt jetzt richtig zwischen Abspielen und Pause.',
+    ],
+  },
+  {
     version: '1.8.1',
     date: '2026-10-21',
     items: [
