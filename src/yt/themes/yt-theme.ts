@@ -88,7 +88,13 @@ export const YT_ELEMENT_COLORS: readonly {
 }[] = [
   {
     selector: SELECTORS.progressBar,
-    vars: { '--paper-slider-active-color': 'accent', '--paper-progress-active-color': 'accent' },
+    vars: {
+      '--paper-slider-active-color': 'accent',
+      '--paper-progress-active-color': 'accent',
+      // The knob shown on hover/focus takes YT's brand red via this variable.
+      // Set only here, so YT's red elsewhere (logo, badges) stays.
+      '--yt-sys-color-baseline--static-brand-red': 'accent',
+    },
   },
 ];
 
