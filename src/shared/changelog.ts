@@ -14,6 +14,11 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '1.8.4',
+    date: '2026-10-21',
+    items: ['Der Punkt auf der Zeitleiste hat jetzt die Farbe des Themes statt YouTube-Rot.'],
+  },
+  {
     version: '1.8.3',
     date: '2026-10-21',
     items: [
