@@ -937,7 +937,7 @@ social: {
 - Bleibt: Beim Öffnen zeigt YT ca. 50 ms sein altes Bild abgeschnitten an der neuen Kante, bis es neu gezeichnet hat (Chromium).
 - [x] Panel-Ansicht über YT, neuer Ablauf im Main-Prozess, Schubladen-Fix
 - [x] Bildfolgen in Nordlicht und Sakura, mit „Bewegung reduzieren“, EQ/Social-Wechsel, Einstellungsseite
-- [ ] Gefühl von Johann abgenommen
+- [x] Gefühl von Johann abgenommen
 - [ ] Changelog-Eintrag und Release (wenn Johann es sagt)
 
 ### Später (optional)
