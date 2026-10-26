@@ -71,7 +71,12 @@ describe('buildYtThemeCss', () => {
     // Every theme gets the fix for YT's repeating gradient tile.
     expect(buildYtThemeCss(THEMES.standard)).toContain('background-repeat: no-repeat');
     const props = [...buildYtBackgroundCss(THEMES.bernstein).matchAll(/([a-z-]+)\s*:\s*[^;{}]+;/g)];
-    expect(props.map((m) => m[1])).toEqual(['opacity', 'background-image', 'background-size']);
+    expect(props.map((m) => m[1])).toEqual([
+      'background-color',
+      'opacity',
+      'background-image',
+      'background-size',
+    ]);
   });
 
   it('limits the polish to scrollbars and menu surface properties', () => {
@@ -91,8 +96,6 @@ describe('buildYtThemeCss', () => {
       'scrollbar-width',
       // YT's own scrollbar room next to the player bar, matched to Pegel's scrollbar.
       '--ytmusic-scrollbar-width',
-      // The sidebar drawer skips its slide right after a size change (side panel).
-      'transition',
     ]);
     const css = buildYtPolishCss(THEMES.sakura);
     // The one margin allowed: the page scrollbar's track stops above the player bar.

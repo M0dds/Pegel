@@ -1,6 +1,11 @@
 import { app, BrowserWindow, clipboard, screen, type WebContents, WebContentsView } from 'electron';
 import type { MainToUiChannels, MainToYtChannels, PayloadArgs } from '@shared/ipc';
-import { MAIN_WINDOW_DEFAULT, MAIN_WINDOW_MIN, PANEL_SPACE, TITLEBAR_HEIGHT } from '@shared/layout';
+import {
+  EQ_PANEL_WIDTH,
+  MAIN_WINDOW_DEFAULT,
+  MAIN_WINDOW_MIN,
+  TITLEBAR_HEIGHT,
+} from '@shared/layout';
 import { findPegelLink, isSameContent, type PegelLink } from '@shared/links';
 import { themeEffect } from '@shared/effects';
 import { THEMES } from '@shared/themes';
@@ -45,11 +50,9 @@ const PANEL_CLOSE_FALLBACK_MS = 450;
 
 let win: BrowserWindow | null = null;
 let ytView: WebContentsView | null = null;
-/** The floating card of the EQ and Social panels, a see-through view above YT. */
-let panelView: WebContentsView | null = null;
 let currentView: View = 'music';
-/** Whether the card's view is shown: while a side panel is open and during its slide-out. */
-let panelVisible = false;
+/** Whether the YT view currently leaves room for the EQ panel. */
+let panelSpace = false;
 let panelCloseTimer: NodeJS.Timeout | null = null;
 /** The clipboard link offered in the title bar. */
 let offeredLink: PegelLink | null = null;
@@ -64,13 +67,12 @@ export function getView(): View {
   return currentView;
 }
 
-/** Sends to every Pegel UI (main window, mini player and the panel card; not the YT view). */
+/** Sends to every Pegel UI window (main window and mini player; the YT view is not one). */
 export function sendToUi<C extends keyof MainToUiChannels>(
   channel: C,
   ...args: PayloadArgs<MainToUiChannels[C]>
 ): void {
   for (const window of BrowserWindow.getAllWindows()) window.webContents.send(channel, ...args);
-  panelView?.webContents.send(channel, ...args);
 }
 
 export function showView(view: View): void {
@@ -84,7 +86,6 @@ export function showView(view: View): void {
   currentView = view;
   const showYt = view === 'music';
   ytView.setVisible(showYt);
-  syncPanelView();
   if (showYt) ytView.webContents.focus();
   else win.webContents.focus();
   sendToUi('view:changed', view);
@@ -187,28 +188,17 @@ export function toggleSocialPanel(forceOpen = false): void {
   });
 }
 
-/** The card's view is only shown on the music view (Pegel pages cover YT and the card). */
-function syncPanelView(): void {
-  if (!panelView) return;
-  const show = panelVisible && currentView === 'music';
-  if (!show && panelView.webContents.isFocused()) ytView?.webContents.focus();
-  panelView.setVisible(show);
-}
-
 /**
- * YT's view gives up or takes back the space at once, right at the click: its
- * content reflows once while the card slides over it, on a background that stays
- * put (the main window behind both). Opening shows the card's view first; closing
- * hides it once the card has slid out.
+ * Opening: the YT view shrinks at once and the panel slides into the free space.
+ * Closing: the panel slides out first, then the YT view takes the space back.
  */
 function updatePanelSpace(open: boolean): void {
   if (panelCloseTimer) clearTimeout(panelCloseTimer);
   panelCloseTimer = null;
-  layout();
   if (open) {
-    panelVisible = true;
-    syncPanelView();
-  } else if (panelVisible) {
+    panelSpace = true;
+    layout();
+  } else if (panelSpace) {
     panelCloseTimer = setTimeout(() => onPanelAnimationDone(false), PANEL_CLOSE_FALLBACK_MS);
   }
 }
@@ -217,8 +207,8 @@ export function onPanelAnimationDone(open: boolean): void {
   if (open || sidePanelOpen(getSettings())) return;
   if (panelCloseTimer) clearTimeout(panelCloseTimer);
   panelCloseTimer = null;
-  panelVisible = false;
-  syncPanelView();
+  panelSpace = false;
+  layout();
 }
 
 /** EQ values relevant for the audio engine (panelOpen is UI only). */
@@ -351,33 +341,17 @@ export function retryYt(): void {
   if (ytView) reloadYtView(ytView);
 }
 
-/** Places the YT view below the title bar, left of an open side panel; the card's view on the right. */
+/** Places the YT view below the title bar and left of the EQ panel. */
 function layout(): void {
   if (!win || !ytView) return;
   const [width, height] = win.getContentSize() as [number, number];
-  const panel = sidePanelOpen(getSettings()) ? PANEL_SPACE : 0;
-  const contentHeight = Math.max(0, height - TITLEBAR_HEIGHT);
+  const panel = panelSpace ? EQ_PANEL_WIDTH : 0;
   ytView.setBounds({
     x: 0,
     y: TITLEBAR_HEIGHT,
     width: Math.max(0, width - panel),
-    height: contentHeight,
+    height: Math.max(0, height - TITLEBAR_HEIGHT),
   });
-  panelView?.setBounds({
-    x: Math.max(0, width - PANEL_SPACE),
-    y: TITLEBAR_HEIGHT,
-    width: PANEL_SPACE,
-    height: contentHeight,
-  });
-}
-
-/** The card's view: see-through around the card, hidden while no panel is shown. */
-function createPanelView(): WebContentsView {
-  const view = new WebContentsView({ webPreferences: UI_WEB_PREFERENCES });
-  view.setBackgroundColor('#00000000');
-  view.setVisible(false);
-  loadUi(view.webContents, { theme: getSettings().theme, view: 'panel' });
-  return view;
 }
 
 function platformChrome(): Electron.BrowserWindowConstructorOptions {
@@ -398,11 +372,6 @@ function restoredBounds(): Electron.Rectangle | undefined {
   return isRectVisible(bounds, workAreas) ? bounds : undefined;
 }
 
-/** The main window's own page, the YT view or the panel card (not the mini player). */
-function inMainWindow(wc: WebContents): boolean {
-  return wc === win?.webContents || wc === ytView?.webContents || wc === panelView?.webContents;
-}
-
 function handleShortcuts(wc: WebContents): void {
   wc.on('before-input-event', (event, input) => {
     const action = matchShortcut(input, process.platform, !app.isPackaged);
@@ -411,11 +380,11 @@ function handleShortcuts(wc: WebContents): void {
     if (action.type === 'devtools') return wc.toggleDevTools();
     if (action.type === 'toggleMini') return toggleMiniPlayer();
     if (action.type === 'reloadYt') {
-      if (!inMainWindow(wc)) closeMiniPlayer();
+      if (wc !== win?.webContents && wc !== ytView?.webContents) closeMiniPlayer();
       return reloadYt();
     }
     // From the mini player, Pegel pages and the EQ open in the main window.
-    if (!inMainWindow(wc)) closeMiniPlayer();
+    if (wc !== win?.webContents && wc !== ytView?.webContents) closeMiniPlayer();
     if (action.type === 'show') showView(action.view);
     else if (action.type === 'toggleSocial') toggleSocialPanel();
     else toggleEqPanel();
@@ -459,7 +428,7 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
     webPreferences: UI_WEB_PREFERENCES,
   });
   win = window;
-  panelVisible = sidePanelOpen(getSettings());
+  panelSpace = sidePanelOpen(getSettings());
   const stopWatching = watchSettings();
   const stopPlayer = onPlayerState((state) => sendToUi('player:state', state));
   const stopIssues = onSelectorIssues((issues) => sendToUi('player:selector-issues', issues));
@@ -485,12 +454,7 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
   });
   ytView = view;
   window.contentView.addChildView(view);
-  // Above YT, so the card can slide over YT's content while that reflows.
-  const panel = createPanelView();
-  panelView = panel;
-  window.contentView.addChildView(panel);
   layout();
-  syncPanelView();
 
   window.on('resize', layout);
   window.on('maximize', layout);
@@ -502,7 +466,6 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
   window.on('blur', () => queueClipboard(rememberClipboardLink));
   handleShortcuts(window.webContents);
   handleShortcuts(view.webContents);
-  handleShortcuts(panel.webContents);
 
   // A full page load in the YT view starts without a track.
   view.webContents.on('did-start-navigation', (event) => {
@@ -543,15 +506,13 @@ export function createMainWindow({ show = true }: { show?: boolean } = {}): Brow
     stopMini();
     stopPlaylistCreated();
     if (!view.webContents.isDestroyed()) view.webContents.close();
-    if (!panel.webContents.isDestroyed()) panel.webContents.close();
     win = null;
     ytView = null;
-    panelView = null;
     currentView = 'music';
   });
 
   // The theme comes along in the URL so the UI paints in the right colours from the start.
-  loadUi(window.webContents, { theme: getSettings().theme });
+  loadUi(window, { theme: getSettings().theme });
 
   return window;
 }

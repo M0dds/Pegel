@@ -173,7 +173,7 @@ function drawAurora(
 
 export const AURORA: EffectPart = {
   /** Stars in the sky. */
-  count: { small: 30, large: 55 },
+  count: { ui: 30, yt: 55 },
   css: CSS,
   build(doc, layer, count) {
     const between = rangeRandom(53);

@@ -132,5 +132,5 @@ export const PETALS = fallingShapes({
     'var(--fx-accent)',
     'color-mix(in oklch, var(--fx-accent) 80%, var(--fx-bg))',
   ],
-  count: { small: 8, large: 14 },
+  count: { ui: 8, yt: 14 },
 });
