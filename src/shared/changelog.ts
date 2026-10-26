@@ -14,6 +14,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '1.9.0',
+    date: '2026-10-26',
+    items: [
+      'Songs per Drag & Drop in Playlists: Zieh einen Song aus einer Liste, der Warteschlange oder der Player-Leiste auf eine deiner Playlists in der Seitenleiste. Esc bricht ab.',
+      'Ist der Song schon in der Playlist, sagt Pegel das und bietet „Trotzdem hinzufügen“ an.',
+    ],
+  },
+  {
     version: '1.8.4',
     date: '2026-10-21',
     items: ['Der Punkt auf der Zeitleiste hat jetzt die Farbe des Themes statt YouTube-Rot.'],
