@@ -938,7 +938,7 @@ social: {
 - [x] Panel-Ansicht über YT, neuer Ablauf im Main-Prozess, Schubladen-Fix
 - [x] Bildfolgen in Nordlicht und Sakura, mit „Bewegung reduzieren“, EQ/Social-Wechsel, Einstellungsseite
 - [x] Gefühl von Johann abgenommen
-- [ ] Changelog-Eintrag und Release (wenn Johann es sagt)
+- [x] Changelog-Eintrag und Release 1.9.0 (zusammen mit Drag & Drop und den Fixes für Anmeldung und EQ-Start)
 
 ### Später (optional)
 

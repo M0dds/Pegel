@@ -19,6 +19,9 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
     items: [
       'Songs per Drag & Drop in Playlists: Zieh einen Song aus einer Liste, der Warteschlange oder der Player-Leiste auf eine deiner Playlists in der Seitenleiste. Esc bricht ab.',
       'Ist der Song schon in der Playlist, sagt Pegel das und bietet „Trotzdem hinzufügen“ an.',
+      'Equalizer und Freunde-Panel gleiten jetzt flüssig über YouTube Music, ohne Ruckler und schwarzen Streifen beim Schließen.',
+      'Die Google-Anmeldung bleibt in Pegel, statt am Ende im Browser zu landen.',
+      'Beim ersten Start ist der Equalizer zugeklappt.',
     ],
   },
   {
