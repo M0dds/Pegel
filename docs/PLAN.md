@@ -59,11 +59,11 @@ Voraussetzungen auf dem Rechner: Node.js 22 LTS und Git. Für den macOS-Build is
 │  webContents = Pegel-UI (React, Route "/")                                     │
 │  ┌──────────── Titelleiste (eigene UI, -webkit-app-region: drag) ───────────┐  │
 │  ├───────────────────────────────────────────────┬──────────────────────────┤  │
-│  │  WebContentsView "yt"                         │  EQ-Panel (eigene UI)    │  │
-│  │  music.youtube.com                            │  372 px, ein-/ausklapp-  │  │
-│  │  • Partition persist:pegel                    │  bar                     │  │
-│  │  • preload: yt-preload (EQ, Player-Bridge)    │                          │  │
-│  │  • insertCSS: Theme-Overrides                 │                          │  │
+│  │  WebContentsView "yt" (durchsichtig)          │  WebContentsView "panel" │  │
+│  │  music.youtube.com                            │  Route "/panel": EQ und  │  │
+│  │  • Partition persist:pegel                    │  Social als schwebende   │  │
+│  │  • preload: yt-preload (EQ, Player-Bridge)    │  Karte (372 px), über YT │  │
+│  │  • insertCSS: Theme-Overrides                 │  durchsichtig daneben    │  │
 │  └───────────────────────────────────────────────┴──────────────────────────┘  │
 └────────────────────────────────────────────────────────────────────────────────┘
           ▲ IPC (typisierte Kanäle)                                   ▲
@@ -72,11 +72,11 @@ Voraussetzungen auf dem Rechner: Node.js 22 LTS und Git. Für den macOS-Build is
  Mini-Player-Fenster (Pegel-UI, Route "/mini")         Tray-Menü / Discord-RPC
 ```
 
-**Prinzip:** Das Hauptfenster rendert die Pegel-UI über die ganze Fläche. Die YT-Music-Ansicht ist eine `WebContentsView`, die der Main-Prozess per `setBounds()` über den Inhaltsbereich legt: unterhalb der Titelleiste und links vom EQ-Panel. Für die Seiten „Einstellungen“ und „Willkommen“ wird die YT-Ansicht ausgeblendet (`setVisible(false)`), und die Pegel-UI zeigt die Seite.
+**Prinzip:** Das Hauptfenster rendert die Pegel-UI über die ganze Fläche, auch den Hintergrund (Theme-Farbe und Hintergrund-Effekt) hinter allem. Die YT-Music-Ansicht ist eine durchsichtige `WebContentsView`, die der Main-Prozess per `setBounds()` über den Inhaltsbereich legt: unterhalb der Titelleiste und links von einem offenen Seitenpanel. EQ und Social liegen als schwebende Karte in einer eigenen durchsichtigen Ansicht über YT (siehe M18). Für die Seiten „Einstellungen“ und „Willkommen“ werden YT-Ansicht und Karte ausgeblendet (`setVisible(false)`), und die Pegel-UI zeigt die Seite.
 
 Vorteil: Die eigene Oberfläche hängt nicht vom HTML von Google ab. Wenn Google YT Music umbaut, bleiben Titelleiste, EQ-Panel und Einstellungen heil.
 
-Die EQ-Panel-Breite und die Titelleistenhöhe sind Konstanten in `shared/layout.ts`. Main-Prozess und UI nutzen dieselben Werte. Das Ein- und Ausklappen animiert die UI. Der Main-Prozess passt die Bounds an, sobald die UI meldet, dass die Animation beendet ist (Zwischenschritte sind optional).
+Panel-Breite, Abstand der Karte und Titelleistenhöhe sind Konstanten in `shared/layout.ts`. Main-Prozess und UI nutzen dieselben Werte. Beim Öffnen und Schließen ändert der Main-Prozess die Bounds der YT-Ansicht sofort beim Klick, die Karte gleitet darüber. Ihre Ansicht blendet er aus, sobald die Karte meldet, dass sie hinausgeglitten ist.
 
 ### 3.1 Prozesse und Verantwortlichkeiten
 
@@ -926,6 +926,21 @@ social: {
 - [x] Changelog-Eintrag (1.9.0)
 - [ ] Release (wenn Johann es sagt)
 - Offen: YT merkt sich „zuletzt verwendete“ Playlists auf dem Server (Leiste „Neueste“ im Hinzufügen-Dialog); Pegels Ablegen landet dort ebenfalls. Ob das YTs direktes Hinzufügen per Kontextmenü beeinflusst, ist ungeprüft.
+
+### M18 – Seitenpanels als schwebende Karte, ein gemeinsamer Hintergrund
+
+> Wunsch von Johann nach 1.9.0: Das Auf- und Zuklappen war gut, aber YT Music brauchte danach immer einen Moment, um sich anzupassen. Gemessen (Fenster-Aufnahme mit `PrintWindow`, ca. 130 Bilder/s): Beim Schließen glitt das Panel hinaus, dann standen ca. 170 ms lang YTs alte Breite und eine Naht zwischen zwei Polarlicht-Ebenen, danach ca. 50 ms ein schwarzer Streifen, bis YT sich bei ca. 520 ms neu aufbaute. YTs Hintergrund-Effekt wurde dabei mitgestreckt.
+
+- **Ein Hintergrund:** Die YT-Ansicht ist durchsichtig (`setBackgroundColor('#00000000')`, `html, body` transparent in allen Themes). Das Hauptfenster malt Theme-Farbe und Hintergrund-Effekt einmal hinter allem, die Größe bleibt dabei unverändert. YT bekommt nur noch die vorderen Effekt-Teile (Blüten, Funken …). Googles Login-Seiten bleiben weiß. Effekte haben Teilchenzahlen pro Fläche (`small`/`large`) statt pro Ansicht.
+- **Schwebende Karte:** EQ und Social liegen in einer Karte (372 px, 14 px Radius, 10 px Abstand zu Titelleiste, Rand und YT, Rahmen und weicher Schatten innerhalb des Abstands). Sie liegt in einer eigenen durchsichtigen `WebContentsView` über YT (Route `/panel`, `PanelCard.tsx`), denn die Pegel-UI liegt technisch immer unter YT. Geschlossen ist die Ansicht ausgeblendet, damit sie keine Klicks schluckt. Wechsel zwischen EQ und Social: Das alte blendet kurz aus, dann das neue ein, die Karte bleibt.
+- **Ablauf:** YT gibt den Platz sofort beim Klick ab bzw. zurück und baut sich einmal neu auf, während die Karte darübergleitet. Öffnen: 0,34 s ease-out mit Einblenden. Schließen: 0,26 s ease-in-out, die Karte bleibt deckend bis kurz vor Schluss (halb durchsichtig würde sie sich mit YTs Inhalt mischen). „Bewegung reduzieren“: nur Ein- und Ausblenden (0,15 s).
+- **YTs Seitenleiste:** Wird YT dabei schmaler als sein Umbruchpunkt, schiebt YT die Seitenleiste als Schublade weg (0,2 s, einige Bilder halb verschobener Inhalt). Für 400 ms nach jeder Größenänderung hat die Schublade keinen Übergang (`pegel-resizing` an `<html>`, `src/yt/decor/resize.ts`, Selektor `guideDrawer`). Das Menü öffnet und schließt danach wie gewohnt.
+- Bleibt: Beim Öffnen zeigt YT für ca. 50 ms sein altes Bild abgeschnitten an der neuen Kante, bis es neu gezeichnet hat. Das liegt an Chromium und lässt sich von außen nicht beschleunigen.
+- [x] Gemeinsamer Hintergrund, durchsichtige YT-Ansicht, Effekt-Ebenen pro Ansicht
+- [x] Karte in eigener Ansicht, neuer Ablauf im Main-Prozess, EQ/Social-Wechsel
+- [x] Bildfolgen (Fenster-Aufnahme) in Nordlicht, Sakura, Standard, Mitternacht und Neon, mit „Bewegung reduzieren“, mit laufender Player-Leiste, Einstellungsseite und geänderter Fenstergröße
+- [ ] Gefühl von Johann abgenommen
+- [ ] Changelog-Eintrag und Release (wenn Johann es sagt)
 
 ### Später (optional)
 

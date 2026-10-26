@@ -3,7 +3,12 @@ export const FX_ROOT_ID = 'pegel-fx';
 /** CSS prefix every effect scopes its rules with. */
 export const FX = `#${FX_ROOT_ID}`;
 
-export type EffectTarget = 'ui' | 'yt';
+/**
+ * How big the area under a layer is, for the number of particles: `large` covers
+ * the whole window (the background behind everything, the YT page), `small` only
+ * Pegel's own strips (title bar, panel card).
+ */
+export type EffectSize = 'small' | 'large';
 
 /**
  * One part of a theme's optional animated extra, e.g. the stars or the fireflies.
@@ -12,11 +17,11 @@ export type EffectTarget = 'ui' | 'yt';
  * from the theme tokens: `--fx-accent`, `--fx-text`, `--fx-bg`.
  */
 export interface EffectPart {
-  /** Number of particles (or bands, buildings …) in the Pegel UI and over the YT page. */
-  count: Record<EffectTarget, number>;
+  /** Number of particles (or bands, buildings …) per area size. */
+  count: Record<EffectSize, number>;
   /** Rules scoped with `FX`, including the `prefers-reduced-motion` fallback. */
   css: string;
-  build(doc: Document, layer: HTMLElement, count: number, target: EffectTarget): void;
+  build(doc: Document, layer: HTMLElement, count: number): void;
 }
 
 export interface ThemeEffect {

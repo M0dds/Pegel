@@ -94,7 +94,7 @@ const SHOOTING: readonly [number, number, number, number][] = [
 ];
 
 export const STARS: EffectPart = {
-  count: { ui: 34, yt: 64 },
+  count: { small: 34, large: 64 },
   css: CSS,
   build(doc, layer, count) {
     const sky = doc.createElement('div');

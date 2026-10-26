@@ -63,7 +63,7 @@ export function sparkConfigs(count: number, seed = 5): Spark[] {
 }
 
 export const SPARKS: EffectPart = {
-  count: { ui: 8, yt: 16 },
+  count: { small: 8, large: 16 },
   css: CSS,
   build(doc, root, count) {
     for (const s of sparkConfigs(count)) {

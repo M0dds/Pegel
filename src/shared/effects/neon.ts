@@ -73,7 +73,7 @@ ${FX} .ny-scan {
 
 export const NEON: EffectPart = {
   /** Rain drops. */
-  count: { ui: 10, yt: 16 },
+  count: { small: 10, large: 16 },
   css: CSS,
   build(doc, layer, count) {
     const between = rangeRandom(37);

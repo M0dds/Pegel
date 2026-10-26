@@ -58,7 +58,7 @@ export function moteConfigs(count: number, seed = 13): Mote[] {
 }
 
 export const MOTES: EffectPart = {
-  count: { ui: 10, yt: 18 },
+  count: { small: 10, large: 18 },
   css: CSS,
   build(doc, root, count) {
     for (const m of moteConfigs(count)) {

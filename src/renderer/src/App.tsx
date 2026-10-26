@@ -3,10 +3,8 @@ import { watchLinkDrops } from '@shared/link-drop';
 import type { PegelLink } from '@shared/links';
 import { playlistDropText, type PlaylistDropReport } from '@shared/playlist-drop';
 import type { UpdateStatus } from '@shared/update';
-import type { AppInfo, PagePlaylist, PlayerState, Settings, View } from '@shared/types';
+import type { AppInfo, Settings, View } from '@shared/types';
 import { EMPTY_SOCIAL_STATE, type SocialState } from '@shared/social';
-import { EqPanel } from './components/eq/EqPanel';
-import { SocialPanel } from './components/social/SocialPanel';
 import { Titlebar, type TitlebarHint } from './components/Titlebar';
 import { ThemeEffectLayer } from './components/ThemeEffectLayer';
 import { applyTheme } from './styles/theme';
@@ -40,8 +38,6 @@ export function App() {
   const [changelog, setChangelog] = useState<{ auto: boolean } | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [selectorIssues, setSelectorIssues] = useState<string[]>([]);
-  const [playing, setPlaying] = useState<PlayerState | null>(null);
-  const [pagePlaylist, setPagePlaylist] = useState<PagePlaylist | null>(null);
   const [sidebarOutdated, setSidebarOutdated] = useState(false);
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [linkOffer, setLinkOffer] = useState<PegelLink | null>(null);
@@ -72,10 +68,6 @@ export function App() {
     const offSettings = window.pegel.onSettingsChanged(setSettings);
     void window.pegel.getSelectorIssues().then(setSelectorIssues);
     const offIssues = window.pegel.onSelectorIssues(setSelectorIssues);
-    void window.pegel.getPlayerState().then(setPlaying);
-    const offPlayer = window.pegel.onPlayerState(setPlaying);
-    void window.pegel.getPagePlaylist().then(setPagePlaylist);
-    const offPage = window.pegel.onPagePlaylist(setPagePlaylist);
     const offSidebar = window.pegel.onSidebarOutdated(setSidebarOutdated);
     const offLink = window.pegel.onLinkOffer(setLinkOffer);
     const offDrop = window.pegel.onPlaylistDrop((report) =>
@@ -93,8 +85,6 @@ export function App() {
       offView();
       offSettings();
       offIssues();
-      offPlayer();
-      offPage();
       offSidebar();
     };
   }, []);
@@ -205,21 +195,12 @@ export function App() {
         animatedPetals={effectTheme === 'sakura'}
         hint={hint}
       />
-      {effectTheme && <ThemeEffectLayer theme={effectTheme} />}
+      {/* The background behind everything, also behind the see-through YT view and panel card. */}
+      {effectTheme && (
+        <ThemeEffectLayer theme={effectTheme} layers={{ back: 'large', front: 'small' }} />
+      )}
+      {/* On the music view, the main process lays the YT view and the panel card over .content. */}
       <div className="content">
-        <div className="music">
-          {/* The main process lays the YT view over this slot. */}
-          <div className="yt-slot" />
-          {settings && (
-            <EqPanel
-              eq={settings.eq}
-              open={panelOpen}
-              playing={playing}
-              pagePlaylist={pagePlaylist}
-            />
-          )}
-          {settings && <SocialPanel state={social} settings={settings.social} open={socialOpen} />}
-        </div>
         {view === 'settings' && settings && (
           <SettingsPage
             settings={settings}

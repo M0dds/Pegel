@@ -45,7 +45,7 @@ const MIST: readonly [number, number, number, number][] = [
 ];
 
 export const WOODS: EffectPart = {
-  count: { ui: 1, yt: 1 },
+  count: { small: 1, large: 1 },
   css: CSS,
   build(doc, layer) {
     const between = rangeRandom(41);
@@ -78,7 +78,7 @@ export const LEAVES = fallingShapes({
     'oklch(from var(--fx-text) calc(l - 0.42) calc(c + 0.07) h)',
     'var(--fx-accent)',
   ],
-  count: { ui: 4, yt: 7 },
+  count: { small: 4, large: 7 },
   seed: 19,
   sizes: [8, 13],
 });

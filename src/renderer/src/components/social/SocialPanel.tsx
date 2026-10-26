@@ -10,6 +10,7 @@ import { RowMenu } from './RowMenu';
 interface Props {
   state: SocialState;
   settings: SocialSettings;
+  /** Shown in the panel card (the other panel fades out). */
   open: boolean;
 }
 
@@ -36,20 +37,12 @@ function nowPlayingText(np: { title: string; artist: string } | null): string {
   return np.artist ? `${np.title} – ${np.artist}` : np.title;
 }
 
-/** Friends & listening party, right of YT like the EQ panel. */
+/** Friends & listening party, in the panel card like the EQ panel. */
 export function SocialPanel({ state, settings, open }: Props) {
   const [adding, setAdding] = useState(false);
 
   return (
-    <aside
-      className={`eq social${open ? ' open' : ''}`}
-      aria-hidden={!open}
-      onTransitionEnd={(e) => {
-        if (e.target === e.currentTarget && e.propertyName === 'width') {
-          window.pegel.eqPanelAnimationDone(open);
-        }
-      }}
-    >
+    <aside className={`eq social${open ? ' open' : ''}`} aria-hidden={!open}>
       <div className="eq-inner">
         <div className="eq-head">
           <h3>Social</h3>

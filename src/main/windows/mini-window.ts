@@ -160,7 +160,7 @@ export function openMiniWindow(
     emit();
   });
 
-  loadUi(window, { theme: miniThemeId(settings), view: 'mini' });
+  loadUi(window.webContents, { theme: miniThemeId(settings), view: 'mini' });
   emit();
   return window;
 }

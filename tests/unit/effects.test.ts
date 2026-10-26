@@ -133,7 +133,7 @@ describe('theme effects', () => {
             expect(one.trim()).toMatch(/^#pegel-fx /);
           }
         }
-        expect(part.count.yt).toBeGreaterThanOrEqual(part.count.ui);
+        expect(part.count.large).toBeGreaterThanOrEqual(part.count.small);
       }
     }
   });

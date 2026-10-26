@@ -18,7 +18,9 @@ export class YtDecor {
     const mount = () => {
       // The theme may have changed while waiting for the body.
       if (this.theme !== wanted || document.getElementById(FX_ROOT_ID)) return;
-      const layer = createThemeEffectLayer(document, wanted, 'yt');
+      // Only what floats over YT's content: the background behind it is drawn
+      // once by the main window, which shows through the see-through YT view.
+      const layer = createThemeEffectLayer(document, wanted, { front: 'large' });
       // At the end of <body>, next to (not inside) YT's app element, so YT never
       // re-renders or removes it.
       if (layer) document.body.append(layer);

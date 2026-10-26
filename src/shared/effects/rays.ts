@@ -56,7 +56,7 @@ export function rayConfigs(count: number, seed = 43): Ray[] {
 }
 
 export const RAYS: EffectPart = {
-  count: { ui: 4, yt: 5 },
+  count: { small: 4, large: 5 },
   css: CSS,
   build(doc, layer, count) {
     const sun = doc.createElement('div');

@@ -2,6 +2,7 @@ import type { Theme, ThemeToken } from '@shared/themes';
 import { SELECTORS } from '../selectors';
 import { NO_SCROLLBAR_ATTR, PLAYER_BAR_HEIGHT_VAR } from '../decor/scrollbar';
 import { buildYtDragCss } from '../dnd/styles';
+import { RESIZING_ATTR } from '../decor/resize';
 
 /**
  * YT Music's own colour variables (defined on `html`), grouped by the Pegel
@@ -113,6 +114,10 @@ const SCROLLBAR_PX = 10;
 export function buildYtPolishCss(theme: Theme): string {
   const t = theme.tokens;
   return `
+/* See-through page (the view is transparent too): the main window draws the theme
+   background and its effect once behind YT and the panel card, so it stays put
+   while YT's view changes size. YT paints a fixed #030303 here otherwise. */
+html, body { background-color: transparent !important; }
 /* YT sets scrollbar-color everywhere, which makes Chromium ignore ::-webkit-scrollbar. */
 * { scrollbar-color: auto !important; scrollbar-width: auto !important; }
 ::-webkit-scrollbar { width: ${SCROLLBAR_PX}px !important; height: ${SCROLLBAR_PX}px !important; }
@@ -173,6 +178,10 @@ body * { ${PLAYER_BAR_HEIGHT_VAR}: 0px; }
     ) !important;
 }
 
+/* Right after a size change (side panel), the sidebar drawer switches without sliding. */
+html[${RESIZING_ATTR}] ${SELECTORS.guideDrawer},
+html[${RESIZING_ATTR}] ${SELECTORS.guideDrawer} * { transition: none !important; }
+
 /* YT bug: the gradient is one 287 px tile repeated down the whole page (stripes). */
 ${SELECTORS.browseGradient} { background-repeat: no-repeat !important; }
 `;
@@ -186,10 +195,8 @@ ${SELECTORS.browseGradient} { background-repeat: no-repeat !important; }
  * Hides the art with opacity only, so nothing moves.
  */
 export function buildYtBackgroundCss(theme: Theme): string {
-  const { accent, bg } = theme.tokens;
+  const { accent } = theme.tokens;
   return `
-/* YT paints the page itself with a fixed #030303, not via its variables. */
-html, body { background-color: ${bg} !important; }
 ${SELECTORS.browseBackground} { opacity: 0 !important; }
 ${SELECTORS.browseGradient} {
   background-image: linear-gradient(180deg, color-mix(in srgb, ${accent} 12%, transparent) 0, transparent 420px) !important;

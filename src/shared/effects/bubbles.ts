@@ -94,7 +94,7 @@ export function bubbleConfigs(count: number, seed = 17): Bubble[] {
 }
 
 export const BUBBLES: EffectPart = {
-  count: { ui: 7, yt: 14 },
+  count: { small: 7, large: 14 },
   css: CSS,
   build(doc, root, count) {
     for (const b of bubbleConfigs(count)) {

@@ -3,7 +3,7 @@ import type { ThemeId } from '../types';
 import { AURORA } from './aurora';
 import { BUBBLES } from './bubbles';
 import { NEON } from './neon';
-import { FX, FX_ROOT_ID, type EffectPart, type EffectTarget, type ThemeEffect } from './common';
+import { FX, FX_ROOT_ID, type EffectPart, type EffectSize, type ThemeEffect } from './common';
 import { FIREFLIES } from './fireflies';
 import { LEAVES, WOODS } from './forest';
 import { MOTES } from './motes';
@@ -13,7 +13,7 @@ import { SPARKS } from './sparks';
 import { STARS } from './stars';
 import { WATER_LIGHT } from './waterlight';
 
-export { FX_ROOT_ID, type EffectPart, type EffectTarget, type ThemeEffect } from './common';
+export { FX_ROOT_ID, type EffectPart, type EffectSize, type ThemeEffect } from './common';
 
 function effect(
   label: string,
@@ -56,29 +56,33 @@ ${FX} > .fx-layer {
   position: fixed; inset: 0; overflow: hidden; pointer-events: none; contain: strict;
 }
 ${FX} > .fx-front { z-index: 2147483000; }
-/* Behind all content, above the page background (on <html> or the canvas). */
+/* Behind all content, above the page background. */
 ${FX} > .fx-back { z-index: -1; }
 `;
 
 /**
- * YT paints the theme background on <body> as well; it would cover a layer
- * behind the content. <html> keeps the same colour, so nothing changes visibly.
+ * Which layers a document shows, and how big its area is. The back layer lives
+ * only in the main window, behind everything (the YT view is see-through);
+ * the YT page and the panel card add the front layer over their content.
  */
-const YT_BACK_CSS = `html body { background-color: transparent !important; }`;
+export type EffectLayers = Partial<Record<'back' | 'front', EffectSize>>;
 
 /**
- * Builds the effect of a theme (null if the theme has none); the caller
- * appends it and removes it again. The root takes no space (`display:
- * contents`); its layers are fixed to the viewport. Everything is inside the
- * returned element, including its <style>, so removing it removes every trace.
+ * Builds the effect of a theme (null if the theme has none or none of the
+ * wanted layers); the caller appends it and removes it again. The root takes
+ * no space (`display: contents`); its layers are fixed to the viewport.
+ * Everything is inside the returned element, including its <style>, so
+ * removing it removes every trace.
  */
 export function createThemeEffectLayer(
   doc: Document,
   theme: ThemeId,
-  target: EffectTarget,
+  layers: EffectLayers,
 ): HTMLElement | null {
   const fx = THEME_EFFECTS[theme];
-  if (!fx) return null;
+  const back = layers.back && fx?.back;
+  const front = layers.front && fx?.front;
+  if (!back && !front) return null;
   const root = doc.createElement('div');
   root.id = FX_ROOT_ID;
   root.setAttribute('aria-hidden', 'true');
@@ -87,21 +91,16 @@ export function createThemeEffectLayer(
   root.style.setProperty('--fx-text', tokens.text);
   root.style.setProperty('--fx-bg', tokens.bg);
   const style = doc.createElement('style');
-  style.textContent =
-    BASE_CSS +
-    effectParts(fx)
-      .map((part) => part.css)
-      .join('') +
-    (fx.back && target === 'yt' ? YT_BACK_CSS : '');
+  style.textContent = BASE_CSS + [...(back || []), ...(front || [])].map((p) => p.css).join('');
   root.append(style);
-  for (const [name, parts] of [
-    ['fx-back', fx.back],
-    ['fx-front', fx.front],
+  for (const [name, parts, size] of [
+    ['fx-back', back, layers.back],
+    ['fx-front', front, layers.front],
   ] as const) {
-    if (!parts) continue;
+    if (!parts || !size) continue;
     const layer = doc.createElement('div');
     layer.className = `fx-layer ${name}`;
-    for (const part of parts) part.build(doc, layer, part.count[target], target);
+    for (const part of parts) part.build(doc, layer, part.count[size]);
     root.append(layer);
   }
   return root;

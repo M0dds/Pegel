@@ -84,9 +84,12 @@ function injectTheme(wc: WebContents): Promise<void> {
   return themeQueue;
 }
 
-/** YT Music gets the theme background; Google's login and consent pages expect white. */
+/**
+ * YT Music is see-through: the main window behind it draws the theme background
+ * (see buildYtPolishCss). Google's login and consent pages expect white.
+ */
 function updateBackground(view: WebContentsView, url: string): void {
-  view.setBackgroundColor(isMusicUrl(url) ? THEMES[getSettings().theme].tokens.bg : '#ffffff');
+  view.setBackgroundColor(isMusicUrl(url) ? '#00000000' : '#ffffff');
 }
 
 /** Live theme switch, no reload needed. */
@@ -113,7 +116,7 @@ export function createYtView(events: YtViewEvents): WebContentsView {
   });
   const wc = view.webContents;
 
-  // A dark background avoids a white flash while YT Music loads.
+  // See-through from the start: no white flash while YT Music loads.
   updateBackground(view, YT_MUSIC_URL);
   wc.on('did-start-navigation', (event) => {
     if (event.isMainFrame && !event.isSameDocument) updateBackground(view, event.url);

@@ -228,20 +228,6 @@ button {
   cursor: pointer;
 }
 
-/* ---------- Music area: YT slot + EQ panel ---------- */
-.music {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  /* Own stacking context: z-indices inside (sliders, dialog) never cover Pegel pages. */
-  isolation: isolate;
-}
-
-.yt-slot {
-  flex: 1;
-  min-width: 0;
-}
-
 /* ---------- Controls ---------- */
 .switch {
   width: 36px;
@@ -318,32 +304,77 @@ button {
   outline-offset: 2px;
 }
 
-/* ---------- EQ panel ---------- */
-.eq {
-  position: relative;
-  width: 0;
-  flex: none;
-  overflow: hidden;
-  background: var(--surface);
-  border-left: 1px solid transparent;
-  transition:
-    width 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
-    border-color 0.28s;
+/* ---------- Panel card (route /panel): EQ and Social float over YT ---------- */
+/* Own see-through view above YT; the main window's background shows around the card. */
+[data-window='panel'],
+[data-window='panel'] body {
+  background: transparent;
 }
 
-.eq.open {
-  width: 372px;
-  border-left-color: var(--border);
+.panel-host {
+  position: fixed;
+  inset: 0;
+}
+
+/* Closed, it waits just past the right edge; it slides in eased out and leaves
+   eased in and out (the main process hides the view after). Leaving, it stays opaque
+   until the last stretch: YT's content is already back underneath, and a
+   half-transparent card would mix with it. Sizes in px: the hidden view is
+   0 × 0, where percentages would collapse. */
+.panel-card {
+  position: absolute;
+  top: var(--panel-gap);
+  right: var(--panel-gap);
+  bottom: var(--panel-gap);
+  width: var(--panel-width);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 4px 12px -2px #0007;
+  transform: translateX(calc(var(--panel-width) + var(--panel-gap)));
+  opacity: 0;
+  transition:
+    transform 0.26s cubic-bezier(0.4, 0, 0.6, 1),
+    opacity 0.08s linear 0.18s;
+}
+
+.panel-card.open {
+  transform: none;
+  opacity: 1;
+  transition:
+    transform 0.34s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.2s ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .eq {
-    transition-duration: 0.01s;
+  .panel-card,
+  .panel-card.open {
+    transform: none;
+    transition: opacity 0.15s ease-out;
   }
 }
 
+/* EQ and Social share the card, which stays when switching: the old one fades
+   out quickly, then the new one fades in (both at once would mix their texts). */
+.eq {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.1s ease-in,
+    visibility 0s 0.1s;
+}
+
+.eq.open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.16s ease-out 0.08s;
+}
+
 .eq-inner {
-  width: 372px;
+  width: 100%;
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
@@ -573,18 +604,14 @@ button {
 }
 
 /* ---------- Theme effects behind the content (aurora, stars) ---------- */
-/* The layer sits at z-index -1, right above the body background. It shows through
-   the title bar and the Pegel pages; those hide the music area instead of covering it. */
+/* The layer sits at z-index -1, right above the body background: behind the title
+   bar, the Pegel pages and, on the music view, the see-through YT view and panel card. */
 .app.back-effect .titlebar {
   background: color-mix(in srgb, var(--surface) 70%, transparent);
 }
 
 .app.back-effect .page {
   background: transparent;
-}
-
-.app.back-effect:not([data-view='music']) .music {
-  visibility: hidden;
 }
 
 /* ---------- Neon: accents glow like neon tubes ---------- */

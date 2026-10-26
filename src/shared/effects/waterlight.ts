@@ -66,7 +66,7 @@ export function waterLightBands(count: number, seed = 11): LightBand[] {
 }
 
 export const WATER_LIGHT: EffectPart = {
-  count: { ui: 3, yt: 3 },
+  count: { small: 3, large: 3 },
   css: CSS,
   build(doc, root, count) {
     for (const b of waterLightBands(count)) {

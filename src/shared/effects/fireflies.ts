@@ -75,7 +75,7 @@ export function fireflyConfigs(count: number, seed = 29): Firefly[] {
 }
 
 export const FIREFLIES: EffectPart = {
-  count: { ui: 6, yt: 12 },
+  count: { small: 6, large: 12 },
   css: CSS,
   build(doc, root, count) {
     for (const f of fireflyConfigs(count)) {

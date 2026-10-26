@@ -33,6 +33,8 @@ export const SELECTORS = {
   adShowing: '#movie_player.ad-showing',
   /** Root element of YT Music; takes YT's own in-page navigation (listening party). */
   app: 'ytmusic-app',
+  /** YT's left sidebar as a drawer (narrow windows); slides with a transform transition. */
+  guideDrawer: 'tp-yt-app-drawer',
 
   // Drag & drop into playlists (src/yt/dnd).
   /** A track row in YT's lists (album, playlist, search, home) and in the queue. */
