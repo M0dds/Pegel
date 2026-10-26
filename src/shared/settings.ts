@@ -23,7 +23,7 @@ export const DEFAULT_SETTINGS: Settings = {
     preamp: 0,
     autoPreamp: true,
     levelling: true,
-    panelOpen: true,
+    panelOpen: false,
     customPresets: [],
     playlistPresets: [],
   },

@@ -85,6 +85,13 @@ describe('social notifications', () => {
   });
 });
 
+describe('equalizer panel', () => {
+  it('is closed on first start and keeps a stored choice', () => {
+    expect(normalizeSettings({}).eq.panelOpen).toBe(false);
+    expect(normalizeSettings({ eq: { panelOpen: true } }).eq.panelOpen).toBe(true);
+  });
+});
+
 describe('mini player theme and opacity', () => {
   it('uses the main theme unless its own theme is switched on', () => {
     const s = normalizeSettings({ theme: 'wald', mini: { theme: 'sakura' } });
