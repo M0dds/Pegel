@@ -59,9 +59,9 @@ Voraussetzungen auf dem Rechner: Node.js 22 LTS und Git. Für den macOS-Build is
 │  webContents = Pegel-UI (React, Route "/")                                     │
 │  ┌──────────── Titelleiste (eigene UI, -webkit-app-region: drag) ───────────┐  │
 │  ├───────────────────────────────────────────────┬──────────────────────────┤  │
-│  │  WebContentsView "yt"                         │  EQ-Panel (eigene UI)    │  │
-│  │  music.youtube.com                            │  372 px, ein-/ausklapp-  │  │
-│  │  • Partition persist:pegel                    │  bar                     │  │
+│  │  WebContentsView "yt"                         │  WebContentsView "panel" │  │
+│  │  music.youtube.com                            │  EQ und Social, 372 px,  │  │
+│  │  • Partition persist:pegel                    │  über YT, gleitet        │  │
 │  │  • preload: yt-preload (EQ, Player-Bridge)    │                          │  │
 │  │  • insertCSS: Theme-Overrides                 │                          │  │
 │  └───────────────────────────────────────────────┴──────────────────────────┘  │
@@ -72,11 +72,11 @@ Voraussetzungen auf dem Rechner: Node.js 22 LTS und Git. Für den macOS-Build is
  Mini-Player-Fenster (Pegel-UI, Route "/mini")         Tray-Menü / Discord-RPC
 ```
 
-**Prinzip:** Das Hauptfenster rendert die Pegel-UI über die ganze Fläche. Die YT-Music-Ansicht ist eine `WebContentsView`, die der Main-Prozess per `setBounds()` über den Inhaltsbereich legt: unterhalb der Titelleiste und links vom EQ-Panel. Für die Seiten „Einstellungen“ und „Willkommen“ wird die YT-Ansicht ausgeblendet (`setVisible(false)`), und die Pegel-UI zeigt die Seite.
+**Prinzip:** Das Hauptfenster rendert die Pegel-UI über die ganze Fläche. Die YT-Music-Ansicht ist eine `WebContentsView`, die der Main-Prozess per `setBounds()` über den Inhaltsbereich legt: unterhalb der Titelleiste und links von einem offenen Seitenpanel. EQ und Social liegen in einer eigenen `WebContentsView` über YT am rechten Rand (Route `/panel`, siehe M18). Für die Seiten „Einstellungen“ und „Willkommen“ werden beide ausgeblendet (`setVisible(false)`), und die Pegel-UI zeigt die Seite.
 
 Vorteil: Die eigene Oberfläche hängt nicht vom HTML von Google ab. Wenn Google YT Music umbaut, bleiben Titelleiste, EQ-Panel und Einstellungen heil.
 
-Die EQ-Panel-Breite und die Titelleistenhöhe sind Konstanten in `shared/layout.ts`. Main-Prozess und UI nutzen dieselben Werte. Das Ein- und Ausklappen animiert die UI. Der Main-Prozess passt die Bounds an, sobald die UI meldet, dass die Animation beendet ist (Zwischenschritte sind optional).
+Die Panel-Breite und die Titelleistenhöhe sind Konstanten in `shared/layout.ts`. Main-Prozess und UI nutzen dieselben Werte. Beim Öffnen und Schließen ändert der Main-Prozess die Bounds der YT-Ansicht sofort beim Klick, das Panel gleitet in seiner Ansicht darüber. Die Panel-Ansicht blendet er aus, sobald das Panel meldet, dass es hinausgeglitten ist.
 
 ### 3.1 Prozesse und Verantwortlichkeiten
 
@@ -926,6 +926,19 @@ social: {
 - [x] Changelog-Eintrag (1.9.0)
 - [ ] Release (wenn Johann es sagt)
 - Offen: YT merkt sich „zuletzt verwendete“ Playlists auf dem Server (Leiste „Neueste“ im Hinzufügen-Dialog); Pegels Ablegen landet dort ebenfalls. Ob das YTs direktes Hinzufügen per Kontextmenü beeinflusst, ist ungeprüft.
+
+### M18 – Seitenpanels gehen flüssiger in YT über
+
+> Wunsch von Johann nach 1.9.0: Das Auf- und Zuklappen war gut, aber YT Music brauchte danach immer einen Moment, um sich anzupassen. Gemessen (Fenster-Aufnahme mit `PrintWindow`, ca. 130 Bilder/s): Beim Schließen glitt das Panel hinaus, dann standen ca. 170 ms lang YTs alte Breite und eine Naht zwischen zwei Polarlicht-Ebenen, danach ca. 50 ms ein schwarzer Streifen, bis YT sich bei ca. 520 ms neu aufbaute.
+
+- **Verworfen:** Panel als schwebende Karte über einem gemeinsamen, durchsichtigen Hintergrund (commit 00575a7, zurückgenommen). YTs eigener Farbverlauf und YTs schwebendes Video passten nicht dazu, und die Karte brachte neue Probleme. Ebenso verworfen: YT bei jedem Bild mitschrumpfen lassen (natives `setBounds`-`animate` wirkt unter Windows nicht; von Hand gesteuert baut YT sich mehrmals um, Seitenleiste und Kachelgrößen springen, und an der Kante hinkt ein dunkler Streifen hinterher).
+- **Umsetzung:** EQ und Social liegen in einer eigenen `WebContentsView` über YT am rechten Rand (Route `/panel`, `SidePanels.tsx`), sehen aber aus wie vorher (volle Höhe, Rand links). YT gibt den Platz sofort beim Klick ab bzw. zurück. Beim Schließen baut sich YT also unter dem Panel neu auf, und das Panel gleitet über das fertige YT hinaus: keine Pause, kein schwarzer Streifen. Das Panel bewegt sich per `transform` statt `width` (läuft auf dem Compositor). Öffnen 0,3 s ease-out, Schließen 0,26 s ease-in-out, beim Gleiten über YT ein weicher Schatten. Wechsel EQ ↔ Social: Das alte blendet kurz aus, dann das neue ein. „Bewegung reduzieren“: nur Ein- und Ausblenden.
+- **YTs Seitenleiste:** Wird YT schmaler als sein Umbruchpunkt, schiebt YT die Seitenleiste als Schublade weg (0,2 s, einige Bilder halb verschobener Inhalt). Für 400 ms nach jeder Größenänderung hat die Schublade keinen Übergang (`pegel-resizing` an `<html>`, `src/yt/decor/resize.ts`, Selektor `guideDrawer`).
+- Bleibt: Beim Öffnen zeigt YT ca. 50 ms sein altes Bild abgeschnitten an der neuen Kante, bis es neu gezeichnet hat (Chromium).
+- [x] Panel-Ansicht über YT, neuer Ablauf im Main-Prozess, Schubladen-Fix
+- [x] Bildfolgen in Nordlicht und Sakura, mit „Bewegung reduzieren“, EQ/Social-Wechsel, Einstellungsseite
+- [ ] Gefühl von Johann abgenommen
+- [ ] Changelog-Eintrag und Release (wenn Johann es sagt)
 
 ### Später (optional)
 

@@ -67,18 +67,21 @@ ${FX} > .fx-back { z-index: -1; }
 const YT_BACK_CSS = `html body { background-color: transparent !important; }`;
 
 /**
- * Builds the effect of a theme (null if the theme has none); the caller
- * appends it and removes it again. The root takes no space (`display:
- * contents`); its layers are fixed to the viewport. Everything is inside the
- * returned element, including its <style>, so removing it removes every trace.
+ * Builds the effect of a theme, or only its front parts (null if there is
+ * nothing to show); the caller appends it and removes it again. The root takes
+ * no space (`display: contents`); its layers are fixed to the viewport.
+ * Everything is inside the returned element, including its <style>, so
+ * removing it removes every trace.
  */
 export function createThemeEffectLayer(
   doc: Document,
   theme: ThemeId,
   target: EffectTarget,
+  only?: 'front',
 ): HTMLElement | null {
-  const fx = THEME_EFFECTS[theme];
-  if (!fx) return null;
+  const all = THEME_EFFECTS[theme];
+  const fx = all && only === 'front' ? { ...all, back: undefined } : all;
+  if (!fx || (only === 'front' && !fx.front)) return null;
   const root = doc.createElement('div');
   root.id = FX_ROOT_ID;
   root.setAttribute('aria-hidden', 'true');

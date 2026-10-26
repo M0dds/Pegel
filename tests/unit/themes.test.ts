@@ -96,6 +96,8 @@ describe('buildYtThemeCss', () => {
       'scrollbar-width',
       // YT's own scrollbar room next to the player bar, matched to Pegel's scrollbar.
       '--ytmusic-scrollbar-width',
+      // The sidebar drawer skips its slide right after a size change (side panel).
+      'transition',
     ]);
     const css = buildYtPolishCss(THEMES.sakura);
     // The one margin allowed: the page scrollbar's track stops above the player bar.

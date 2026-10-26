@@ -228,20 +228,6 @@ button {
   cursor: pointer;
 }
 
-/* ---------- Music area: YT slot + EQ panel ---------- */
-.music {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  /* Own stacking context: z-indices inside (sliders, dialog) never cover Pegel pages. */
-  isolation: isolate;
-}
-
-.yt-slot {
-  flex: 1;
-  min-width: 0;
-}
-
 /* ---------- Controls ---------- */
 .switch {
   width: 36px;
@@ -318,32 +304,70 @@ button {
   outline-offset: 2px;
 }
 
-/* ---------- EQ panel ---------- */
-.eq {
-  position: relative;
-  width: 0;
-  flex: none;
-  overflow: hidden;
-  background: var(--surface);
-  border-left: 1px solid transparent;
-  transition:
-    width 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
-    border-color 0.28s;
+/* ---------- Side panels: EQ and Social (route /panel, own view above YT) ---------- */
+[data-window='panel'],
+[data-window='panel'] body {
+  background: transparent;
 }
 
-.eq.open {
+/* The view is exactly as wide as the panel. Closed, the panel waits just past
+   its right edge. It slides in eased out, and out eased in and out over YT,
+   which is already back in place underneath (the shadow only shows then). Sizes
+   in px: the hidden view is 0 × 0. Only one property transitions per mode, so
+   its transitionend tells the main process that the panel is out. */
+.side-panels {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
   width: 372px;
-  border-left-color: var(--border);
+  overflow: hidden;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: -10px 0 24px -14px #000c;
+  transform: translateX(372px);
+  transition: transform 0.26s cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.side-panels.open {
+  transform: none;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .eq {
-    transition-duration: 0.01s;
+  /* Out quicker than in: YT is already back underneath. */
+  .side-panels {
+    transform: none;
+    opacity: 0;
+    transition: opacity 0.1s ease-in;
+  }
+
+  .side-panels.open {
+    opacity: 1;
+    transition: opacity 0.15s ease-out;
   }
 }
 
+/* EQ and Social share the view, which stays when switching: the old one fades
+   out quickly, then the new one fades in (both at once would mix their texts). */
+.eq {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.1s ease-in,
+    visibility 0s 0.1s;
+}
+
+.eq.open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.16s ease-out 0.08s;
+}
+
 .eq-inner {
-  width: 372px;
+  width: 100%;
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
@@ -574,17 +598,13 @@ button {
 
 /* ---------- Theme effects behind the content (aurora, stars) ---------- */
 /* The layer sits at z-index -1, right above the body background. It shows through
-   the title bar and the Pegel pages; those hide the music area instead of covering it. */
+   the title bar and the Pegel pages (YT and the side panels are views of their own). */
 .app.back-effect .titlebar {
   background: color-mix(in srgb, var(--surface) 70%, transparent);
 }
 
 .app.back-effect .page {
   background: transparent;
-}
-
-.app.back-effect:not([data-view='music']) .music {
-  visibility: hidden;
 }
 
 /* ---------- Neon: accents glow like neon tubes ---------- */

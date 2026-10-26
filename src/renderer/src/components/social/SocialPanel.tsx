@@ -10,6 +10,7 @@ import { RowMenu } from './RowMenu';
 interface Props {
   state: SocialState;
   settings: SocialSettings;
+  /** The panel shown in the side panel view (the other one fades out). */
   open: boolean;
 }
 
@@ -41,15 +42,7 @@ export function SocialPanel({ state, settings, open }: Props) {
   const [adding, setAdding] = useState(false);
 
   return (
-    <aside
-      className={`eq social${open ? ' open' : ''}`}
-      aria-hidden={!open}
-      onTransitionEnd={(e) => {
-        if (e.target === e.currentTarget && e.propertyName === 'width') {
-          window.pegel.eqPanelAnimationDone(open);
-        }
-      }}
-    >
+    <aside className={`eq social${open ? ' open' : ''}`} aria-hidden={!open}>
       <div className="eq-inner">
         <div className="eq-head">
           <h3>Social</h3>

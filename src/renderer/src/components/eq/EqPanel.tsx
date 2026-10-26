@@ -31,6 +31,7 @@ function rangeFill(value: number, min: number, max: number): CSSProperties {
 
 interface Props {
   eq: EqSettings;
+  /** The panel shown in the side panel view (the other one fades out). */
   open: boolean;
   /** Current track, for the playlist preset row. */
   playing: PlayerState | null;
@@ -53,15 +54,7 @@ export function EqPanel({ eq, open, playing, pagePlaylist }: Props) {
   const preamp = effectivePreamp(eq);
 
   return (
-    <aside
-      className={`eq${open ? ' open' : ''}${eq.enabled ? '' : ' off'}`}
-      aria-hidden={!open}
-      onTransitionEnd={(e) => {
-        if (e.target === e.currentTarget && e.propertyName === 'width') {
-          window.pegel.eqPanelAnimationDone(open);
-        }
-      }}
-    >
+    <aside className={`eq${open ? ' open' : ''}${eq.enabled ? '' : ' off'}`} aria-hidden={!open}>
       <div className="eq-inner">
         <div className="eq-head">
           <h3>Equalizer</h3>

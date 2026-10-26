@@ -2,6 +2,7 @@ import type { Theme, ThemeToken } from '@shared/themes';
 import { SELECTORS } from '../selectors';
 import { NO_SCROLLBAR_ATTR, PLAYER_BAR_HEIGHT_VAR } from '../decor/scrollbar';
 import { buildYtDragCss } from '../dnd/styles';
+import { RESIZING_ATTR } from '../decor/resize';
 
 /**
  * YT Music's own colour variables (defined on `html`), grouped by the Pegel
@@ -172,6 +173,10 @@ body * { ${PLAYER_BAR_HEIGHT_VAR}: 0px; }
       var(--ytmusic-player-bar-background) var(--pegel-bar-top)
     ) !important;
 }
+
+/* Right after a size change (side panel), the sidebar drawer switches without sliding. */
+html[${RESIZING_ATTR}] ${SELECTORS.guideDrawer},
+html[${RESIZING_ATTR}] ${SELECTORS.guideDrawer} * { transition: none !important; }
 
 /* YT bug: the gradient is one 287 px tile repeated down the whole page (stripes). */
 ${SELECTORS.browseGradient} { background-repeat: no-repeat !important; }
