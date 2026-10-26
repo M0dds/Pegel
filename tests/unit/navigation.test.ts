@@ -12,6 +12,7 @@ describe('isAllowedInApp', () => {
     'https://consent.youtube.com/m?continue=x',
     'https://consent.google.com/ml',
     'https://www.youtube.com/signin?action_handle_signin=true&next=https%3A%2F%2Fmusic.youtube.com%2F',
+    'https://www.youtube.com/signin_prompt?app=desktop&next=https%3A%2F%2Fmusic.youtube.com%2F',
     'https://www.youtube.com/logout',
   ])('allows %s', (url) => {
     expect(isAllowedInApp(url)).toBe(true);
@@ -21,6 +22,8 @@ describe('isAllowedInApp', () => {
     'http://music.youtube.com/',
     'https://www.youtube.com/watch?v=abc',
     'https://www.youtube.com/signinfoo',
+    'https://www.youtube.com/signin_promptfoo',
+    'https://www.youtube.com/signin_passive',
     'https://youtube.com/',
     'https://myaccount.google.com/',
     'https://www.google.com/search?q=x',

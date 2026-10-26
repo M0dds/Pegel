@@ -14,7 +14,8 @@ const ALWAYS_ALLOWED_HOSTS = new Set([
 
 /** youtube.com hosts are only allowed for the sign-in/out hops of the login flow. */
 const YOUTUBE_HOSTS = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com']);
-const YOUTUBE_LOGIN_PATHS = ['/signin', '/logout'];
+// /signin_prompt follows /signin after a sign-in and forwards to its `next` URL.
+const YOUTUBE_LOGIN_PATHS = ['/signin', '/signin_prompt', '/logout'];
 
 /** Country login domains, e.g. accounts.google.de (cookie sync after login). */
 const GOOGLE_ACCOUNTS_CC = /^accounts\.google\.[a-z]{2,3}(\.[a-z]{2})?$/;
