@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { watchLinkDrops } from '@shared/link-drop';
 import type { PegelLink } from '@shared/links';
+import { playlistDropText, type PlaylistDropReport } from '@shared/playlist-drop';
 import type { UpdateStatus } from '@shared/update';
 import type { AppInfo, PagePlaylist, PlayerState, Settings, View } from '@shared/types';
 import { EMPTY_SOCIAL_STATE, type SocialState } from '@shared/social';
@@ -16,6 +17,10 @@ import { SettingsPage } from './routes/SettingsPage';
 import { WelcomePage } from './routes/WelcomePage';
 
 /** Title bar pill while in a party: who waits, or how many listen. */
+/** How long the hint after dragging a track onto a playlist stays (ms); longer with "Trotzdem hinzufügen". */
+const DROP_HINT_MS = 4000;
+const DROP_HINT_ACTION_MS = 9000;
+
 function partyPill(social: SocialState): { label: string; waiting: boolean } | null {
   const party = social.party;
   if (!party) return null;
@@ -44,6 +49,8 @@ export function App() {
   /** Version whose update hint was closed; the settings still offer it. */
   const [dismissedUpdate, setDismissedUpdate] = useState<string | null>(null);
   const [social, setSocial] = useState<SocialState>(EMPTY_SOCIAL_STATE);
+  /** Outcome of the last drag onto a playlist; `n` restarts the timer for a repeat. */
+  const [drop, setDrop] = useState<{ report: PlaylistDropReport; n: number } | null>(null);
 
   useEffect(() => {
     void window.pegel.getView().then(setView);
@@ -71,6 +78,9 @@ export function App() {
     const offPage = window.pegel.onPagePlaylist(setPagePlaylist);
     const offSidebar = window.pegel.onSidebarOutdated(setSidebarOutdated);
     const offLink = window.pegel.onLinkOffer(setLinkOffer);
+    const offDrop = window.pegel.onPlaylistDrop((report) =>
+      setDrop((prev) => ({ report, n: (prev?.n ?? 0) + 1 })),
+    );
     void window.pegel.getUpdateStatus().then(setUpdate);
     const offUpdate = window.pegel.onUpdateStatus(setUpdate);
     void window.pegel.getSocialState().then(setSocial);
@@ -78,6 +88,7 @@ export function App() {
     return () => {
       offSocial();
       offLink();
+      offDrop();
       offUpdate();
       offView();
       offSettings();
@@ -87,6 +98,13 @@ export function App() {
       offSidebar();
     };
   }, []);
+
+  useEffect(() => {
+    if (!drop) return;
+    const ms = drop.report.track ? DROP_HINT_ACTION_MS : DROP_HINT_MS;
+    const timer = setTimeout(() => setDrop(null), ms);
+    return () => clearTimeout(timer);
+  }, [drop]);
 
   // Links dropped onto Pegel's own pages and the title bar (the YT view handles its own).
   useEffect(() => watchLinkDrops(window, (url) => window.pegel.dropLink(url)), []);
@@ -114,30 +132,47 @@ export function App() {
   const backEffect = effectTheme !== null && themeEffect(effectTheme)?.layer === 'back';
   const hint = titlebarHint();
 
-  /** One hint at a time: an invite and a copied link are the most immediate, an update can wait. */
+  /**
+   * One hint at a time: an invite and a copied link are the most immediate, an
+   * update can wait. A drop onto a playlist just happened, so it comes before
+   * the link offer (it goes away by itself).
+   */
   function titlebarHint(): TitlebarHint | null {
     const invite = social.invites[0];
     if (invite) {
       return {
         text: `${invite.name} lädt dich zur Party ein`,
-        action: 'Beitreten',
-        onAction: () => window.pegel.partyRespond(invite.inviteId, true),
+        action: { label: 'Beitreten', run: () => window.pegel.partyRespond(invite.inviteId, true) },
         onClose: () => window.pegel.partyRespond(invite.inviteId, false),
+      };
+    }
+    if (drop) {
+      const { track } = drop.report;
+      return {
+        text: playlistDropText(drop.report),
+        ...(track && {
+          action: {
+            label: 'Trotzdem hinzufügen',
+            run: () => {
+              window.pegel.addToPlaylistAnyway(track);
+              setDrop(null);
+            },
+          },
+        }),
+        onClose: () => setDrop(null),
       };
     }
     if (linkOffer) {
       return {
         text: `Kopierter Link: ${LINK_KIND_LABEL[linkOffer.kind]}`,
-        action: 'Öffnen',
-        onAction: () => window.pegel.openOfferedLink(),
+        action: { label: 'Öffnen', run: () => window.pegel.openOfferedLink() },
         onClose: () => window.pegel.dismissLink(),
       };
     }
     if (sidebarOutdated) {
       return {
         text: 'Neue Playlist angelegt',
-        action: 'Jetzt aktualisieren',
-        onAction: () => window.pegel.reloadYt(),
+        action: { label: 'Jetzt aktualisieren', run: () => window.pegel.reloadYt() },
         onClose: () => setSidebarOutdated(false),
       };
     }
@@ -148,8 +183,10 @@ export function App() {
       const { version } = update;
       return {
         text: update.state === 'ready' ? `Update auf ${version} bereit` : `Pegel ${version} ist da`,
-        action: update.state === 'ready' ? 'Neu starten' : 'Herunterladen',
-        onAction: () => window.pegel.installUpdate(),
+        action: {
+          label: update.state === 'ready' ? 'Neu starten' : 'Herunterladen',
+          run: () => window.pegel.installUpdate(),
+        },
         onClose: () => setDismissedUpdate(version),
       };
     }

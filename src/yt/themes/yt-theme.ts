@@ -1,6 +1,7 @@
 import type { Theme, ThemeToken } from '@shared/themes';
 import { SELECTORS } from '../selectors';
 import { NO_SCROLLBAR_ATTR, PLAYER_BAR_HEIGHT_VAR } from '../decor/scrollbar';
+import { buildYtDragCss } from '../dnd/styles';
 
 /**
  * YT Music's own colour variables (defined on `html`), grouped by the Pegel
@@ -215,11 +216,11 @@ export function buildYtColorVarsCss(theme: Theme): string {
 }
 
 /**
- * CSS for the YT view: the polish for every theme; Pegel themes add their
+ * CSS for the YT view: the polish and the playlist drag & drop for every theme; Pegel themes add their
  * colours and background (the standard theme keeps YT's look). Applied with insertCSS.
  */
 export function buildYtThemeCss(theme: Theme): string {
-  const polish = buildYtPolishCss(theme);
+  const polish = buildYtPolishCss(theme) + buildYtDragCss(theme);
   if (theme.id === 'standard') return polish;
   return polish + buildYtColorVarsCss(theme) + buildYtBackgroundCss(theme) + buildYtGlowCss(theme);
 }

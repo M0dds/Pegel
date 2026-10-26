@@ -30,8 +30,8 @@ interface Props {
 /** Pill next to the logo: copied link, new playlist, update. */
 export interface TitlebarHint {
   text: string;
-  action: string;
-  onAction(): void;
+  /** Button in the pill; without it the pill only informs. */
+  action?: { label: string; run(): void };
   onClose(): void;
 }
 
@@ -70,9 +70,11 @@ export function Titlebar({
       {hint && (
         <div className="tb-hint" role="status" key={hint.text}>
           <span>{hint.text}</span>
-          <button className="tb-hint-action" onClick={hint.onAction}>
-            {hint.action}
-          </button>
+          {hint.action && (
+            <button className="tb-hint-action" onClick={hint.action.run}>
+              {hint.action.label}
+            </button>
+          )}
           <button
             className="tb-hint-close"
             aria-label="Hinweis schließen"

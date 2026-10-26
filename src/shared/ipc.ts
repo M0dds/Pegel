@@ -1,5 +1,6 @@
 import type { EqAction } from './eq';
 import type { PegelLink } from './links';
+import type { PlaylistDropReport, PlaylistTrack } from './playlist-drop';
 import type { PartyControl, PartyReport, SocialState } from './social';
 import type { UpdateStatus } from './update';
 import type {
@@ -103,6 +104,8 @@ export interface UiToMainChannels {
   'link:dismiss': void;
   /** Text dropped onto a Pegel page; opened if it is a YT link. */
   'link:drop': string;
+  /** "Trotzdem hinzufügen": the dropped track goes into the playlist a second time. */
+  'playlist:add-anyway': PlaylistTrack;
   'update:check': void;
   /** Restart into a downloaded update (Windows) or open the download page (macOS). */
   'update:install': void;
@@ -125,6 +128,8 @@ export interface MainToUiChannels {
   /** Bar levels 0…255 for the mini player's visualizer (empty: silence). */
   'mini:spectrum': number[];
   'social:state': SocialState;
+  /** A track was dragged onto a playlist in YT's sidebar: the outcome, for the title bar. */
+  'yt:playlist-drop': PlaylistDropReport;
 }
 
 /** YT view preload → main. */
@@ -142,6 +147,8 @@ export interface YtToMainChannels {
   'yt:spectrum': number[];
   /** Precise playback facts while in a listening party. */
   'yt:party-report': PartyReport;
+  /** A track was dragged onto a playlist in YT's sidebar (added, duplicate, error). */
+  'yt:playlist-drop': PlaylistDropReport;
 }
 
 /** Main → YT view preload. */
@@ -157,6 +164,8 @@ export interface MainToYtChannels {
   'yt:play-track': { videoId: string; playlistId?: string };
   /** Guest: leave the local pause and play in sync again. */
   'yt:party-resume': void;
+  /** Adds a track that is already in the playlist once more (the user asked for it). */
+  'yt:playlist-add-anyway': PlaylistTrack;
 }
 
 export type InvokeChannel = keyof InvokeChannels;
@@ -200,6 +209,8 @@ export interface PegelApi {
   signOut(): void;
   onSidebarOutdated(listener: (outdated: boolean) => void): () => void;
   onLinkOffer(listener: (link: PegelLink | null) => void): () => void;
+  onPlaylistDrop(listener: (report: PlaylistDropReport) => void): () => void;
+  addToPlaylistAnyway(track: PlaylistTrack): void;
   openOfferedLink(): void;
   dismissLink(): void;
   dropLink(text: string): void;

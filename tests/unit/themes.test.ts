@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { THEME_IDS, THEMES } from '@shared/themes';
+import { buildYtDragCss } from '../../src/yt/dnd/styles';
 import {
   buildYtBackgroundCss,
   buildYtColorVarsCss,
@@ -38,8 +39,10 @@ describe('theme contrast (WCAG AA)', () => {
 });
 
 describe('buildYtThemeCss', () => {
-  it('keeps YT colours for the standard theme, only the polish', () => {
-    expect(buildYtThemeCss(THEMES.standard)).toBe(buildYtPolishCss(THEMES.standard));
+  it('keeps YT colours for the standard theme, only the polish and drag & drop', () => {
+    expect(buildYtThemeCss(THEMES.standard)).toBe(
+      buildYtPolishCss(THEMES.standard) + buildYtDragCss(THEMES.standard),
+    );
   });
 
   it('maps every listed variable to the theme token', () => {
@@ -64,7 +67,7 @@ describe('buildYtThemeCss', () => {
 
   it('replaces the cover-art glow only in Pegel themes', () => {
     expect(buildYtThemeCss(THEMES.sakura)).toContain(buildYtBackgroundCss(THEMES.sakura));
-    expect(buildYtThemeCss(THEMES.standard)).not.toContain('opacity: 0');
+    expect(buildYtThemeCss(THEMES.standard)).not.toContain(buildYtBackgroundCss(THEMES.standard));
     // Every theme gets the fix for YT's repeating gradient tile.
     expect(buildYtThemeCss(THEMES.standard)).toContain('background-repeat: no-repeat');
     const props = [...buildYtBackgroundCss(THEMES.bernstein).matchAll(/([a-z-]+)\s*:\s*[^;{}]+;/g)];

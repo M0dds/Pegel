@@ -908,6 +908,25 @@ social: {
 - [x] Fehler in 1.8.0 behoben: Während der Wiedergabe fehlten die Buttons, weil Electron das Flag `'enabled'` ablehnt. Gesetzt wird jetzt erst nach dem Anzeigen und nach jedem Zurückholen aus dem Tray erneut. Geprüft mit Johann in der echten Taskleiste.
 - macOS hat keine Vorschau-Leiste. Dort decken „Jetzt läuft“ und das Menüleisten-Menü das ab.
 
+### M17 – Songs per Drag & Drop in Playlists (wie bei Spotify)
+
+> Wunsch von Johann nach 1.8.4. YT Music kann das selbst nicht. Wichtig war ihm vor allem, dass es sich sehr flüssig anfühlt.
+
+- **Quellen:** Song-Zeilen in YTs Listen (Album, Playlist, Suche, Startseite), die Warteschlange und der laufende Titel in der Player-Leiste. Die Video-ID kommt aus dem Link der Zeile (`watch?v=…`), in der Warteschlange aus YTs Daten der Zeile, in der Player-Leiste aus YTs Player-API. Zeilen ohne Song (Alben, Künstler) lassen sich nicht ziehen.
+- **Ziele:** die eigenen Playlists in YTs linker Seitenleiste. Welche einen Song aufnehmen, sagt YTs eigene Liste für „Zur Playlist hinzufügen“ (`playlist/get_add_to_playlist`); die Playlist-ID steckt in den Daten des Eintrags (`browseId` „VL…“). „Musik, die ich mag“ (dort wäre es ein „Gefällt mir“) und „Gespeicherte Folgen“ sind keine Ziele.
+- **Hinzufügen:** genau YTs eigene Anfrage `browse/edit_playlist` mit `ACTION_ADD_VIDEO` und `DEDUPE_OPTION_CHECK`, gesendet in der Hauptwelt der Seite mit deren Login (SAPISIDHASH aus dem Cookie, Werte aus `ytcfg`, pro Anfrage berechnet, nichts gespeichert). Pegel entfernt nie etwas.
+- **Doppelte Songs:** YT lehnt sie ab (`STATUS_FAILED` mit eigenem Angebot „Trotzdem hinzufügen“, also `DEDUPE_OPTION_SKIP`; Stand Oktober 2026). Die Titelleiste zeigt dann „Schon in „…““ mit „Trotzdem hinzufügen“ (9 s). Andere Antworten gelten als Fehler, geraten wird nichts.
+- **Geste:** zeigerbasiert statt HTML5-Drag-and-Drop (nur so geht eine Karte auf Federn, ohne grauen Ghost). Ein Klick ohne Bewegung bleibt YTs Klick; die Geste beginnt nach 6 px, der Klick danach wird geschluckt. Beim Überfahren normaler Zeiger (auch in der Warteschlange, wo YT „Verschieben“ zeigt), die greifende Hand erst beim Festhalten (150 ms) oder Ziehen.
+- **YTs eigenes Umsortieren** (Warteschlange, eigene Playlists) bleibt: YT blendet die Zeile aus und lässt eine Kopie am Ende von `<body>` schweben. Pegel übernimmt erst, wenn die Zeile seitlich aus ihrer Liste gezogen wird, und beendet YTs Ziehen per künstlichem Loslassen am Startpunkt (keine Änderung der Reihenfolge). Die Entscheidung fällt einen Frame später, weil Pegels Listener vor YTs eigenem läuft.
+- **Gefühl:** Karte mit Cover, Titel und Interpret in den Theme-Farben, leicht vergrößert und geneigt (neigt sich mit dem Tempo), Federn mit fester Schrittweite (gleich bei 60 und 144 Hz), nur `transform`/`opacity`. Die Ursprungszeile blendet halb aus. Ziele leuchten nacheinander auf, der Rest tritt zurück; über einem Ziel schrumpft die Karte aufs Cover mit „+“ und rastet in die Zeile ein; die Seitenleiste scrollt am Rand mit. Ablegen: Bogenflug in die Playlist, Häkchen, das sich zeichnet, Titelleisten-Hinweis. Abbrechen (Esc, daneben): die Karte federt in ihre Zeile zurück. „Bewegung reduzieren“: nur Überblendungen.
+- **Code:** `src/yt/dnd/` (Geste und Darstellung `drag.ts`, YT-Anfragen `api.ts`/`innertube.ts`, Federn und Flugbahn `motion.ts`, CSS `styles.ts` für alle Themes über `buildYtThemeCss`), Selektoren in `src/yt/selectors.ts` (im Selbsttest als „Songs in Playlists ziehen“), Hinweistexte in `src/shared/playlist-drop.ts`. YT erzwingt Trusted Types, deshalb kein `innerHTML` in der YT-Ansicht.
+- [x] Reine Teile mit Tests: Video-ID, Anfragen, Antworten (auch YTs echte Duplikat-Antwort), Federn, Flugbahn, Hinweistexte
+- [x] Geste, Karte, Ziele, Flug und Rückfeder; Übernahme aus YTs Umsortieren in der Warteschlange
+- [x] Getestet mit Johanns Konto, nur in der privaten Playlist „Pegel Test“: Hinzufügen, Duplikat, „Trotzdem hinzufügen“; Bildfolgen in Standard, Sakura, Neon, Nordlicht und mit „Bewegung reduzieren“; Gefühl von Johann abgenommen
+- [x] Changelog-Eintrag (1.9.0)
+- [ ] Release (wenn Johann es sagt)
+- Offen: YT merkt sich „zuletzt verwendete“ Playlists auf dem Server (Leiste „Neueste“ im Hinzufügen-Dialog); Pegels Ablegen landet dort ebenfalls. Ob das YTs direktes Hinzufügen per Kontextmenü beeinflusst, ist ungeprüft.
+
 ### Später (optional)
 
 - Liedtexte im Seitenpanel, Last.fm-Scrobbling, weitere Themes
@@ -929,6 +948,7 @@ social: {
 | YT ändert die interne Navigation (`watchEndpoint`) | mittel | Rückfallebene `loadURL` (langsamer, Party bleibt nutzbar), Selbsttest meldet es |
 | Party driftet trotz Korrektur (Bluetooth, langsames Laden) | mittel | Ausgabelatenz der EQ-Kette herausrechnen, „Audio-Versatz“ von Hand, Sprungvorlauf lernen |
 | Cloudflare-Free-Plan reicht nicht oder ändert sich | niedrig | Nachrichtenraten drosseln (Status nur bei Änderung), DO-Code läuft auch im Paid-Plan (5 $/Monat) unverändert |
+| YT ändert die interne Playlist-Schnittstelle oder das Umsortieren | mittel | Drag & Drop meldet ehrlich „Konnte nicht hinzugefügt werden“, YTs eigenes Umsortieren und Klicks bleiben unberührt; Selbsttest meldet fehlende Selektoren |
 
 ---
 
@@ -938,6 +958,7 @@ social: {
 - [ ] EQ: jedes Preset hörbar, an/aus ohne Knacksen, nach Titelwechsel aktiv, nach Neustart aktiv
 - [ ] Alle 4 Themes: YT lesbar, Fortschrittsbalken und Akzente passen, Titelleisten-Buttons (Windows) passen
 - [ ] Gemeinsame Playlist öffnen, Song hinzufügen
+- [ ] Song per Drag & Drop in eine eigene Playlist (Hinweis in der Titelleiste), Esc bricht ab; Warteschlange lässt sich weiter umsortieren
 - [ ] Fenster schließen: Musik läuft weiter (Tray). Tray-Menü funktioniert. Beenden beendet wirklich
 - [ ] Medientasten der Tastatur und Medienüberlagerung des Systems
 - [ ] Mini-Player: alle Buttons, Pin, Position nach Neustart

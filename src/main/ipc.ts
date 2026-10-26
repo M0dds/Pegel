@@ -7,6 +7,7 @@ import { isPlayerCommand } from '@shared/player';
 import { isThemeId } from '@shared/themes';
 import { isView } from '@shared/types';
 import { toPartyReport } from '@shared/social';
+import { toPlaylistDropReport, toPlaylistTrack } from '@shared/playlist-drop';
 import {
   answerSuggestion,
   createFriendCode,
@@ -50,6 +51,8 @@ import {
   getView,
   handleYtReady,
   isYtSender,
+  sendToUi,
+  sendToYt,
   onPanelAnimationDone,
   reloadYt,
   retryYt,
@@ -132,6 +135,10 @@ export function registerIpc(): void {
   on('party:resume', () => resumeParty());
   on('social:play-friend-track', (_event, id) => playFriendTrack(id));
   on('social:open-friend-playlist', (_event, id) => openFriendPlaylist(id));
+  on('playlist:add-anyway', (_event, raw) => {
+    const track = toPlaylistTrack(raw);
+    if (track) sendToYt('yt:playlist-add-anyway', track);
+  });
 
   on('view:show', (_event, view) => {
     if (isView(view)) showView(view);
@@ -246,6 +253,10 @@ export function registerIpc(): void {
     if (!isYtSender(event.sender)) return;
     const report = toPartyReport(raw);
     if (report) handlePartyReport(report);
+  });
+  ipcMain.on('yt:playlist-drop', (event, raw: unknown) => {
+    const report = isYtSender(event.sender) ? toPlaylistDropReport(raw) : null;
+    if (report) sendToUi('yt:playlist-drop', report);
   });
   ipcMain.on('yt:drop-link', (event, text: unknown) => {
     const link = isYtSender(event.sender) && typeof text === 'string' ? findPegelLink(text) : null;

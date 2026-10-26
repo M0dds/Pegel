@@ -8,6 +8,7 @@ import { SpectrumFeed, Visualizer } from '../yt/audio/visualizer';
 import { YtDecor } from '../yt/decor/effects';
 import { PartyEngine } from '../yt/party/sync';
 import { watchScrollbar } from '../yt/decor/scrollbar';
+import { PlaylistDrag } from '../yt/dnd/drag';
 import {
   NEEDS_REPORT,
   navigateToTrack,
@@ -77,6 +78,13 @@ if (location.hostname === 'music.youtube.com') {
   startPageWatcher((page) => send('yt:page-playlist', page));
   watchLinkDrops(window, (url) => send('yt:drop-link', url));
   watchScrollbar();
+  const playlistDrag = new PlaylistDrag((report) => send('yt:playlist-drop', report));
+  playlistDrag.start();
+  ipcRenderer.on(
+    'yt:playlist-add-anyway' satisfies keyof MainToYtChannels,
+    (_event: IpcRendererEvent, track: MainToYtChannels['yt:playlist-add-anyway']) =>
+      void playlistDrag.addAnyway(track),
+  );
   // Development only, reachable from DevTools in the preload's isolated world (not the page).
   if (import.meta.env.DEV)
     Object.assign(globalThis, { pegelEq: eq, pegelDecor: decor, pegelParty: party });

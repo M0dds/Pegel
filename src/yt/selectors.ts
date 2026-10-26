@@ -33,6 +33,33 @@ export const SELECTORS = {
   adShowing: '#movie_player.ad-showing',
   /** Root element of YT Music; takes YT's own in-page navigation (listening party). */
   app: 'ytmusic-app',
+
+  // Drag & drop into playlists (src/yt/dnd).
+  /** A track row in YT's lists (album, playlist, search, home) and in the queue. */
+  songRow: 'ytmusic-responsive-list-item-renderer, ytmusic-player-queue-item',
+  /** A track in the queue (YT gives it a "move" cursor because it can be reordered). */
+  queueRow: 'ytmusic-player-queue-item',
+  /** The link of a track inside a row (`watch?v=…`); albums and artists link elsewhere. */
+  trackLink: 'a[href*="watch?v="]',
+  /** Title and artist inside a row (list rows / queue items). */
+  rowTitle: '.title, .song-title',
+  rowArtist: '.secondary-flex-columns a[href^="channel/"], .byline',
+  /** Cover inside a row (lazy: a placeholder until it was visible). */
+  rowCover: 'img',
+  /** Parts of a row that keep their own press (menus, like, checkboxes): no drag from there. */
+  rowNoDrag: 'ytmusic-menu-renderer, ytmusic-like-button-renderer, tp-yt-paper-checkbox, input',
+  /** Album and playlist pages: the header's cover and artist (track rows there have none). */
+  pageCover: 'ytmusic-responsive-header-renderer > ytmusic-thumbnail-renderer.thumbnail img',
+  pageArtist: 'ytmusic-responsive-header-renderer .strapline-text',
+  /** The current track in the player bar (cover and title, not the buttons). */
+  playerBarTrack:
+    'ytmusic-player-bar .thumbnail-image-wrapper, ytmusic-player-bar .content-info-wrapper',
+  /** Entries of YT's left sidebar; the user's playlists are among them. */
+  guideEntry: 'ytmusic-guide-renderer ytmusic-guide-entry-renderer',
+  /** The visible row of a sidebar entry (carries YT's hover background). */
+  guideEntryItem: 'tp-yt-paper-item',
+  /** Name of a sidebar entry. */
+  guideEntryTitle: '.title',
 } as const satisfies Record<string, string>;
 
 export type SelectorName = keyof typeof SELECTORS;
@@ -45,6 +72,10 @@ export const SELF_TEST: readonly { selector: SelectorName; feature: string }[] =
   { selector: 'likeButton', feature: 'Gefällt mir' },
   { selector: 'playerApi', feature: 'Lautstärke' },
   { selector: 'app', feature: 'Hör-Party (Titel laden)' },
+  // Checked while a track plays, so the queue (song rows) and the player bar exist.
+  { selector: 'songRow', feature: 'Songs in Playlists ziehen' },
+  { selector: 'playerBarTrack', feature: 'Songs in Playlists ziehen' },
+  { selector: 'guideEntry', feature: 'Songs in Playlists ziehen' },
 ];
 
 /** Features whose selectors are missing in `root` (deduplicated). */
