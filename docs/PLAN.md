@@ -924,7 +924,7 @@ social: {
 - [x] Geste, Karte, Ziele, Flug und Rückfeder; Übernahme aus YTs Umsortieren in der Warteschlange
 - [x] Getestet mit Johanns Konto, nur in der privaten Playlist „Pegel Test“: Hinzufügen, Duplikat, „Trotzdem hinzufügen“; Bildfolgen in Standard, Sakura, Neon, Nordlicht und mit „Bewegung reduzieren“; Gefühl von Johann abgenommen
 - [x] Changelog-Eintrag (1.9.0)
-- [ ] Release (wenn Johann es sagt)
+- [x] Release 1.9.0
 - Offen: YT merkt sich „zuletzt verwendete“ Playlists auf dem Server (Leiste „Neueste“ im Hinzufügen-Dialog); Pegels Ablegen landet dort ebenfalls. Ob das YTs direktes Hinzufügen per Kontextmenü beeinflusst, ist ungeprüft.
 
 ### M18 – Seitenpanels gehen flüssiger in YT über

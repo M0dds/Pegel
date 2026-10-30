@@ -4,6 +4,7 @@ Pegel ist ein inoffizieller Desktop-Client für YouTube Music, gebaut mit Electr
 
 - **Vollständiger Plan, Architektur und Meilensteine:** `docs/PLAN.md` – vor jeder Arbeit lesen.
 - **Design-Referenz:** `design/mockup.html` – Farben, Abstände, Texte und Presets von dort übernehmen.
+- **Übergabe (Kontowechsel):** `docs/uebergabe/2026-10-30/OFFENE-THEMEN.md` – Stand, offene Themen, Johanns Vorlieben, Release- und Test-Ablauf.
 
 ## Arbeitsweise
 
